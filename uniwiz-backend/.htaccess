@@ -1,0 +1,24 @@
+// This file helps create "clean URLs" so you can access your API
+// like /api/jobs instead of /api/jobs.php. It also handles CORS
+// which is necessary for your React frontend to communicate with this backend.
+
+/*
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Allow cross-origin requests for API development
+  Header set Access-Control-Allow-Origin "*"
+  Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+  Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+
+  # Handle pre-flight requests (for methods like PUT, DELETE)
+  RewriteCond %{REQUEST_METHOD} OPTIONS
+  RewriteRule ^(.*)$ $1 [R=200,L]
+
+  # Your other rewrite rules would go here
+  # For example, to route all requests to a single index.php (for a framework)
+  # RewriteCond %{REQUEST_FILENAME} !-f
+  # RewriteCond %{REQUEST_FILENAME} !-d
+  # RewriteRule ^ index.php [QSA,L]
+</IfModule>
+*/
