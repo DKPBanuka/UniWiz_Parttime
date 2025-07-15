@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/jobs.php (Final version that fetches from the database)
+// FILE: uniwiz-backend/api/jobs.php (Updated to include company_name)
 // =================================================================================
 
 // --- Headers ---
@@ -20,26 +20,37 @@ include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
-if ($db === null) {
-    http_response_code(503); 
+if ($db === null) { 
+    http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
     exit(); 
 }
 
 // --- Main Logic to Fetch Jobs ---
 try {
-    // We need to join multiple tables to get all the information the frontend needs:
-    // 1. `jobs` table for the main job details.
-    // 2. `job_categories` table to get the category name from `category_id`.
-    // 3. `users` table to get the publisher's name from `publisher_id`.
+    // Get filter parameters from query string
+    $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
+    $category_id_filter = isset($_GET['category_id']) ? trim($_GET['category_id']) : '';
+    $job_type_filter = isset($_GET['job_type']) ? trim($_GET['job_type']) : '';
+    $date_posted_filter = isset($_GET['date_posted']) ? trim($_GET['date_posted']) : ''; // e.g., '24_hours', '7_days_ago'
+    $specific_date_filter = isset($_GET['specific_date']) ? trim($_GET['specific_date']) : ''; // New: Specific date from calendar
+    $min_salary_filter = isset($_GET['min_salary']) ? (float)$_GET['min_salary'] : null;
+    $max_salary_filter = isset($_GET['max_salary']) ? (float)$_GET['max_salary'] : null;
+
     $query = "
         SELECT 
             j.id, 
             j.title, 
-            jc.name as category, -- get category name and alias it as 'category'
+            jc.name as category, 
+            j.category_id,      
             j.job_type, 
             j.payment_range, 
-            u.first_name as publisher -- get publisher's first name and alias it as 'publisher'
+            j.created_at,       
+            j.start_date,       
+            j.end_date,         
+            u.first_name as publisher_first_name, -- Get publisher's first name
+            u.company_name as publisher_company_name, -- Get publisher's company name
+            u.id as publisher_id -- Get publisher's ID for linking to company profile
         FROM 
             jobs as j
         LEFT JOIN 
@@ -48,50 +59,118 @@ try {
             users as u ON j.publisher_id = u.id
         WHERE 
             j.status = 'active' -- Only fetch active jobs
-        ORDER BY 
-            j.created_at DESC -- Show the newest jobs first
     ";
 
+    // Add search term filter
+    if (!empty($search_term)) {
+        $query .= " AND (j.title LIKE :search_term OR u.first_name LIKE :search_term OR u.company_name LIKE :search_term)"; // Search by company name too
+    }
+
+    // Add category filter
+    if (!empty($category_id_filter)) {
+        $query .= " AND j.category_id = :category_id_filter";
+    }
+
+    // Add job type filter
+    if (!empty($job_type_filter)) {
+        $query .= " AND j.job_type = :job_type_filter";
+    }
+
+    // Add date posted filter (e.g., '24_hours', '7_days_ago')
+    if (!empty($date_posted_filter)) {
+        $date_limit = '';
+        switch ($date_posted_filter) {
+            case '24_hours':
+                $date_limit = date('Y-m-d H:i:s', strtotime('-24 hours'));
+                break;
+            case '2_days_ago':
+                $date_limit = date('Y-m-d H:i:s', strtotime('-2 days'));
+                break;
+            case '7_days_ago':
+                $date_limit = date('Y-m-d H:i:s', strtotime('-7 days'));
+                break;
+            case '30_days_ago':
+                $date_limit = date('Y-m-d H:i:s', strtotime('-30 days'));
+                break;
+            // Add more cases as needed
+        }
+        if (!empty($date_limit)) {
+            $query .= " AND j.created_at >= :date_limit";
+        }
+    }
+
+    // New: Specific date filter (job's start_date or end_date must include this day)
+    if (!empty($specific_date_filter)) {
+        $query .= " AND (
+            (j.start_date <= :specific_date_filter AND j.end_date >= :specific_date_filter)
+            OR (j.start_date <= :specific_date_filter AND j.end_date IS NULL)
+            OR (j.start_date = :specific_date_filter)
+        )";
+    }
+
+    // Salary range filtering (still client-side in FindJobsPage.js due to complex payment_range field)
+
+
+    $query .= " ORDER BY j.created_at DESC";
+
     $stmt = $db->prepare($query);
+
+    // Bind parameters
+    if (!empty($search_term)) {
+        $search_param = "%" . $search_term . "%";
+        $stmt->bindParam(':search_term', $search_param, PDO::PARAM_STR);
+    }
+    if (!empty($category_id_filter)) {
+        $stmt->bindParam(':category_id_filter', $category_id_filter, PDO::PARAM_INT);
+    }
+    if (!empty($job_type_filter)) {
+        $stmt->bindParam(':job_type_filter', $job_type_filter, PDO::PARAM_STR);
+    }
+    if (!empty($date_limit)) {
+        $stmt->bindParam(':date_limit', $date_limit, PDO::PARAM_STR);
+    }
+    if (!empty($specific_date_filter)) {
+        $stmt->bindParam(':specific_date_filter', $specific_date_filter, PDO::PARAM_STR);
+    }
+
     $stmt->execute();
 
     $num = $stmt->rowCount();
 
-    // Check if any jobs were found
     if ($num > 0) {
         $jobs_arr = array();
-        
-        // Fetch all rows from the result set
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            // The `extract` function creates variables from the array keys (e.g., $id, $title)
-            extract($row);
-            
-            // Create an array for each job with the structure the frontend expects
             $job_item = array(
-                "id" => $id,
-                "title" => $title,
-                "category" => $category,
-                "job_type" => $job_type,
-                "payment_range" => $payment_range,
-                "publisher" => $publisher
+                "id" => $row['id'],
+                "title" => $row['title'],
+                "category" => $row['category'],
+                "category_id" => $row['category_id'],
+                "job_type" => $row['job_type'],
+                "payment_range" => $row['payment_range'],
+                "created_at" => $row['created_at'], 
+                "start_date" => $row['start_date'], 
+                "end_date" => $row['end_date'],     
+                "publisher_id" => $row['publisher_id'], // Include publisher ID
+                "publisher_name" => $row['publisher_first_name'], // Include publisher first name
+                "company_name" => $row['publisher_company_name'] // Include company name
             );
-            
-            // Add the job item to our main array
+            // Prioritize company name for display
+            $job_item['publisher'] = !empty($row['publisher_company_name']) ? $row['publisher_company_name'] : $row['publisher_first_name'];
+
             array_push($jobs_arr, $job_item);
         }
-        
-        // Set HTTP response code to 200 (OK)
         http_response_code(200);
-        // Send the jobs array as a JSON response
         echo json_encode($jobs_arr);
     } else {
-        // If no jobs are found, send an empty array
         http_response_code(200);
         echo json_encode([]);
     }
 
 } catch (PDOException $e) {
     http_response_code(503); 
-    echo json_encode(["message" => "Database error while fetching jobs."]);
+    echo json_encode(["message" => "Database error while fetching jobs: " . $e->getMessage()]);
+} catch (Exception $e) {
+    http_response_code(500); 
+    echo json_encode(["message" => "An unexpected server error occurred: " . $e->getMessage()]);
 }
 ?>

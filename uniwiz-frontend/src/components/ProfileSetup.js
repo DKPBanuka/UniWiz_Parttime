@@ -28,7 +28,13 @@ function ProfileSetup({ user, onSetupComplete }) {
         };
 
         // If the user is a publisher, add the company name to the data
+        // And ensure it's not empty if the role is publisher
         if (user.role === 'publisher') {
+            if (!companyName.trim()) {
+                setError("Company Name is required for publishers.");
+                setIsLoading(false);
+                return;
+            }
             profileData.company_name = companyName;
         }
 
@@ -58,9 +64,9 @@ function ProfileSetup({ user, onSetupComplete }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#FFF2F2] flex justify-center items-center p-4">
+        <div className="min-h-screen bg-bg-student-dashboard flex justify-center items-center p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
-                <h2 className="text-3xl font-bold text-center text-[#2D336B] mb-2">Complete Your Profile</h2>
+                <h2 className="text-3xl font-bold text-primary-dark mb-2">Complete Your Profile</h2>
                 <p className="text-center text-gray-600 mb-6">Welcome to UniWiz! Let's get your profile set up.</p>
 
                 <form onSubmit={handleSubmit}>
@@ -79,14 +85,15 @@ function ProfileSetup({ user, onSetupComplete }) {
                     {user.role === 'publisher' && (
                         <div className="mb-6">
                             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="company-name">Company Name</label>
-                            <input id="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700" required />
+                            {/* Made required conditionally based on role */}
+                            <input id="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700" required={user.role === 'publisher'} />
                         </div>
                     )}
 
                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
                     
                     <div className="flex items-center justify-center mt-6">
-                        <button type="submit" disabled={isLoading} className="bg-[#7886C7] hover:bg-[#2D336B] text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline w-full md:w-auto transition duration-300 disabled:bg-gray-400">
+                        <button type="submit" disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline w-full md:w-auto transition duration-300 disabled:bg-gray-400">
                             {isLoading ? 'Saving...' : 'Save and Continue'}
                         </button>
                     </div>

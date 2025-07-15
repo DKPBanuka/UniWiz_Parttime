@@ -91,7 +91,7 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-                <h2 className="text-2xl font-bold text-[#2D336B] mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2>
+                <h2 className="text-2xl font-bold text-dark-blue-text mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2> {/* Changed text color */}
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Title</label>
@@ -321,7 +321,7 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="shadow-sm border rounded py-2 px-4"
                         />
-                        <button onClick={onPostJobClick} className="flex items-center bg-[#7886C7] text-white font-bold py-2 px-5 rounded-lg">
+                        <button onClick={onPostJobClick} className="flex items-center bg-app-blue text-white font-bold py-2 px-5 rounded-lg"> {/* Changed bg color */}
                             Post New Job
                         </button>
                     </div>
@@ -350,7 +350,7 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{job.title}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><StatusBadge status={job.status} /></td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-[#2D336B]">{job.application_count}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-dark-blue-text">{job.application_count}</td> {/* Changed text color */}
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <ActionsDropdown job={job} onAction={handleJobAction} />
                                             </td>

@@ -98,17 +98,17 @@ function CreateJob({ user, onJobPosted }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F4F7FC] flex justify-center items-start py-12 px-4">
+        <div className="min-h-screen bg-bg-publisher-dashboard flex justify-center items-start py-12 px-4"> {/* Changed bg color */}
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl">
                 <div className="text-center mb-10">
-                    <h2 className="text-4xl font-bold text-[#2D336B]">Create a New Job Posting</h2>
+                    <h2 className="text-4xl font-bold text-dark-blue-text">Create a New Job Posting</h2> {/* Changed text color */}
                     <p className="text-gray-500 mt-2">Fill in the details below to find the perfect student for your job.</p>
                 </div>
                 
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
                     {/* --- Section 1: Core Details --- */}
                     <div className="p-6 border rounded-xl">
-                        <h3 className="text-xl font-semibold text-[#2D336B] mb-4">Core Details</h3>
+                        <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Core Details</h3> {/* Changed text color */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="title">Job Title</label>
@@ -142,7 +142,7 @@ function CreateJob({ user, onJobPosted }) {
 
                     {/* --- Section 2: Specifics --- */}
                     <div className="p-6 border rounded-xl">
-                         <h3 className="text-xl font-semibold text-[#2D336B] mb-4">Specifics</h3>
+                         <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Specifics</h3> {/* Changed text color */}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="payment">Payment / Salary</label>
@@ -163,7 +163,7 @@ function CreateJob({ user, onJobPosted }) {
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="skills">Required Skills (Press Enter to add)</label>
                                 <div className="flex flex-wrap items-center gap-2 p-2 border rounded-lg shadow-sm">
                                     {skills.map((skill, index) => (
-                                        <div key={index} className="flex items-center bg-[#A9B5DF] text-[#2D336B] text-sm font-semibold px-3 py-1 rounded-full capitalize">
+                                        <div key={index} className="flex items-center bg-app-light-blue text-dark-blue-text text-sm font-semibold px-3 py-1 rounded-full capitalize"> {/* Changed bg and text color */}
                                             <span>{skill}</span>
                                             <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-red-700 hover:text-red-900 font-bold">×</button>
                                         </div>
@@ -181,7 +181,7 @@ function CreateJob({ user, onJobPosted }) {
                         <button type="button" onClick={() => handleSubmit('draft')} disabled={isLoading} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Saving...' : 'Save as Draft'}
                         </button>
-                        <button type="button" onClick={() => handleSubmit('active')} disabled={isLoading} className="bg-[#7886C7] hover:bg-[#2D336B] text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
+                        <button type="button" onClick={() => handleSubmit('active')} disabled={isLoading} className="bg-app-blue hover:bg-dark-blue-text text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto"> {/* Changed bg and hover bg */}
                             {isLoading ? 'Posting...' : 'Post Job Live'}
                         </button>
                     </div>

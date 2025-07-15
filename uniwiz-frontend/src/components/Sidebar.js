@@ -7,7 +7,7 @@ import React from 'react';
 const NavLink = ({ icon, text, isActive, isCollapsed, onClick }) => (
     <button 
         onClick={onClick} 
-        className={`w-full flex items-center py-3 rounded-lg transition-colors ${isCollapsed ? 'px-3 justify-center' : 'px-4'} ${isActive ? 'bg-[#7886C7] text-white shadow-lg' : 'text-gray-600 hover:bg-[#E8EAF6]'}`}
+        className={`w-full flex items-center py-3 rounded-lg transition-colors ${isCollapsed ? 'px-3 justify-center' : 'px-4'} ${isActive ? 'bg-primary-main text-white shadow-lg' : 'text-gray-600 hover:bg-primary-lighter'}`}
     >
         {icon}
         {!isCollapsed && <span className="ml-4 font-semibold">{text}</span>}
@@ -27,7 +27,8 @@ function Sidebar({ user, currentPage, setPage, onLogout, isCollapsed, toggleSide
     return (
         <aside className={`bg-white h-full flex-shrink-0 p-4 flex flex-col shadow-lg transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24' : 'w-72'}`}>
             <div className={`flex items-center mb-8 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-                {!isCollapsed && <h1 className="text-3xl font-bold text-[#2D336B]">UniWiz</h1>}
+                {/* Reverted to h1 for UniWiz text in sidebar */}
+                {!isCollapsed && <h1 className="text-3xl font-bold text-primary-dark">UniWiz</h1>}
                 <button onClick={toggleSidebar} className="p-2 rounded-full hover:bg-gray-200">
                     {toggleIcon}
                 </button>
@@ -37,7 +38,7 @@ function Sidebar({ user, currentPage, setPage, onLogout, isCollapsed, toggleSide
                 {user.profile_image_url ? (
                     <img src={`http://uniwiz.test/${user.profile_image_url}`} alt="Profile" className="h-12 w-12 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                    <div className="bg-[#7886C7] text-white h-12 w-12 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0">
+                    <div className="bg-primary-main text-white h-12 w-12 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0">
                         {user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U'}
                     </div>
                 )}
@@ -54,10 +55,10 @@ function Sidebar({ user, currentPage, setPage, onLogout, isCollapsed, toggleSide
                 <NavLink text="Jobs" icon={jobsIcon} isActive={currentPage === 'manage-jobs'} isCollapsed={isCollapsed} onClick={() => setPage('manage-jobs')} />
                 <NavLink text="Applicants" icon={applicantsIcon} isActive={currentPage === 'applicants'} isCollapsed={isCollapsed} onClick={() => setPage('applicants')} />
                 <NavLink text="Profile" icon={profileIcon} isActive={currentPage === 'profile'} isCollapsed={isCollapsed} onClick={() => setPage('profile')} />
+                <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isCollapsed={isCollapsed} onClick={() => setPage('settings')} /> {/* NEW Settings Link */}
             </nav>
 
             <div className="mt-auto">
-                <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isCollapsed={isCollapsed} onClick={() => setPage('settings')} />
                 <div className="border-t my-3"></div>
                 <NavLink text="Log Out" icon={logoutIcon} isCollapsed={isCollapsed} onClick={onLogout} />
             </div>

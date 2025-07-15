@@ -1,4 +1,4 @@
-// FILE: src/App.js (Full Version with All Features)
+// FILE: src/App.js (Updated with CompanyProfilePage)
 // =====================================================
 
 import React, { useState, useEffect } from 'react';
@@ -12,17 +12,25 @@ import StudentDashboard from './components/StudentDashboard';
 import PublisherDashboard from './components/PublisherDashboard';
 import ViewApplications from './components/ViewApplications';
 import ApplyModal from './components/ApplyModal';
-import Sidebar from './components/Sidebar';
+import Sidebar from './components/Sidebar'; // Publisher Sidebar
+import StudentSidebar from './components/StudentSidebar'; // Student Sidebar
 import TopNavbar from './components/TopNavbar';
 import ManageJobs from './components/ManageJobs';
 import ProfilePage from './components/ProfilePage';
+import AllApplicants from './components/AllApplicants';
+import SettingsPage from './components/SettingsPage';
+import AppliedJobsPage from './components/AppliedJobsPage';
+import LoginPage from './components/LoginPage';
+import FindJobsPage from './components/FindJobsPage';
+import CompanyProfilePage from './components/CompanyProfilePage'; // NEW: Import CompanyProfilePage
 import './output.css';
 
 function App() {
   // --- State Management ---
-  const [page, setPage] = useState('loading'); // loading, home, profile-setup, create-job, manage-jobs, view-applications, profile
+  const [page, setPage] = useState('loading');
   const [currentUser, setCurrentUser] = useState(null);
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState([]); 
+  const [publisherIdForProfile, setPublisherIdForProfile] = useState(null); // NEW: State to hold publisherId for CompanyProfilePage
   
   // Modal states
   const [isSignUpModalOpen, setSignUpModalOpen] = useState(false);
@@ -32,7 +40,7 @@ function App() {
   // Application-related states
   const [jobToApply, setJobToApply] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
-  const [applyingStatus, setApplyingStatus] = useState({});
+  const [applyingStatus, setApplyingStatus] = useState({}); 
   const [selectedJobId, setSelectedJobId] = useState(null);
 
   // Sidebar state
@@ -66,7 +74,7 @@ function App() {
   // --- Initial Load Effect ---
   useEffect(() => {
     const fetchInitialData = async () => {
-        await fetchJobs();
+        await fetchJobs(); 
         const loggedInUser = localStorage.getItem("user");
         if (loggedInUser) {
             const user = JSON.parse(loggedInUser);
@@ -80,7 +88,7 @@ function App() {
                 setPage('home');
             }
         } else {
-            setPage('home');
+            setPage('login'); 
         }
     };
     fetchInitialData();
@@ -110,7 +118,7 @@ function App() {
     setCurrentUser(null);
     setAppliedJobs(new Set());
     localStorage.removeItem('user');
-    setPage('home');
+    setPage('login'); 
   };
 
   const handleProfileSetupComplete = (updatedUserData) => {
@@ -132,7 +140,8 @@ function App() {
   // --- Application Handlers ---
   const handleOpenApplyModal = (job) => {
     if (!currentUser) {
-      alert("Please log in to apply.");
+      alert("Please log in to apply."); 
+      setPage('login'); 
       return;
     }
     setJobToApply(job);
@@ -166,45 +175,76 @@ function App() {
       setPage('view-applications');
   };
 
-  // --- Page Rendering Logic for different publisher pages ---
-  const renderPublisherPage = () => {
-      switch (page) {
-          case 'home':
-              return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
-          case 'create-job':
-              return <CreateJob user={currentUser} onJobPosted={() => setPage('home')} />;
-          case 'manage-jobs':
-              return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} />; 
-          case 'view-applications':
-              return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
-          case 'profile':
-              return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
-          default:
-              return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
+  // --- Page Rendering Logic for logged-in users ---
+  const renderLoggedInPageContent = () => {
+      if (currentUser.role === 'publisher') {
+          switch (page) {
+              case 'home':
+                  return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
+              case 'create-job':
+                  return <CreateJob user={currentUser} onJobPosted={() => setPage('home')} />;
+              case 'manage-jobs':
+                  return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} />; 
+              case 'view-applications':
+                  return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
+              case 'profile':
+                  return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
+              case 'applicants':
+                  return <AllApplicants user={currentUser} />;
+              case 'settings':
+                  return <SettingsPage />;
+              default:
+                  return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
+          }
+      } else { // currentUser.role === 'student'
+          switch (page) {
+              case 'home':
+                  return <StudentDashboard currentUser={currentUser} />; 
+              case 'find-jobs':
+                  return <FindJobsPage 
+                            currentUser={currentUser} 
+                            handleApply={handleOpenApplyModal} 
+                            appliedJobs={appliedJobs} 
+                            applyingStatus={applyingStatus}
+                            setPage={setPage} // Pass setPage to FindJobsPage
+                            setPublisherIdForProfile={setPublisherIdForProfile} // Pass setPublisherIdForProfile
+                         />;
+              case 'applied-jobs':
+                  return <AppliedJobsPage user={currentUser} />;
+              case 'profile':
+                  return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
+              case 'settings':
+                  return <SettingsPage />;
+              case 'company-profile': // NEW: Route for Company Profile Page
+                  return <CompanyProfilePage 
+                            publisherId={publisherIdForProfile} 
+                            currentUser={currentUser}
+                            handleApply={handleOpenApplyModal}
+                            appliedJobs={appliedJobs}
+                            applyingStatus={applyingStatus}
+                         />;
+              default:
+                  return <StudentDashboard currentUser={currentUser} />;
+          }
       }
   };
 
   // --- Main Render Logic ---
   const renderPage = () => {
     if (page === 'loading') {
-        return <div className="flex items-center justify-center min-h-screen"><p>Loading...</p></div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <p>Loading...</p>
+            </div>
+        );
     }
     
-    // --- Public View for Non-Logged-In Users ---
-    if (!currentUser) {
+    if (page === 'login' || !currentUser) {
         return (
-            <div className="min-h-screen bg-[#FFF2F2] font-sans">
-                <header className="bg-white shadow-md">
-                    <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-                        <h1 className="text-3xl font-bold text-[#2D336B]">UniWiz</h1>
-                        <div>
-                            <button onClick={() => setLoginModalOpen(true)} className="text-[#2D336B] font-semibold mr-4">Log In</button>
-                            <button onClick={() => setSignUpModalOpen(true)} className="bg-[#7886C7] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#A9B5DF] transition duration-300">Sign Up</button>
-                        </div>
-                    </nav>
-                </header>
-                <StudentDashboard jobs={jobs} currentUser={null} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} />
-            </div>
+            <LoginPage 
+                onLoginSuccess={handleLoginSuccess} 
+                onShowSignUp={() => setSignUpModalOpen(true)} 
+            />
         );
     }
 
@@ -213,11 +253,11 @@ function App() {
         return <ProfileSetup user={currentUser} onSetupComplete={handleProfileSetupComplete} />;
     }
     
-    // --- Logged-In User Views ---
-    if (currentUser.role === 'publisher') {
-        return (
-            <div className="flex h-screen bg-[#F4F7FC]">
-                <Sidebar 
+    // --- Logged-In User Views (Unified Layout with role-specific sidebar) ---
+    return (
+        <div className={`flex h-screen ${currentUser.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
+            {currentUser.role === 'publisher' ? (
+                <Sidebar // Publisher's Sidebar
                     user={currentUser} 
                     currentPage={page} 
                     setPage={setPage} 
@@ -225,38 +265,31 @@ function App() {
                     isCollapsed={isSidebarCollapsed}
                     toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 />
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <TopNavbar user={currentUser} />
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                        {renderPublisherPage()}
-                    </main>
-                </div>
+            ) : (
+                <StudentSidebar // Student's Sidebar
+                    user={currentUser} 
+                    currentPage={page} 
+                    setPage={setPage} 
+                    onLogout={handleLogout}
+                    isCollapsed={isSidebarCollapsed}
+                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                />
+            )}
+            
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <TopNavbar user={currentUser} />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                    {renderLoggedInPageContent()}
+                </main>
             </div>
-        );
-    } else { // Student View
-        return (
-            <div className="min-h-screen bg-[#FFF2F2] font-sans">
-                <header className="bg-white shadow-md">
-                    <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-                        <h1 className="text-3xl font-bold text-[#2D336B]">UniWiz</h1>
-                        <div className="flex items-center">
-                            <span className="text-[#2D336B] font-semibold mr-4">Welcome, {currentUser.first_name}!</span>
-                            <button onClick={handleLogout} className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300">Log Out</button>
-                        </div>
-                    </nav>
-                </header>
-                <StudentDashboard jobs={jobs} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} />
-            </div>
-        );
-    }
+        </div>
+    );
   };
 
   return (
     <>
       {renderPage()}
-      {/* Modals are rendered on top of any page */}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={() => setSignUpModalOpen(false)} onRegisterSuccess={handleRegisterSuccess} />
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
       <ApplyModal 
         isOpen={isApplyModalOpen}
         onClose={() => setApplyModalOpen(false)}

@@ -11,9 +11,9 @@ const StatCard = ({ title, value, icon, delay = 0 }) => (
   >
     <div>
       <p className="text-sm font-medium text-gray-500">{title}</p>
-      <p className="text-3xl font-bold text-[#2D336B] mt-1">{value}</p>
+      <p className="text-3xl font-bold text-dark-blue-text mt-1">{value}</p> {/* Changed text color */}
     </div>
-    <div className="bg-[#E8EAF6] p-3 rounded-full text-[#2D336B]">
+    <div className="bg-app-bg-light p-3 rounded-full text-dark-blue-text"> {/* Changed bg and text color */}
       {icon}
     </div>
   </div>
@@ -42,12 +42,12 @@ const ApplicantCard = ({ applicant, index }) => (
     style={{ animationDelay: `${index * 50}ms` }}
   >
     <div className="flex items-center space-x-3">
-      <div className="h-10 w-10 rounded-full bg-[#E8EAF6] flex items-center justify-center text-[#2D336B] font-medium">
+      <div className="h-10 w-10 rounded-full bg-app-bg-light flex items-center justify-center text-dark-blue-text font-medium"> {/* Changed bg and text color */}
         {applicant.first_name.charAt(0)}{applicant.last_name.charAt(0)}
       </div>
       <div>
         <p className="font-semibold text-gray-800">{applicant.first_name} {applicant.last_name}</p>
-        <p className="text-sm text-gray-500">Applied for: <span className="text-[#2D336B]">{applicant.job_title}</span></p>
+        <p className="text-sm text-gray-500">Applied for: <span className="text-dark-blue-text">{applicant.job_title}</span></p> {/* Changed text color */}
       </div>
     </div>
     <div className="flex items-center space-x-2">
@@ -146,7 +146,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
         <div className="mt-4 md:mt-0 flex space-x-3">
           <button 
             onClick={onPostJobClick}
-            className="flex items-center space-x-2 bg-[#7886C7] text-white px-4 py-2.5 rounded-lg hover:shadow-md transition-all duration-300 hover:bg-[#2D336B]"
+            className="flex items-center space-x-2 bg-app-blue text-white px-4 py-2.5 rounded-lg hover:shadow-md transition-all duration-300 hover:bg-dark-blue-text" // Changed bg and hover bg
           >
             <PlusIcon />
             <span>Post New Job</span>
@@ -191,7 +191,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
         {/* Recent Activity */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-[#2D336B]">
+            <h3 className="text-lg font-semibold text-dark-blue-text"> {/* Changed text color */}
               Recent Applicants
             </h3>
           </div>
@@ -218,7 +218,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
             <div className="p-4 border-t border-gray-100 text-center">
               <button 
                 onClick={onViewAllJobsClick}
-                className="text-[#2D336B] hover:text-blue-800 text-sm font-medium"
+                className="text-dark-blue-text hover:text-blue-800 text-sm font-medium" // Changed text color
               >
                 View all jobs and applicants
               </button>
@@ -229,14 +229,14 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
         {/* Quick Actions */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-5">
-            <h3 className="text-lg font-semibold text-[#2D336B] mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-dark-blue-text mb-4">Quick Actions</h3> {/* Changed text color */}
             <div className="space-y-3">
               <button 
                 onClick={onPostJobClick}
                 className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 hover:shadow-sm"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="h-8 w-8 rounded-lg bg-[#E8EAF6] text-[#2D336B] flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-app-bg-light text-dark-blue-text flex items-center justify-center"> {/* Changed bg and text color */}
                     <PlusIcon />
                   </div>
                   <span className="font-medium text-gray-800">Post New Job</span>
@@ -249,7 +249,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
                 className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 hover:shadow-sm"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="h-8 w-8 rounded-lg bg-[#E8EAF6] text-[#2D336B] flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-app-bg-light text-dark-blue-text flex items-center justify-center"> {/* Changed bg and text color */}
                     <MenuIcon />
                   </div>
                   <span className="font-medium text-gray-800">Manage Jobs</span>
@@ -285,8 +285,8 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick }) {
           display: block;
           width: 100%;
           height: 100%;
-          border: 3px solid #E8EAF6;
-          border-top-color: #7886C7;
+          border: 3px solid #B5A8D5; /* Changed border color */
+          border-top-color: #4D55CC; /* Changed border top color */
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }

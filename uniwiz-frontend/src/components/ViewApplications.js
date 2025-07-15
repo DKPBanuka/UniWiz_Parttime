@@ -29,7 +29,7 @@ function ViewApplications({ jobId, onBackClick }) {
     return (
         <main className="container mx-auto px-6 py-8">
             <div className="flex items-center mb-8">
-                <button onClick={onBackClick} className="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
+                <button onClick={onBackClick} className="text-primary-main hover:text-primary-dark font-semibold flex items-center"> {/* Changed text and hover text color */}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -37,7 +37,7 @@ function ViewApplications({ jobId, onBackClick }) {
                 </button>
             </div>
 
-            <h2 className="text-4xl font-bold text-[#2D336B] mb-6">Job Applications</h2>
+            <h2 className="text-4xl font-bold text-primary-dark mb-6">Job Applications</h2> {/* Changed text color */}
 
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="p-6">

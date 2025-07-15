@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/auth.php (Updated to handle user roles and auto-login)
+// FILE: uniwiz-backend/api/auth.php (Updated to handle user roles and auto-login with student profile data)
 // ======================================================================
 
 // --- Headers ---
@@ -59,13 +59,10 @@ if ($data->action === 'register') {
             http_response_code(400); 
             echo json_encode(array("message" => "This email is already registered."));
         } else {
-            $query = "INSERT INTO users (email, password, first_name, last_name, role) VALUES (:email, :password, :first_name, :last_name, :role)";
-            $stmt = $db->prepare($query);
-
-            $email = htmlspecialchars(strip_tags($data->email));
-            $password_hash = password_hash($data->password, PASSWORD_BCRYPT);
-            $firstName = "";
-            $lastName = "";
+            // Handle first_name, last_name, company_name based on role for initial user creation
+            $firstName = isset($data->first_name) ? htmlspecialchars(strip_tags($data->first_name)) : '';
+            $lastName = isset($data->last_name) ? htmlspecialchars(strip_tags($data->last_name)) : '';
+            $companyName = isset($data->company_name) ? htmlspecialchars(strip_tags($data->company_name)) : '';
             $role = htmlspecialchars(strip_tags($data->role));
 
             if ($role !== 'student' && $role !== 'publisher') {
@@ -74,25 +71,46 @@ if ($data->action === 'register') {
                 exit();
             }
 
+            $query = "INSERT INTO users (email, password, first_name, last_name, company_name, role) VALUES (:email, :password, :first_name, :last_name, :company_name, :role)";
+            $stmt = $db->prepare($query);
+
+            $email = htmlspecialchars(strip_tags($data->email));
+            $password_hash = password_hash($data->password, PASSWORD_BCRYPT);
+            
             $stmt->bindParam(':email', $email);
             $stmt->bindParam(':password', $password_hash);
             $stmt->bindParam(':first_name', $firstName);
             $stmt->bindParam(':last_name', $lastName);
+            $stmt->bindParam(':company_name', $companyName); // Bind company_name
             $stmt->bindParam(':role', $role);
 
             if ($stmt->execute()) {
-                // --- CHANGE IS HERE: Auto-login the user after registration ---
                 $new_user_id = $db->lastInsertId();
 
-                // Fetch the new user's data to send back to the frontend
-                $query = "SELECT id, email, first_name, last_name, role FROM users WHERE id = :id";
-                $stmt = $db->prepare($query);
-                $stmt->bindParam(':id', $new_user_id);
-                $stmt->execute();
-                $new_user = $stmt->fetch(PDO::FETCH_ASSOC);
+                // NEW: If student, create an empty entry in student_profiles
+                if ($role === 'student') {
+                    $stmt_student_profile = $db->prepare("INSERT INTO student_profiles (user_id) VALUES (:user_id)");
+                    $stmt_student_profile->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
+                    $stmt_student_profile->execute();
+                }
+                // NEW: If publisher, create an empty entry in publisher_profiles (if you move company_name there later)
+                // For now, company_name is in 'users' table.
+
+                // Fetch the new user's data with joined profile data to send back to the frontend
+                $query_fetch = "
+                    SELECT 
+                        u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
+                        sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url
+                    FROM users u
+                    LEFT JOIN student_profiles sp ON u.id = sp.user_id
+                    WHERE u.id = :id
+                ";
+                $stmt_fetch = $db->prepare($query_fetch);
+                $stmt_fetch->bindParam(':id', $new_user_id, PDO::PARAM_INT);
+                $stmt_fetch->execute();
+                $new_user = $stmt_fetch->fetch(PDO::FETCH_ASSOC);
 
                 http_response_code(201);
-                // Send back the user object for auto-login
                 echo json_encode(array(
                     "message" => "User was successfully registered.",
                     "user" => $new_user 
@@ -103,25 +121,36 @@ if ($data->action === 'register') {
         }
     } catch (PDOException $e) {
         http_response_code(503); 
-        echo json_encode(array("message" => "A database error occurred."));
+        echo json_encode(array("message" => "A database error occurred: " . $e->getMessage()));
+    } catch (Exception $e) {
+        http_response_code(500); 
+        echo json_encode(array("message" => "An unexpected server error occurred: " . $e->getMessage()));
     }
 
 } elseif ($data->action === 'login') {
-    // --- LOGIN LOGIC (No changes needed here) ---
+    // --- LOGIN LOGIC ---
     if (!isset($data->email) || !isset($data->password)) {
         http_response_code(400);
         echo json_encode(array("message" => "Incomplete data for login."));
         exit();
     }
     try {
-        $query = "SELECT id, email, password, first_name, last_name, role FROM users WHERE email = :email";
+        // Fetch user data with joined student profile data
+        $query = "
+            SELECT 
+                u.id, u.email, u.password, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
+                sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url
+            FROM users u
+            LEFT JOIN student_profiles sp ON u.id = sp.user_id
+            WHERE u.email = :email
+        ";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $data->email);
         $stmt->execute();
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (password_verify($data->password, $row['password'])) {
-                unset($row['password']);
+                unset($row['password']); // Remove password hash before sending to frontend
                 http_response_code(200);
                 echo json_encode(array("message" => "Login successful.", "user" => $row));
             } else {
@@ -134,7 +163,10 @@ if ($data->action === 'register') {
         }
     } catch (PDOException $e) {
         http_response_code(503);
-        echo json_encode(array("message" => "A database error occurred during login."));
+        echo json_encode(array("message" => "A database error occurred during login: " . $e->getMessage()));
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(array("message" => "An unexpected server error occurred: " . $e->getMessage()));
     }
 } else {
     http_response_code(400);

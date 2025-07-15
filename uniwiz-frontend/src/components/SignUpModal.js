@@ -52,13 +52,13 @@ function SignUpModal({ isOpen, onClose, onRegisterSuccess }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-                <h2 className="text-3xl font-bold text-center text-[#2D336B] mb-6">Create Your Account</h2>
+                <h2 className="text-3xl font-bold text-primary-dark mb-6">Create Your Account</h2> {/* Changed text color */}
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
                         <label className="block text-gray-700 text-sm font-bold mb-2">I am a:</label>
                         <div className="flex items-center justify-around bg-gray-100 p-1 rounded-lg">
-                            <button type="button" onClick={() => setRole('student')} className={`w-1/2 py-2 rounded-md font-semibold transition-colors ${role === 'student' ? 'bg-[#7886C7] text-white' : 'text-gray-600'}`}>Student</button>
-                            <button type="button" onClick={() => setRole('publisher')} className={`w-1/2 py-2 rounded-md font-semibold transition-colors ${role === 'publisher' ? 'bg-[#7886C7] text-white' : 'text-gray-600'}`}>Publisher</button>
+                            <button type="button" onClick={() => setRole('student')} className={`w-1/2 py-2 rounded-md font-semibold transition-colors ${role === 'student' ? 'bg-primary-main text-white' : 'text-gray-600'}`}>Student</button> {/* Changed bg color */}
+                            <button type="button" onClick={() => setRole('publisher')} className={`w-1/2 py-2 rounded-md font-semibold transition-colors ${role === 'publisher' ? 'bg-primary-main text-white' : 'text-gray-600'}`}>Publisher</button> {/* Changed bg color */}
                         </div>
                     </div>
                     <div className="mb-4">
@@ -71,7 +71,7 @@ function SignUpModal({ isOpen, onClose, onRegisterSuccess }) {
                     </div>
                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
                     <div className="flex items-center justify-center">
-                        <button type="submit" disabled={isLoading} className="bg-[#7886C7] hover:bg-[#2D336B] text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 disabled:bg-gray-400">
+                        <button type="submit" disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 disabled:bg-gray-400"> {/* Changed bg and hover bg */}
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </div>
