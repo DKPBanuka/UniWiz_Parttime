@@ -1,4 +1,8 @@
 <?php
+// FILE: uniwiz-backend/api/applications.php (FIXED)
+// =================================================================
+// This file now correctly sets the default status of new applications to 'pending'.
+
 // --- Headers, DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -44,7 +48,9 @@ try {
         $studentId = htmlspecialchars(strip_tags($data->user_id));
         $jobId = htmlspecialchars(strip_tags($data->job_id));
         $proposal = htmlspecialchars(strip_tags($data->proposal));
-        $status = "applied";
+        
+        // **FIX**: The default status is now 'pending' instead of 'applied'
+        $status = "pending";
 
         $stmt->bindParam(':student_id', $studentId);
         $stmt->bindParam(':job_id', $jobId);

@@ -66,7 +66,7 @@ if (!is_dir($target_dir)) {
 if (move_uploaded_file($file['tmp_name'], $target_file)) {
     try {
         // --- Update Database (student_profiles table) ---
-        $cv_url = "api/uploads/cvs/" . $new_filename; // Path relative to web root
+        $cv_url = "uploads/cvs/" . $new_filename; // Path relative to web root
 
         // Check if student profile exists, if not, create a basic one
         $stmt_check = $db->prepare("SELECT id FROM student_profiles WHERE user_id = :user_id LIMIT 1");

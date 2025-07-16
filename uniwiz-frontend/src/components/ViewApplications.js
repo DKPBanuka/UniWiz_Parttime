@@ -1,6 +1,27 @@
+// FILE: src/components/ViewApplications.js (FIXED & ENHANCED)
+// =================================================================
+
 import React, { useState, useEffect } from 'react';
 
-function ViewApplications({ jobId, onBackClick }) {
+// --- Reusable Status Badge Component ---
+const StatusBadge = ({ status }) => {
+    const statusClasses = {
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        applied: "bg-gray-100 text-gray-800", // Fallback status
+    };
+    const appliedStatus = status ? status.toLowerCase() : 'applied';
+    return (
+        <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusClasses[appliedStatus] || statusClasses.applied}`}>
+            {status}
+        </span>
+    );
+};
+
+
+function ViewApplications({ jobId, onBackClick, onViewStudentProfile }) { // Add onViewStudentProfile prop
     const [applications, setApplications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -11,7 +32,9 @@ function ViewApplications({ jobId, onBackClick }) {
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch(`http://uniwiz.test/get_applications.php?job_id=${jobId}`);
+                // We will use the more detailed get_all_publisher_applications endpoint
+                // to get student IDs and other potential details.
+                const response = await fetch(`http://uniwiz.test/get_all_publisher_applications.php?job_id=${jobId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch applications.');
                 }
@@ -29,7 +52,7 @@ function ViewApplications({ jobId, onBackClick }) {
     return (
         <main className="container mx-auto px-6 py-8">
             <div className="flex items-center mb-8">
-                <button onClick={onBackClick} className="text-primary-main hover:text-primary-dark font-semibold flex items-center"> {/* Changed text and hover text color */}
+                <button onClick={onBackClick} className="text-primary-main hover:text-primary-dark font-semibold flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -37,7 +60,7 @@ function ViewApplications({ jobId, onBackClick }) {
                 </button>
             </div>
 
-            <h2 className="text-4xl font-bold text-primary-dark mb-6">Job Applications</h2> {/* Changed text color */}
+            <h2 className="text-4xl font-bold text-primary-dark mb-6">Job Applications</h2>
 
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="p-6">
@@ -60,13 +83,20 @@ function ViewApplications({ jobId, onBackClick }) {
                                     {applications.length > 0 ? (
                                         applications.map(app => (
                                             <tr key={app.student_id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {/* Make the name a clickable link */}
+                                                    <button 
+                                                        onClick={() => onViewStudentProfile(app.student_id)} 
+                                                        className="text-primary-main hover:underline"
+                                                    >
+                                                        {app.first_name} {app.last_name}
+                                                    </button>
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.email}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.applied_at).toLocaleDateString()}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 capitalize">
-                                                        {app.status}
-                                                    </span>
+                                                    {/* Use the new StatusBadge component */}
+                                                    <StatusBadge status={app.status} />
                                                 </td>
                                             </tr>
                                         ))

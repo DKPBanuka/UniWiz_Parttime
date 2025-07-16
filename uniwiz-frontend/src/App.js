@@ -1,4 +1,4 @@
-// FILE: src/App.js (Updated with CompanyProfilePage)
+// FILE: src/App.js (Full, Corrected Version)
 // =====================================================
 
 import React, { useState, useEffect } from 'react';
@@ -22,16 +22,20 @@ import SettingsPage from './components/SettingsPage';
 import AppliedJobsPage from './components/AppliedJobsPage';
 import LoginPage from './components/LoginPage';
 import FindJobsPage from './components/FindJobsPage';
-import CompanyProfilePage from './components/CompanyProfilePage'; // NEW: Import CompanyProfilePage
+import CompanyProfilePage from './components/CompanyProfilePage';
+import StudentProfilePage from './components/StudentProfilePage';
 import './output.css';
 
 function App() {
   // --- State Management ---
   const [page, setPage] = useState('loading');
   const [currentUser, setCurrentUser] = useState(null);
-  const [jobs, setJobs] = useState([]); 
-  const [publisherIdForProfile, setPublisherIdForProfile] = useState(null); // NEW: State to hold publisherId for CompanyProfilePage
   
+  // ID states for viewing specific pages
+  const [publisherIdForProfile, setPublisherIdForProfile] = useState(null);
+  const [studentIdForProfile, setStudentIdForProfile] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+
   // Modal states
   const [isSignUpModalOpen, setSignUpModalOpen] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
@@ -41,24 +45,14 @@ function App() {
   const [jobToApply, setJobToApply] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [applyingStatus, setApplyingStatus] = useState({}); 
-  const [selectedJobId, setSelectedJobId] = useState(null);
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // --- Data Fetching Functions ---
-  const fetchJobs = async () => {
-    try {
-        const apiUrl = 'http://uniwiz.test/jobs.php';
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Failed to fetch jobs.');
-        const data = await response.json();
-        setJobs(data);
-    } catch (e) {
-        console.error(e);
-    }
-  };
+  // Filter state for the AllApplicants page
+  const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
 
+  // --- Data Fetching Functions ---
   const fetchAppliedJobs = async (userId) => {
     try {
         const response = await fetch(`http://uniwiz.test/get_applied_jobs.php?user_id=${userId}`);
@@ -74,7 +68,6 @@ function App() {
   // --- Initial Load Effect ---
   useEffect(() => {
     const fetchInitialData = async () => {
-        await fetchJobs(); 
         const loggedInUser = localStorage.getItem("user");
         if (loggedInUser) {
             const user = JSON.parse(loggedInUser);
@@ -132,15 +125,26 @@ function App() {
     localStorage.setItem('user', JSON.stringify(updatedUserData));
   };
   
-  const handleJobPosted = () => {
-      fetchJobs();
-      setPage('home');
+  // --- Navigation Handlers ---
+  const handleViewApplications = (jobId) => {
+      setSelectedJobId(jobId);
+      setPage('view-applications');
+  };
+  
+  const handleViewStudentProfile = (studentId) => {
+      setStudentIdForProfile(studentId);
+      setPage('student-profile');
+  };
+
+  const handleViewApplicants = (filter = 'All') => {
+      setApplicantsPageFilter(filter);
+      setPage('applicants');
   };
 
   // --- Application Handlers ---
   const handleOpenApplyModal = (job) => {
     if (!currentUser) {
-      alert("Please log in to apply."); 
+      console.warn("Please log in to apply.");
       setPage('login'); 
       return;
     }
@@ -164,37 +168,52 @@ function App() {
         setAppliedJobs(prev => new Set(prev).add(jobId));
         setApplyingStatus(prev => ({ ...prev, [jobId]: 'applied' }));
     } catch (err) {
-        alert(`Error: ${err.message}`);
+        console.error(`Error: ${err.message}`);
         setApplyingStatus(prev => ({ ...prev, [jobId]: 'error' }));
     }
   };
 
-  // --- Navigation Handler ---
-  const handleViewApplications = (jobId) => {
-      setSelectedJobId(jobId);
-      setPage('view-applications');
-  };
-
   // --- Page Rendering Logic for logged-in users ---
   const renderLoggedInPageContent = () => {
+      if (!currentUser) return null;
+
       if (currentUser.role === 'publisher') {
           switch (page) {
               case 'home':
-                  return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
+                  return <PublisherDashboard 
+                      user={currentUser} 
+                      onPostJobClick={() => setPage('create-job')} 
+                      onViewAllJobsClick={() => setPage('manage-jobs')}
+                      onViewApplicants={handleViewApplicants}
+                      onViewStudentProfile={handleViewStudentProfile}
+                  />;
               case 'create-job':
                   return <CreateJob user={currentUser} onJobPosted={() => setPage('home')} />;
               case 'manage-jobs':
                   return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} />; 
               case 'view-applications':
-                  return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
+                  return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} onViewStudentProfile={handleViewStudentProfile} />;
               case 'profile':
                   return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
               case 'applicants':
-                  return <AllApplicants user={currentUser} />;
+                  return <AllApplicants 
+                      user={currentUser} 
+                      onViewStudentProfile={handleViewStudentProfile}
+                      initialFilter={applicantsPageFilter}
+                      setInitialFilter={setApplicantsPageFilter}
+                  />;
               case 'settings':
                   return <SettingsPage />;
+              case 'student-profile':
+                  return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default:
-                  return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} />;
+                  return <PublisherDashboard 
+                      user={currentUser} 
+                      onPostJobClick={() => setPage('create-job')} 
+                      onViewAllJobsClick={() => setPage('manage-jobs')}
+                      onViewApplicants={handleViewApplicants}
+                      onViewStudentProfile={handleViewStudentProfile}
+                  />;
           }
       } else { // currentUser.role === 'student'
           switch (page) {
@@ -206,8 +225,8 @@ function App() {
                             handleApply={handleOpenApplyModal} 
                             appliedJobs={appliedJobs} 
                             applyingStatus={applyingStatus}
-                            setPage={setPage} // Pass setPage to FindJobsPage
-                            setPublisherIdForProfile={setPublisherIdForProfile} // Pass setPublisherIdForProfile
+                            setPage={setPage}
+                            setPublisherIdForProfile={setPublisherIdForProfile}
                          />;
               case 'applied-jobs':
                   return <AppliedJobsPage user={currentUser} />;
@@ -215,7 +234,7 @@ function App() {
                   return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
               case 'settings':
                   return <SettingsPage />;
-              case 'company-profile': // NEW: Route for Company Profile Page
+              case 'company-profile':
                   return <CompanyProfilePage 
                             publisherId={publisherIdForProfile} 
                             currentUser={currentUser}
@@ -248,16 +267,14 @@ function App() {
         );
     }
 
-    // --- Profile Setup View (for both roles) ---
     if (page === 'profile-setup') {
         return <ProfileSetup user={currentUser} onSetupComplete={handleProfileSetupComplete} />;
     }
     
-    // --- Logged-In User Views (Unified Layout with role-specific sidebar) ---
     return (
         <div className={`flex h-screen ${currentUser.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
             {currentUser.role === 'publisher' ? (
-                <Sidebar // Publisher's Sidebar
+                <Sidebar
                     user={currentUser} 
                     currentPage={page} 
                     setPage={setPage} 
@@ -266,7 +283,7 @@ function App() {
                     toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 />
             ) : (
-                <StudentSidebar // Student's Sidebar
+                <StudentSidebar
                     user={currentUser} 
                     currentPage={page} 
                     setPage={setPage} 

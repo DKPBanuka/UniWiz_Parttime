@@ -1,3 +1,6 @@
+// FILE: src/components/ProfilePage.js (Updated for All User Roles)
+// =================================================================
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Reusable Notification Component
@@ -24,16 +27,26 @@ const Notification = ({ message, type, onClose }) => {
 
 function ProfilePage({ user, onProfileUpdate }) {
     const [formData, setFormData] = useState({
+        // Common fields
         first_name: '',
         last_name: '',
-        company_name: '', // For publishers
+        // Publisher-specific fields
+        company_name: '',
+        about: '',
+        industry: '',
+        website_url: '',
+        address: '',
+        phone_number: '',
+        facebook_url: '',
+        linkedin_url: '',
+        instagram_url: '',
         // Student-specific fields
         university_name: '',
         field_of_study: '',
         year_of_study: '',
-        languages_spoken: '', // Will be a comma-separated string
-        preferred_categories: '', // Will be a comma-separated string
-        skills: '', // Will be a comma-separated string
+        languages_spoken: '',
+        preferred_categories: '',
+        skills: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
@@ -49,10 +62,20 @@ function ProfilePage({ user, onProfileUpdate }) {
     useEffect(() => {
         if (user) {
             setFormData({
+                // Common
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
+                // Publisher
                 company_name: user.company_name || '',
-                // Initialize student-specific fields
+                about: user.about || '',
+                industry: user.industry || '',
+                website_url: user.website_url || '',
+                address: user.address || '',
+                phone_number: user.phone_number || '',
+                facebook_url: user.facebook_url || '',
+                linkedin_url: user.linkedin_url || '',
+                instagram_url: user.instagram_url || '',
+                // Student
                 university_name: user.university_name || '',
                 field_of_study: user.field_of_study || '',
                 year_of_study: user.year_of_study || '',
@@ -77,10 +100,7 @@ function ProfilePage({ user, onProfileUpdate }) {
             const file = e.target.files[0];
             if (file.size > 2097152) { // 2MB
                 showNotification("File is too large. Maximum size is 2MB.", "error");
-                // Clear the input field to allow re-selection
                 e.target.value = null; 
-                setSelectedProfilePicture(null);
-                setProfilePicturePreview(null);
                 return;
             }
             setSelectedProfilePicture(file);
@@ -92,109 +112,59 @@ function ProfilePage({ user, onProfileUpdate }) {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.type !== 'application/pdf') {
-                showNotification("Invalid file type. Only PDF files are allowed for CV.", "error");
-                // Clear the input field to allow re-selection
-                e.target.value = null; 
-                setSelectedCV(null);
+                showNotification("Invalid file type. Only PDF files are allowed.", "error");
+                e.target.value = null;
                 return;
             }
             if (file.size > 5242880) { // 5MB
                 showNotification("CV file is too large. Maximum size is 5MB.", "error");
-                // Clear the input field to allow re-selection
-                e.target.value = null; 
-                setSelectedCV(null);
+                e.target.value = null;
                 return;
             }
             setSelectedCV(file);
         }
     };
-
-    // **FIXED**: Refactored handleSubmit for correct sequential updates
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
 
+        const submissionData = new FormData();
+        
+        submissionData.append('user_id', user.id);
+        for (const key in formData) {
+            submissionData.append(key, formData[key]);
+        }
+
+        if (selectedProfilePicture) {
+            submissionData.append('profile_picture', selectedProfilePicture);
+        }
+        if (user.role === 'student' && selectedCV) {
+            submissionData.append('cv_file', selectedCV);
+        }
+
         try {
-            // Start with a copy of the current user data from props
-            let currentUpdatedUserData = { ...user };
-
-            // --- Step 1: Update text fields (common and role-specific) ---
-            const textPayload = { user_id: user.id, ...formData };
-            if (user.role !== 'publisher') {
-                delete textPayload.company_name;
-            }
-            if (user.role !== 'student') {
-                delete textPayload.university_name;
-                delete textPayload.field_of_study;
-                delete textPayload.year_of_study;
-                delete textPayload.languages_spoken;
-                delete textPayload.preferred_categories;
-                delete textPayload.skills;
-            }
-
-            const textResponse = await fetch('http://uniwiz.test/update_profile.php', {
+            const response = await fetch('http://uniwiz.test/update_profile.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(textPayload),
+                body: submissionData,
             });
-            const textResult = await textResponse.json();
-            if (!textResult.ok) {
-                // If text update fails, show error and stop
-                throw new Error(textResult.message || 'Failed to update text profile data.');
-            }
+
+            const result = await response.json();
             
-            // Merge text updates into currentUpdatedUserData
-            currentUpdatedUserData = { ...currentUpdatedUserData, ...textResult.user };
-
-
-            // --- Step 2: If a profile picture is selected, upload it now ---
-            if (selectedProfilePicture) {
-                const uploadData = new FormData();
-                uploadData.append('user_id', user.id);
-                uploadData.append('profile_picture', selectedProfilePicture);
-
-                const picResponse = await fetch('http://uniwiz.test/upload_profile_picture.php', {
-                    method: 'POST',
-                    body: uploadData,
-                });
-                const picResult = await picResponse.json();
-                if (!picResult.ok) {
-                    // If picture upload fails, show error and stop
-                    throw new Error(picResult.message || 'Failed to upload profile picture.');
-                }
-                
-                // Merge picture updates
-                currentUpdatedUserData = { ...currentUpdatedUserData, ...picResult.user };
+            if (!response.ok) {
+                throw new Error(result.message || 'An unknown error occurred.');
             }
 
-            // --- Step 3: If a CV file is selected, upload it now (only for students) ---
-            if (user.role === 'student' && selectedCV) {
-                const cvUploadData = new FormData();
-                cvUploadData.append('user_id', user.id);
-                cvUploadData.append('cv_file', selectedCV);
-
-                const cvResponse = await fetch('http://uniwiz.test/upload_cv.php', {
-                    method: 'POST',
-                    body: cvUploadData,
-                });
-                const cvResult = await cvResponse.json();
-                if (!cvResult.ok) {
-                    // If CV upload fails, show error and stop
-                    throw new Error(cvResult.message || 'Failed to upload CV.');
-                }
-
-                currentUpdatedUserData = { ...currentUpdatedUserData, ...cvResult.user };
-            }
-
-            // Call onProfileUpdate ONCE with the final, merged user data
-            onProfileUpdate(currentUpdatedUserData);
-
+            onProfileUpdate(result.user);
             showNotification("Profile updated successfully!", 'success');
-            setSelectedProfilePicture(null); // Reset file selection after successful submission
-            setSelectedCV(null); // Reset CV file selection
+            
+            setSelectedProfilePicture(null);
+            setSelectedCV(null);
+            if(profilePictureInputRef.current) profilePictureInputRef.current.value = "";
+            if(cvInputRef.current) cvInputRef.current.value = "";
+
 
         } catch (err) {
-            // Catch any error from any step and display it
             showNotification(err.message, 'error');
         } finally {
             setIsLoading(false);
@@ -215,18 +185,17 @@ function ProfilePage({ user, onProfileUpdate }) {
                     onClose={() => setNotification({ message: '', type: '', key: 0 })}
                 />
             )}
-            <div className="p-8 bg-bg-student-dashboard min-h-screen text-gray-800"> {/* Use student dashboard background */}
+            <div className={`p-8 min-h-screen text-gray-800 ${user.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
-                        <h2 className="text-4xl font-bold text-primary-dark">My Profile</h2> {/* Use primary-dark for heading */}
-                        <p className="text-gray-600 mt-1">Manage your personal and company information.</p>
+                        <h2 className="text-4xl font-bold text-primary-dark">My Profile</h2>
+                        <p className="text-gray-600 mt-1">Manage your personal and professional information.</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-md">
-                        {/* Profile Picture Section */}
                         <div className="flex items-center space-x-6 mb-8">
                             <img 
-                                src={profilePicturePreview || 'https://placehold.co/100x100/B5A8D5/211C84?text=P'} 
+                                src={profilePicturePreview || `https://placehold.co/100x100/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} 
                                 alt="Profile" 
                                 className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-sm"
                             />
@@ -250,8 +219,8 @@ function ProfilePage({ user, onProfileUpdate }) {
                         </div>
 
                         <div className="space-y-6">
-                            {/* Personal Information Section (Common for both roles) */}
-                            <div>
+                            {/* Personal Information Section */}
+                            <div className="p-6 border rounded-xl">
                                 <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Personal Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
@@ -265,38 +234,72 @@ function ProfilePage({ user, onProfileUpdate }) {
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700">Email Address</label>
                                         <input type="email" value={user.email} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100" disabled />
-                                        <p className="text-xs text-gray-500 mt-1">Email address cannot be changed.</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Company Information Section (Publisher Specific) */}
+                            {/* Company Information Section (Publisher) */}
                             {user.role === 'publisher' && (
-                                <div>
+                                <div className="p-6 border rounded-xl">
                                     <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Company Information</h3>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Company Name</label>
-                                        <input type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Company Name</label>
+                                            <input type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Industry</label>
+                                            <input type="text" name="industry" value={formData.industry} onChange={handleChange} placeholder="e.g., IT, Hospitality" className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">About Your Company</label>
+                                            <textarea name="about" value={formData.about} onChange={handleChange} rows="4" className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Website URL</label>
+                                            <input type="url" name="website_url" value={formData.website_url} onChange={handleChange} placeholder="https://example.com" className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                                            <input type="tel" name="phone_number" value={formData.phone_number} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Address</label>
+                                            <input type="text" name="address" value={formData.address} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <h4 className="md:col-span-2 text-lg font-semibold text-gray-700 mt-4">Social Media Links</h4>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Facebook URL</label>
+                                            <input type="url" name="facebook_url" value={formData.facebook_url} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">LinkedIn URL</label>
+                                            <input type="url" name="linkedin_url" value={formData.linkedin_url} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Instagram URL</label>
+                                            <input type="url" name="instagram_url" value={formData.instagram_url} onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Educational & Professional Information Section (Student Specific) */}
+                            {/* Educational & Professional Info (Student) */}
                             {user.role === 'student' && (
-                                <div>
+                                <div className="p-6 border rounded-xl">
                                     <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Educational & Professional Information</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="university_name">University/Institution</label>
-                                            <input type="text" name="university_name" id="university_name" value={formData.university_name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <label className="block text-sm font-medium text-gray-700">University/Institution</label>
+                                            <input type="text" name="university_name" value={formData.university_name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="field_of_study">Field of Study</label>
-                                            <input type="text" name="field_of_study" id="field_of_study" value={formData.field_of_study} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <label className="block text-sm font-medium text-gray-700">Field of Study</label>
+                                            <input type="text" name="field_of_study" value={formData.field_of_study} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="year_of_study">Year of Study</label>
-                                            <select name="year_of_study" id="year_of_study" value={formData.year_of_study} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                                            <label className="block text-sm font-medium text-gray-700">Year of Study</label>
+                                            <select name="year_of_study" value={formData.year_of_study} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
                                                 <option value="">Select Year</option>
                                                 <option value="1st Year">1st Year</option>
                                                 <option value="2nd Year">2nd Year</option>
@@ -306,20 +309,18 @@ function ProfilePage({ user, onProfileUpdate }) {
                                                 <option value="Postgraduate">Postgraduate</option>
                                             </select>
                                         </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="languages_spoken">Languages Spoken (comma-separated)</label>
-                                            <input type="text" name="languages_spoken" id="languages_spoken" value={formData.languages_spoken} onChange={handleChange} placeholder="e.g., Sinhala, English, Tamil" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Languages Spoken</label>
+                                            <input type="text" name="languages_spoken" value={formData.languages_spoken} placeholder="e.g., Sinhala, English" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
                                         <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="skills">Skills (comma-separated)</label>
-                                            <input type="text" name="skills" id="skills" value={formData.skills} onChange={handleChange} placeholder="e.g., Web Development, Graphic Design, Marketing" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <label className="block text-sm font-medium text-gray-700">Skills</label>
+                                            <input type="text" name="skills" value={formData.skills} placeholder="e.g., Web Development, Graphic Design" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
                                         <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700" htmlFor="preferred_categories">Preferred Job Categories (comma-separated IDs)</label>
-                                            <input type="text" name="preferred_categories" id="preferred_categories" value={formData.preferred_categories} onChange={handleChange} placeholder="e.g., 1,5,7 (Category IDs)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <label className="block text-sm font-medium text-gray-700">Preferred Job Categories</label>
+                                            <input type="text" name="preferred_categories" value={formData.preferred_categories} placeholder="e.g., Event, IT" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
-
-                                        {/* CV Upload Section */}
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">Upload CV (PDF only, max 5MB)</label>
                                             <input 
@@ -329,14 +330,13 @@ function ProfilePage({ user, onProfileUpdate }) {
                                                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-lighter file:text-primary-dark hover:file:bg-primary-light"
                                                 accept="application/pdf"
                                             />
-                                            {user.cv_url && (
+                                            {user.cv_url && !selectedCV && (
                                                 <p className="mt-2 text-sm text-gray-500">
                                                     Current CV: <a href={`http://uniwiz.test/${user.cv_url}`} target="_blank" rel="noopener noreferrer" className="text-primary-main hover:underline">View Current CV</a>
-                                                    {selectedCV && <span className="ml-2 text-primary-dark"> (New CV selected: {selectedCV.name})</span>} {/* Added selectedCV.name */}
                                                 </p>
                                             )}
-                                            {!user.cv_url && selectedCV && (
-                                                <p className="mt-2 text-sm text-primary-dark">New CV selected: {selectedCV.name}</p>
+                                            {selectedCV && (
+                                                 <p className="mt-2 text-sm text-primary-dark">New CV selected: {selectedCV.name}</p>
                                             )}
                                         </div>
                                     </div>

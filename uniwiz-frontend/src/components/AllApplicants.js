@@ -1,122 +1,246 @@
+// FILE: src/components/AllApplicants.js (Updated with Conditional Action Buttons)
+// =====================================================================
+
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Reusable Notification Component (from ManageJobs.js)
+// --- Reusable Notification Component ---
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
-        const timer = setTimeout(() => {
-            onClose();
-        }, 3000); // Notification disappears after 3 seconds
+        const timer = setTimeout(() => onClose(), 3000);
         return () => clearTimeout(timer);
     }, [onClose]);
-
-    const baseClasses = "fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white transition-transform transform translate-x-0 z-50";
-    const typeClasses = {
-        success: "bg-green-500",
-        error: "bg-red-500",
-    };
-
+    const typeClasses = { success: "bg-green-500", error: "bg-red-500" };
     return (
-        <div className={`${baseClasses} ${typeClasses[type] || 'bg-gray-500'}`}>
+        <div className={`fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-all ${typeClasses[type] || 'bg-gray-500'}`}>
             {message}
         </div>
     );
 };
 
-// Loading spinner component (from PublisherDashboard.js)
+// --- Loading Spinner ---
 const LoadingSpinner = () => (
-  <div className="flex justify-center items-center p-8">
-    <div className="loading-spinner">
-      <div className="spinner-circle"></div>
+    <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
-    <style jsx>{`
-      .loading-spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-      }
-      .spinner-circle {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 3px solid #E8EAF6;
-        border-top-color: #7886C7;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
 );
 
-// Status Badge Component (from ManageJobs.js)
+// --- Status Badge ---
 const StatusBadge = ({ status }) => {
-    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
-    const statusClasses = {
-        applied: "bg-blue-100 text-blue-800", // New status for applications
+    const statusMap = {
         pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
         accepted: "bg-green-100 text-green-800",
         rejected: "bg-red-100 text-red-800",
-        // Default to applied if status is not explicitly handled
-        default: "bg-gray-100 text-gray-800",
+        default: "bg-gray-100 text-gray-800"
     };
-    return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
+    return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
+// --- Applicant Detail Modal ---
+const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, onViewFullProfile }) => {
+    if (!applicant) return null;
 
-function AllApplicants({ user }) {
-    const [applicants, setApplicants] = useState([]);
+    const DetailItem = ({ label, value, isLink = false }) => (
+        <div>
+            <p className="text-sm text-gray-500">{label}</p>
+            {isLink && value ? (
+                 <a href={`http://uniwiz.test/${value}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-main hover:underline">
+                    View CV
+                 </a>
+            ) : (
+                <p className="font-semibold text-gray-800">{value || 'N/A'}</p>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4" onClick={onClose}>
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                
+                <div className="flex items-start space-x-6">
+                    <img 
+                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/100x100/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
+                        alt="Profile" 
+                        className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md"
+                    />
+                    <div className="flex-grow">
+                        <h2 className="text-3xl font-bold text-primary-dark">{applicant.first_name} {applicant.last_name}</h2>
+                        <p className="text-gray-600">{applicant.email}</p>
+                        <p className="text-sm text-gray-500 mt-1">Applied for: <span className="font-semibold">{applicant.job_title}</span></p>
+                        <p className="text-sm text-gray-500">Applied on: <span className="font-semibold">{new Date(applicant.applied_at).toLocaleDateString()}</span></p>
+                    </div>
+                </div>
+
+                <div className="border-t my-6"></div>
+
+                <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Proposal</h3>
+                        <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{applicant.proposal || 'No proposal provided.'}</p>
+                    </div>
+
+                    <div>
+                         <h3 className="text-lg font-bold text-gray-800 mb-4">Student Details</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DetailItem label="University" value={applicant.university_name} />
+                            <DetailItem label="Field of Study" value={applicant.field_of_study} />
+                            <DetailItem label="Year of Study" value={applicant.year_of_study} />
+                            <DetailItem label="Languages" value={applicant.languages_spoken} />
+                            <div className="md:col-span-2"><DetailItem label="Skills" value={applicant.skills} /></div>
+                            <div className="md:col-span-2"><DetailItem label="CV / Resume" value={applicant.cv_url} isLink={true} /></div>
+                         </div>
+                    </div>
+                </div>
+
+                <div className="border-t mt-6 pt-4 flex justify-between items-center">
+                    <button onClick={() => onViewFullProfile(applicant.student_id)} className="font-semibold text-primary-main hover:text-primary-dark transition-colors">
+                        View Full Profile Page
+                    </button>
+                    <div className="flex space-x-3">
+                        <button onClick={() => onStatusChange(applicant.application_id, 'rejected')} className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors">Reject</button>
+                        <button onClick={() => onStatusChange(applicant.application_id, 'accepted')} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">Accept</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Main AllApplicants Component ---
+function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFilter }) {
+    const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState(initialFilter || 'All');
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
 
-    // Memoized function to fetch applications
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedApplicant, setSelectedApplicant] = useState(null);
+
+    const showNotification = (message, type = 'success') => {
+        setNotification({ message, type, key: Date.now() });
+    };
+
     const fetchAllApplications = useCallback(async () => {
-        if (!user || !user.id) return; // Ensure user and user.id exist
+        if (!user || !user.id) return;
         setIsLoading(true);
         setError(null);
         try {
-            // Construct URL with publisher_id and search term
-            const url = `http://uniwiz.test/get_all_publisher_applications.php?publisher_id=${user.id}&search=${encodeURIComponent(searchTerm)}`;
+            const params = new URLSearchParams({
+                publisher_id: user.id,
+                search: searchTerm,
+                status: statusFilter,
+            });
+            const url = `http://uniwiz.test/get_all_publisher_applications.php?${params.toString()}`;
             const response = await fetch(url);
             const data = await response.json();
-
-            if (response.ok) {
-                setApplicants(data);
-            } else {
-                // If response is not OK, throw an error with the message from backend
-                throw new Error(data.message || 'Failed to fetch applications.');
-            }
+            if (!response.ok) throw new Error(data.message || 'Failed to fetch applicants.');
+            setAllApplicants(data);
         } catch (err) {
-            console.error("Failed to fetch applications:", err);
             setError(err.message);
             showNotification(`Error: ${err.message}`, 'error');
         } finally {
             setIsLoading(false);
         }
-    }, [user, searchTerm]); // Dependencies: user object and search term
+    }, [user, searchTerm, statusFilter]);
 
-    // Effect to fetch applications when component mounts or search term changes
+    const handleUpdateStatus = useCallback(async (applicationId, newStatus, showNotif = true) => {
+        try {
+            const response = await fetch('http://uniwiz.test/update_application_status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ application_id: applicationId, status: newStatus }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            if (showNotif) {
+                showNotification(`Application status updated to ${newStatus}.`, 'success');
+            }
+            fetchAllApplications();
+        } catch (err) {
+             if (showNotif) {
+                showNotification(`Error: ${err.message}`, 'error');
+             }
+        }
+    }, [fetchAllApplications]);
+
+    const handleViewDetails = useCallback(async (applicant) => {
+        setSelectedApplicant(applicant);
+        setIsModalOpen(true);
+        if (applicant.status === 'pending') {
+            await handleUpdateStatus(applicant.application_id, 'viewed', false);
+        }
+    }, [handleUpdateStatus]);
+
     useEffect(() => {
-        // Implement debouncing for the search term
         const delayDebounceFn = setTimeout(() => {
             fetchAllApplications();
-        }, 500); // 500ms delay after user stops typing
+        }, 300);
+        return () => clearTimeout(delayDebounceFn);
+    }, [fetchAllApplications]);
 
-        return () => clearTimeout(delayDebounceFn); // Cleanup the timer
-    }, [fetchAllApplications]); // Dependency is the memoized fetch function
+    useEffect(() => {
+        return () => {
+            if (setInitialFilter) {
+                setInitialFilter('All');
+            }
+        };
+    }, [setInitialFilter]);
 
-    // Function to show notifications
-    const showNotification = (message, type = 'success') => {
-        setNotification({ message, type, key: Date.now() });
+    const ApplicantCard = ({ applicant }) => {
+        const renderActions = () => {
+            if (applicant.status === 'accepted') {
+                return <p className="text-sm font-bold text-green-600">Application Accepted</p>;
+            }
+            if (applicant.status === 'rejected') {
+                return <p className="text-sm font-bold text-red-600">Application Rejected</p>;
+            }
+            return (
+                <>
+                    <button onClick={() => handleUpdateStatus(applicant.application_id, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
+                    <button onClick={() => handleUpdateStatus(applicant.application_id, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
+                </>
+            );
+        };
+
+        return (
+            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg transition-shadow duration-300 relative">
+                {applicant.status === 'pending' && (
+                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
+                    </span>
+                )}
+                <div className="flex items-center space-x-4">
+                    <img 
+                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
+                        alt="profile" 
+                        className="h-16 w-16 rounded-full object-cover"
+                    />
+                    <div className="flex-grow">
+                        <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline">
+                            {applicant.first_name} {applicant.last_name}
+                        </button>
+                        <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
+                    </div>
+                    <StatusBadge status={applicant.status} />
+                </div>
+                <div className="flex justify-end items-center space-x-2 pt-3 border-t">
+                    {renderActions()}
+                    <button onClick={() => handleViewDetails(applicant)} className="text-sm font-semibold bg-primary-main text-white px-4 py-1.5 rounded-md hover:bg-primary-dark">View Details</button>
+                </div>
+            </div>
+        );
     };
 
-    // Render nothing if user is not available (e.g., still loading in App.js)
-    if (!user) {
-        return <LoadingSpinner />;
+    // **FIX**: Add 'today' to the list of tabs if it's the initial filter
+    const tabs = ['All', 'pending', 'viewed', 'accepted', 'rejected'];
+    if (initialFilter === 'today' && !tabs.includes('today')) {
+        tabs.push('today');
     }
+
 
     return (
         <>
@@ -128,61 +252,57 @@ function AllApplicants({ user }) {
                     onClose={() => setNotification({ message: '', type: '', key: 0 })}
                 />
             )}
+            {isModalOpen && (
+                <ApplicantDetailModal 
+                    applicant={selectedApplicant} 
+                    onClose={() => setIsModalOpen(false)}
+                    onStatusChange={handleUpdateStatus}
+                    onViewFullProfile={onViewStudentProfile}
+                />
+            )}
 
-            <div className="p-8">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-                    <h2 className="text-4xl font-bold text-gray-800 mb-4 md:mb-0">All Applicants</h2>
+            <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 className="text-4xl font-bold text-gray-800">All Applicants</h2>
                     <div className="w-full md:w-auto">
                         <input 
                             type="text"
-                            placeholder="Search by name or job title..."
+                            placeholder="Search by name, job, or skill..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="shadow-sm border rounded py-2 px-4 w-full md:w-72"
+                            className="shadow-sm border rounded-lg py-2 px-4 w-full md:w-72"
                         />
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Applied For</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {isLoading ? (
-                                    <tr><td colSpan="6" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
-                                ) : error ? (
-                                    <tr><td colSpan="6" className="text-center py-8 text-red-500">{error}</td></tr>
-                                ) : applicants.length > 0 ? (
-                                    applicants.map(app => (
-                                        <tr key={app.application_id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.email}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-semibold">{app.job_title}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><StatusBadge status={app.status} /></td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.applied_at).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                {/* You can add action buttons here, e.g., View Proposal, Change Status */}
-                                                <button className="text-blue-600 hover:text-blue-800 mr-3">View</button>
-                                                <button className="text-green-600 hover:text-green-800">Accept</button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr><td colSpan="6" className="text-center py-8 text-gray-500">No applicants found.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="bg-white p-2 rounded-lg flex space-x-2 mb-8 shadow-sm border border-gray-100 w-full overflow-x-auto">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setStatusFilter(tab)}
+                            className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors capitalize whitespace-nowrap ${
+                                statusFilter === tab ? 'bg-primary-main text-white shadow' : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            {tab === 'today' ? "Today's" : tab}
+                        </button>
+                    ))}
                 </div>
+
+                {isLoading ? (
+                    <LoadingSpinner />
+                ) : error ? (
+                    <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>
+                ) : allApplicants.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {allApplicants.map(app => <ApplicantCard key={app.application_id} applicant={app} />)}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 bg-white rounded-xl shadow-md">
+                        <h3 className="text-xl font-semibold text-gray-700">No Applicants Found</h3>
+                        <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria.</p>
+                    </div>
+                )}
             </div>
         </>
     );

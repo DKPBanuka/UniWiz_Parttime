@@ -1,7 +1,8 @@
-// FILE: src/components/ManageJobs.js (Fixed Infinite Loop)
+// FILE: src/components/ManageJobs.js (Updated with Portal for Popup Menu)
 // ==============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom'; // Import ReactDOM for portals
 
 // --- Reusable Notification Component (Toast) ---
 const Notification = ({ message, type, onClose }) => {
@@ -91,7 +92,7 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-                <h2 className="text-2xl font-bold text-dark-blue-text mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2> {/* Changed text color */}
+                <h2 className="text-2xl font-bold text-dark-blue-text mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Title</label>
@@ -127,40 +128,91 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     );
 };
 
-
-// --- Actions Dropdown Component ---
+// --- Actions Dropdown Component (Portal Version) ---
 const ActionsDropdown = ({ job, onAction }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const ref = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [ref]);
+    const [position, setPosition] = useState(null);
+    const buttonRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     const handleMenuAction = (action) => {
         onAction(job, action);
         setIsOpen(false);
     };
 
+    const toggleDropdown = () => {
+        if (!isOpen) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setPosition({
+                top: rect.bottom + window.scrollY + 8, // Position below the button with some space
+                left: rect.right + window.scrollX - 224, // 224px is w-56
+            });
+        }
+        setIsOpen(!isOpen);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                isOpen &&
+                buttonRef.current && !buttonRef.current.contains(event.target) &&
+                dropdownRef.current && !dropdownRef.current.contains(event.target)
+            ) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen]);
+
+    const MenuItem = ({ icon, text, onClick, isDestructive = false }) => (
+        <button
+            onClick={onClick}
+            className={`w-full text-left flex items-center p-3 text-sm transition-colors duration-150 rounded-lg ${
+                isDestructive
+                    ? 'text-red-600 hover:bg-red-50'
+                    : 'text-gray-700 hover:bg-gray-100'
+            }`}
+        >
+            <span className={`mr-3 ${isDestructive ? 'text-red-500' : 'text-gray-400'}`}>{icon}</span>
+            <span className="font-medium">{text}</span>
+        </button>
+    );
+
+    const viewIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>;
+    const editIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>;
+    const deleteIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+
+    const DropdownMenu = () => {
+        if (!position) return null;
+        return ReactDOM.createPortal(
+            <div
+                ref={dropdownRef}
+                style={{ top: `${position.top}px`, left: `${position.left}px` }}
+                className="fixed bg-white rounded-xl shadow-lg border z-30 p-2 w-56"
+            >
+                <MenuItem icon={viewIcon} text="View Applicants" onClick={() => handleMenuAction('view')} />
+                <MenuItem icon={editIcon} text="Edit Job" onClick={() => handleMenuAction('edit')} />
+                <div className="my-1 border-t border-gray-100"></div>
+                <MenuItem icon={deleteIcon} text="Delete Job" onClick={() => handleMenuAction('delete')} isDestructive={true} />
+            </div>,
+            document.body
+        );
+    };
+
     return (
-        <div className="relative" ref={ref}>
-            <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-full hover:bg-gray-200">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+        <>
+            <button
+                ref={buttonRef}
+                onClick={toggleDropdown}
+                className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
             </button>
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-20">
-                    <div className="py-1">
-                        <button onClick={() => handleMenuAction('view')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Applicants</button>
-                        <button onClick={() => handleMenuAction('edit')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</button>
-                        <button onClick={() => handleMenuAction('delete')} className="w-full text-left block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">Delete Job</button>
-                    </div>
-                </div>
-            )}
-        </div>
+            {isOpen && <DropdownMenu />}
+        </>
     );
 };
 
@@ -178,7 +230,6 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
     const [jobToEdit, setJobToEdit] = useState(null);
     const [categories, setCategories] = useState([]);
 
-    // **FIX**: Wrap the fetch function in useCallback to prevent re-creation on every render
     const fetchPublisherJobs = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
@@ -197,7 +248,7 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
         } finally {
             setIsLoading(false);
         }
-    }, [user, searchTerm]); // Dependencies for the fetch function
+    }, [user, searchTerm]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -210,13 +261,12 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
         fetchCategories();
     }, []);
 
-    // **FIX**: This useEffect now calls the memoized fetch function
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchPublisherJobs();
         }, 500);
         return () => clearTimeout(delayDebounceFn);
-    }, [fetchPublisherJobs]); // The dependency is now the stable function itself
+    }, [fetchPublisherJobs]);
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
@@ -321,7 +371,7 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="shadow-sm border rounded py-2 px-4"
                         />
-                        <button onClick={onPostJobClick} className="flex items-center bg-app-blue text-white font-bold py-2 px-5 rounded-lg"> {/* Changed bg color */}
+                        <button onClick={onPostJobClick} className="flex items-center bg-app-blue text-white font-bold py-2 px-5 rounded-lg hover:bg-dark-blue-text">
                             Post New Job
                         </button>
                     </div>
@@ -350,7 +400,7 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{job.title}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><StatusBadge status={job.status} /></td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-dark-blue-text">{job.application_count}</td> {/* Changed text color */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-dark-blue-text">{job.application_count}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <ActionsDropdown job={job} onAction={handleJobAction} />
                                             </td>

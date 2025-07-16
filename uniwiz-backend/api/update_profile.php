@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/update_profile.php (Final Production Version with Student Profile Fields)
+// FILE: uniwiz-backend/api/update_profile.php (Refactored to handle multipart/form-data)
 // =========================================================================
 
 // --- Headers ---
@@ -26,123 +26,127 @@ if ($db === null) {
     exit();
 }
 
-// --- Get Posted Data ---
-$data = json_decode(file_get_contents("php://input"));
-
-// Basic validation for common fields
-if ($data === null || !isset($data->user_id) || !isset($data->first_name) || !isset($data->last_name)) {
+// --- Get Data from POST (now multipart/form-data) ---
+if (!isset($_POST['user_id'])) {
     http_response_code(400);
-    echo json_encode(["message" => "Incomplete data. user_id, first_name, and last_name are required."]);
+    echo json_encode(["message" => "User ID is required."]);
     exit();
 }
 
-// Fetch user's current role to apply conditional validation and updates
-$stmt_role = $db->prepare("SELECT role FROM users WHERE id = :user_id LIMIT 1");
-$stmt_role->bindParam(':user_id', $data->user_id, PDO::PARAM_INT);
-$stmt_role->execute();
-$user_role_row = $stmt_role->fetch(PDO::FETCH_ASSOC);
+$user_id = $_POST['user_id'];
+$profile_image_url_to_update = null;
+$cv_url_to_update = null;
 
-if (!$user_role_row) {
-    http_response_code(404);
-    echo json_encode(["message" => "User not found."]);
-    exit();
-}
-$user_role = $user_role_row['role'];
-
-// Conditional validation: If user is a publisher, company_name is required
-if ($user_role === 'publisher' && (!isset($data->company_name) || empty(trim($data->company_name)))) {
-    http_response_code(400);
-    echo json_encode(["message" => "Company name is required for publishers."]);
-    exit();
-}
-
-// --- Main Update Logic ---
 try {
-    // Start building the query for the 'users' table
+    // --- Get user role ---
+    $stmt_role = $db->prepare("SELECT role FROM users WHERE id = :user_id LIMIT 1");
+    $stmt_role->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt_role->execute();
+    $user_role_row = $stmt_role->fetch(PDO::FETCH_ASSOC);
+    if (!$user_role_row) {
+        throw new Exception("User not found.");
+    }
+    $user_role = $user_role_row['role'];
+
+    // --- 1. Handle Profile Picture Upload (if provided) ---
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
+        $file = $_FILES['profile_picture'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!in_array($file['type'], $allowed_types) || $file['size'] > 2097152) {
+             throw new Exception("Invalid profile picture. Must be JPG, PNG, or GIF and under 2MB.");
+        }
+        
+        $target_dir = "uploads/";
+        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
+        $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $new_filename = "user_" . $user_id . "_" . time() . "." . $file_extension;
+        $target_file = $target_dir . $new_filename;
+        
+        if (move_uploaded_file($file['tmp_name'], $target_file)) {
+            $profile_image_url_to_update = $target_file; // Using target_file as it's relative to the 'api' folder
+        } else {
+            throw new Exception("Failed to move uploaded profile picture.");
+        }
+    }
+
+    // --- 2. Handle CV Upload (if provided and user is a student) ---
+    if ($user_role === 'student' && isset($_FILES['cv_file']) && $_FILES['cv_file']['error'] == 0) {
+        $file = $_FILES['cv_file'];
+        if ($file['type'] !== 'application/pdf' || $file['size'] > 5242880) { // 5MB limit
+            throw new Exception("Invalid CV file. Must be a PDF and under 5MB.");
+        }
+
+        $target_dir = "uploads/cvs/";
+        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
+        $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $new_filename = "cv_user_" . $user_id . "_" . time() . "." . $file_extension;
+        $target_file = $target_dir . $new_filename;
+
+        if (move_uploaded_file($file['tmp_name'], $target_file)) {
+            $cv_url_to_update = $target_file; // Using target_file as it's relative to the 'api' folder
+        } else {
+            throw new Exception("Failed to move uploaded CV.");
+        }
+    }
+    
+    // --- 3. Update 'users' table ---
     $query_users = "UPDATE users SET first_name = :first_name, last_name = :last_name";
     $params_users = [
-        ':user_id' => $data->user_id,
-        ':first_name' => htmlspecialchars(strip_tags($data->first_name)),
-        ':last_name' => htmlspecialchars(strip_tags($data->last_name))
+        ':user_id' => $user_id,
+        ':first_name' => htmlspecialchars(strip_tags($_POST['first_name'])),
+        ':last_name' => htmlspecialchars(strip_tags($_POST['last_name'])),
     ];
-
-    // Conditionally add company_name to users query and params if it exists in data
-    // (Assuming company_name is still in users table for now, based on previous context)
-    if (isset($data->company_name)) {
+    if (isset($_POST['company_name'])) {
         $query_users .= ", company_name = :company_name";
-        $params_users[':company_name'] = htmlspecialchars(strip_tags($data->company_name));
+        $params_users[':company_name'] = htmlspecialchars(strip_tags($_POST['company_name']));
     }
-
+    if ($profile_image_url_to_update !== null) {
+        $query_users .= ", profile_image_url = :profile_image_url";
+        $params_users[':profile_image_url'] = $profile_image_url_to_update;
+    }
     $query_users .= " WHERE id = :user_id";
-
     $stmt_users = $db->prepare($query_users);
+    $stmt_users->execute($params_users);
 
-    // Bind parameters dynamically for users table
-    foreach ($params_users as $key => $value) {
-        $stmt_users->bindValue($key, $value);
-    }
-    $stmt_users->execute(); // Execute users table update
-
-
-    // --- Update student_profiles table if user is a student ---
+    // --- 4. Update or Insert 'student_profiles' table (if student) ---
     if ($user_role === 'student') {
-        // Check if student profile exists, if not, create it
-        $stmt_check_student_profile = $db->prepare("SELECT id FROM student_profiles WHERE user_id = :user_id LIMIT 1");
-        $stmt_check_student_profile->bindParam(':user_id', $data->user_id, PDO::PARAM_INT);
-        $stmt_check_student_profile->execute();
-        $student_profile_exists = $stmt_check_student_profile->rowCount() > 0;
+        $stmt_check = $db->prepare("SELECT id FROM student_profiles WHERE user_id = :user_id LIMIT 1");
+        $stmt_check->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $stmt_check->execute();
+        $profile_exists = $stmt_check->rowCount() > 0;
 
-        $query_student_profile = "";
-        $params_student_profile = [':user_id' => $data->user_id];
+        $params_student = [
+            ':user_id' => $user_id,
+            ':university_name' => isset($_POST['university_name']) ? htmlspecialchars(strip_tags($_POST['university_name'])) : null,
+            ':field_of_study' => isset($_POST['field_of_study']) ? htmlspecialchars(strip_tags($_POST['field_of_study'])) : null,
+            ':year_of_study' => isset($_POST['year_of_study']) ? htmlspecialchars(strip_tags($_POST['year_of_study'])) : null,
+            ':languages_spoken' => isset($_POST['languages_spoken']) ? htmlspecialchars(strip_tags($_POST['languages_spoken'])) : null,
+            ':preferred_categories' => isset($_POST['preferred_categories']) ? htmlspecialchars(strip_tags($_POST['preferred_categories'])) : null,
+            ':skills' => isset($_POST['skills']) ? htmlspecialchars(strip_tags($_POST['skills'])) : null,
+        ];
+        if ($cv_url_to_update !== null) {
+            $params_student[':cv_url'] = $cv_url_to_update;
+        }
 
-        // Prepare data for student_profiles table
-        $university_name = isset($data->university_name) ? htmlspecialchars(strip_tags($data->university_name)) : null;
-        $field_of_study = isset($data->field_of_study) ? htmlspecialchars(strip_tags($data->field_of_study)) : null;
-        $year_of_study = isset($data->year_of_study) ? htmlspecialchars(strip_tags($data->year_of_study)) : null;
-        $languages_spoken = isset($data->languages_spoken) ? htmlspecialchars(strip_tags($data->languages_spoken)) : null; // Expects comma-separated string
-        $preferred_categories = isset($data->preferred_categories) ? htmlspecialchars(strip_tags($data->preferred_categories)) : null; // Expects comma-separated string
-        $skills = isset($data->skills) ? htmlspecialchars(strip_tags($data->skills)) : null; // Expects comma-separated string
-        // cv_url is handled by a separate upload API, not directly here.
-
-        $params_student_profile[':university_name'] = $university_name;
-        $params_student_profile[':field_of_study'] = $field_of_study;
-        $params_student_profile[':year_of_study'] = $year_of_study;
-        $params_student_profile[':languages_spoken'] = $languages_spoken;
-        $params_student_profile[':preferred_categories'] = $preferred_categories;
-        $params_student_profile[':skills'] = $skills;
-
-        if ($student_profile_exists) {
-            // Update existing student profile
-            $query_student_profile = "
-                UPDATE student_profiles SET 
-                    university_name = :university_name,
-                    field_of_study = :field_of_study,
-                    year_of_study = :year_of_study,
-                    languages_spoken = :languages_spoken,
-                    preferred_categories = :preferred_categories,
-                    skills = :skills
-                WHERE user_id = :user_id
-            ";
+        if ($profile_exists) {
+            $query_student = "UPDATE student_profiles SET university_name = :university_name, field_of_study = :field_of_study, year_of_study = :year_of_study, languages_spoken = :languages_spoken, preferred_categories = :preferred_categories, skills = :skills";
+            if ($cv_url_to_update !== null) {
+                $query_student .= ", cv_url = :cv_url";
+            }
+            $query_student .= " WHERE user_id = :user_id";
         } else {
-            // Insert new student profile
-            $query_student_profile = "
-                INSERT INTO student_profiles 
-                (user_id, university_name, field_of_study, year_of_study, languages_spoken, preferred_categories, skills)
-                VALUES 
-                (:user_id, :university_name, :field_of_study, :year_of_study, :languages_spoken, :preferred_categories, :skills)
-            ";
+            $cols = implode(", ", array_keys($params_student));
+            $vals = implode(", ", array_keys($params_student));
+            $query_student = "INSERT INTO student_profiles (user_id, university_name, field_of_study, year_of_study, languages_spoken, preferred_categories, skills, cv_url) VALUES (:user_id, :university_name, :field_of_study, :year_of_study, :languages_spoken, :preferred_categories, :skills, :cv_url)";
+            if($cv_url_to_update === null) {
+                $params_student[':cv_url'] = null; // Ensure it's in params for INSERT
+            }
         }
-
-        $stmt_student_profile = $db->prepare($query_student_profile);
-        foreach ($params_student_profile as $key => $value) {
-            $stmt_student_profile->bindValue($key, $value);
-        }
-        $stmt_student_profile->execute(); // Execute student_profiles table update
+        $stmt_student = $db->prepare($query_student);
+        $stmt_student->execute($params_student);
     }
-
-
-    // After updating, fetch the complete, updated user data to send back
-    // This query now joins with student_profiles to get all student-specific data
+    
+    // --- 5. Fetch and Return Fully Updated User Data ---
     $query_fetch = "
         SELECT 
             u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
@@ -152,7 +156,7 @@ try {
         WHERE u.id = :id
     ";
     $stmt_fetch = $db->prepare($query_fetch);
-    $stmt_fetch->bindParam(':id', $data->user_id, PDO::PARAM_INT);
+    $stmt_fetch->bindParam(':id', $user_id, PDO::PARAM_INT);
     $stmt_fetch->execute();
     $updated_user = $stmt_fetch->fetch(PDO::FETCH_ASSOC);
 
@@ -164,9 +168,9 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(503); 
-    echo json_encode(["message" => "A database error occurred: " . $e->getMessage()]);
+    echo json_encode(["message" => "Database Error: " . $e->getMessage()]);
 } catch (Exception $e) {
     http_response_code(500); 
-    echo json_encode(["message" => "An unexpected server error occurred: " . $e->getMessage()]);
+    echo json_encode(["message" => "Server Error: " . $e->getMessage()]);
 }
 ?>

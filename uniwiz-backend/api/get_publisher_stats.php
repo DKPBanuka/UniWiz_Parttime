@@ -1,8 +1,8 @@
 <?php
-// FILE: uniwiz-backend/api/get_publisher_stats.php (Final Production Version)
+// FILE: uniwiz-backend/api/get_publisher_stats.php (ENHANCED)
 // =============================================================================
+// This file now includes a pending applicants count.
 
-// --- Headers & DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
@@ -19,7 +19,6 @@ if ($db === null) {
     exit();
 }
 
-// --- Get and Validate publisher_id ---
 if (!isset($_GET['publisher_id']) || !filter_var($_GET['publisher_id'], FILTER_VALIDATE_INT)) {
     http_response_code(400);
     echo json_encode(["message" => "A valid Publisher ID is required."]);
@@ -27,51 +26,44 @@ if (!isset($_GET['publisher_id']) || !filter_var($_GET['publisher_id'], FILTER_V
 }
 $publisher_id = (int)$_GET['publisher_id'];
 
-// --- Main Logic to Fetch Stats ---
 try {
     $stats = [];
 
-    // 1. Get Active Jobs Count
+    // 1. Active Jobs Count
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM jobs WHERE publisher_id = :publisher_id AND status = 'active'");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['active_jobs'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // 2. Get Total Applicants Count
-    $stmt = $db->prepare("
-        SELECT COUNT(ja.id) as count 
-        FROM job_applications ja 
-        INNER JOIN jobs j ON ja.job_id = j.id 
-        WHERE j.publisher_id = :publisher_id
-    ");
+    // 2. Total Applicants Count
+    $stmt = $db->prepare("SELECT COUNT(ja.id) as count FROM job_applications ja INNER JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['total_applicants'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // 3. Get New Applicants Today
-    $stmt = $db->prepare("
-        SELECT COUNT(ja.id) as count 
-        FROM job_applications ja 
-        INNER JOIN jobs j ON ja.job_id = j.id 
-        WHERE j.publisher_id = :publisher_id AND DATE(ja.applied_at) = CURDATE()
-    ");
+    // 3. New Applicants Today
+    $stmt = $db->prepare("SELECT COUNT(ja.id) as count FROM job_applications ja INNER JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id AND DATE(ja.applied_at) = CURDATE()");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['new_applicants_today'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    
+    // 4. NEW: Pending Applicants Count
+    $stmt = $db->prepare("SELECT COUNT(ja.id) as count FROM job_applications ja INNER JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id AND ja.status = 'pending'");
+    $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $stats['pending_applicants'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // 4. Get Recent Applicants (Top 5)
-    $stmt = $db->prepare("
-        SELECT u.first_name, u.last_name, j.title as job_title, ja.applied_at 
-        FROM job_applications ja 
-        JOIN users u ON ja.student_id = u.id 
-        JOIN jobs j ON ja.job_id = j.id 
-        WHERE j.publisher_id = :publisher_id 
-        ORDER BY ja.applied_at DESC 
-        LIMIT 5
-    ");
+    // 5. Recent Applicants (Top 5)
+    $stmt = $db->prepare("SELECT u.id as student_id, u.first_name, u.last_name, u.profile_image_url, j.title as job_title, ja.applied_at FROM job_applications ja JOIN users u ON ja.student_id = u.id JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id ORDER BY ja.applied_at DESC LIMIT 5");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['recent_applicants'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // 6. Job Overview (Top 5 recent jobs)
+    $stmt_jobs = $db->prepare("SELECT j.id, j.title, j.status, (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id) as application_count FROM jobs j WHERE j.publisher_id = :publisher_id ORDER BY j.created_at DESC LIMIT 5");
+    $stmt_jobs->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
+    $stmt_jobs->execute();
+    $stats['job_overview'] = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
 
     http_response_code(200);
     echo json_encode($stats);
