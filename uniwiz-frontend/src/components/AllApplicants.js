@@ -1,11 +1,13 @@
-// FILE: src/components/AllApplicants.js (FIXED)
-// =====================================================================
-// This file contains the component to display all applicants for a publisher.
-// The fix ensures that all buttons on the applicant cards are now functional.
+// FILE: src/components/AllApplicants.js (ENHANCED with new Profile Modal)
+// ==================================================================================
+// This version replaces the navigation to a separate profile page with a detailed
+// popup modal, improving the publisher's workflow. It now displays all available
+// student details in the modal.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// --- Reusable Notification Component ---
+// --- Reusable Components ---
+
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => onClose(), 3000);
@@ -19,14 +21,12 @@ const Notification = ({ message, type, onClose }) => {
     );
 };
 
-// --- Loading Spinner ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
 );
 
-// --- Status Badge ---
 const StatusBadge = ({ status }) => {
     const statusMap = {
         pending: "bg-yellow-100 text-yellow-800",
@@ -38,70 +38,102 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
-// --- Applicant Detail Modal ---
-const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, onViewFullProfile }) => {
+// --- NEW: Enhanced Applicant Detail Modal with all details ---
+const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
+    const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
+
+    // Automatically mark as 'viewed' when modal opens
+    useEffect(() => {
+        if (applicant && applicant.status === 'pending') {
+            onStatusChange(applicant.application_id, 'viewed', false); // Don't show popup
+            setCurrentStatus('viewed');
+        } else if (applicant) {
+            setCurrentStatus(applicant.status);
+        }
+    }, [applicant, onStatusChange]);
+
     if (!applicant) return null;
 
-    const DetailItem = ({ label, value, isLink = false }) => (
-        <div>
-            <p className="text-sm text-gray-500">{label}</p>
-            {isLink && value ? (
-                 <a href={`http://uniwiz.test/${value}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-main hover:underline">
-                    View CV
-                 </a>
-            ) : (
-                <p className="font-semibold text-gray-800">{value || 'N/A'}</p>
-            )}
-        </div>
-    );
+    const handleStatusButtonClick = (newStatus) => {
+        onStatusChange(applicant.application_id, newStatus, true); // Show popup
+        setCurrentStatus(newStatus);
+    };
+    
+    const canTakeAction = currentStatus === 'pending' || currentStatus === 'viewed';
+    const skills = applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : [];
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4" onClick={onClose}>
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl relative" onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-4 right-5 text-gray-400 hover:text-gray-600 text-3xl font-bold z-10">&times;</button>
                 
-                <div className="flex items-start space-x-6">
-                    <img 
-                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/100x100/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
-                        alt="Profile" 
-                        className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md"
-                    />
-                    <div className="flex-grow">
-                        <h2 className="text-3xl font-bold text-primary-dark">{applicant.first_name} {applicant.last_name}</h2>
-                        <p className="text-gray-600">{applicant.email}</p>
-                        <p className="text-sm text-gray-500 mt-1">Applied for: <span className="font-semibold">{applicant.job_title}</span></p>
-                        <p className="text-sm text-gray-500">Applied on: <span className="font-semibold">{new Date(applicant.applied_at).toLocaleDateString()}</span></p>
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4 border-b pb-6 mb-6">
+                    <div className="flex items-center gap-6">
+                        <img 
+                            src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/100x100/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
+                            alt="Profile" 
+                            className="h-24 w-24 rounded-full object-cover border-4 border-primary-lighter shadow-md"
+                        />
+                        <div>
+                            <h2 className="text-3xl font-bold text-primary-dark">{applicant.first_name} {applicant.last_name}</h2>
+                            <p className="text-gray-600">{applicant.field_of_study || 'Student'}</p>
+                            {/* **CHANGE**: Added Email and Applied Date */}
+                            <p className="text-sm text-gray-500 mt-1">Email: <span className="font-semibold">{applicant.email}</span></p>
+                            <p className="text-sm text-gray-500">Applied for: <span className="font-semibold">{applicant.job_title}</span> on <span className="font-semibold">{new Date(applicant.applied_at).toLocaleDateString()}</span></p>
+                        </div>
+                    </div>
+                    <div className="flex-shrink-0 flex flex-col items-center md:items-end gap-3">
+                        <StatusBadge status={currentStatus} />
+                        {canTakeAction && (
+                            <div className="flex space-x-2 mt-2">
+                                <button onClick={() => handleStatusButtonClick('rejected')} className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors text-sm">Reject</button>
+                                <button onClick={() => handleStatusButtonClick('accepted')} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors text-sm">Accept</button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="border-t my-6"></div>
-
-                <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-4">
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">Proposal</h3>
-                        <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{applicant.proposal || 'No proposal provided.'}</p>
+                {/* Body Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Proposal</h3>
+                            <p className="text-gray-700 bg-gray-50 p-4 rounded-lg border">{applicant.proposal || 'No proposal provided.'}</p>
+                        </div>
+                        <div>
+                             <h3 className="text-lg font-bold text-gray-800 mb-2">Educational Background</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border">
+                                <p><strong className="font-medium text-gray-500 block">University:</strong> {applicant.university_name || 'N/A'}</p>
+                                <p><strong className="font-medium text-gray-500 block">Field of Study:</strong> {applicant.field_of_study || 'N/A'}</p>
+                                <p><strong className="font-medium text-gray-500 block">Year of Study:</strong> {applicant.year_of_study || 'N/A'}</p>
+                             </div>
+                        </div>
                     </div>
-
-                    <div>
-                         <h3 className="text-lg font-bold text-gray-800 mb-4">Student Details</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DetailItem label="University" value={applicant.university_name} />
-                            <DetailItem label="Field of Study" value={applicant.field_of_study} />
-                            <DetailItem label="Year of Study" value={applicant.year_of_study} />
-                            <DetailItem label="Languages" value={applicant.languages_spoken} />
-                            <div className="md:col-span-2"><DetailItem label="Skills" value={applicant.skills} /></div>
-                            <div className="md:col-span-2"><DetailItem label="CV / Resume" value={applicant.cv_url} isLink={true} /></div>
-                         </div>
-                    </div>
-                </div>
-
-                <div className="border-t mt-6 pt-4 flex justify-between items-center">
-                    <button onClick={() => onViewFullProfile(applicant.student_id)} className="font-semibold text-primary-main hover:text-primary-dark transition-colors">
-                        View Full Profile Page
-                    </button>
-                    <div className="flex space-x-3">
-                        <button onClick={() => onStatusChange(applicant.application_id, 'rejected')} className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors">Reject</button>
-                        <button onClick={() => onStatusChange(applicant.application_id, 'accepted')} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">Accept</button>
+                    <div className="space-y-6">
+                         <div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Skills</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {skills.length > 0 ? skills.map((skill, index) => (
+                                    <span key={index} className="bg-primary-lighter text-primary-dark font-medium px-3 py-1 rounded-full text-sm">{skill}</span>
+                                )) : <p className="text-gray-500 text-sm">No skills specified.</p>}
+                            </div>
+                        </div>
+                        {/* **CHANGE**: Added Languages Spoken */}
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Languages</h3>
+                             <p className="text-gray-700">{applicant.languages_spoken || 'Not specified'}</p>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Resume / CV</h3>
+                            {applicant.cv_url ? (
+                                <a href={`http://uniwiz.test/${applicant.cv_url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-primary-main text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors">
+                                    Download CV
+                                </a>
+                            ) : (
+                                <p className="text-gray-500 text-sm">CV has not been uploaded.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -109,25 +141,17 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, onViewFullPr
     );
 };
 
-// --- FIX: ApplicantCard now receives handler functions as props ---
-const ApplicantCard = ({ applicant, handleUpdateStatus, onViewStudentProfile, handleViewDetails }) => {
-    const renderActions = () => {
-        if (applicant.status === 'accepted') {
-            return <p className="text-sm font-bold text-green-600">Application Accepted</p>;
-        }
-        if (applicant.status === 'rejected') {
-            return <p className="text-sm font-bold text-red-600">Application Rejected</p>;
-        }
-        return (
-            <>
-                <button onClick={() => handleUpdateStatus(applicant.application_id, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
-                <button onClick={() => handleUpdateStatus(applicant.application_id, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
-            </>
-        );
+
+// --- ApplicantCard Component ---
+const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
+    
+    const handleActionClick = (e, status) => {
+        e.stopPropagation(); // Prevent modal from opening
+        onStatusChange(applicant.application_id, status, true);
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg transition-shadow duration-300 relative">
+        <div onClick={() => onViewDetails(applicant)} className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg hover:border-primary-main transition-all duration-300 cursor-pointer relative">
             {applicant.status === 'pending' && (
                 <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -142,9 +166,7 @@ const ApplicantCard = ({ applicant, handleUpdateStatus, onViewStudentProfile, ha
                         className="h-16 w-16 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="min-w-0">
-                        <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline truncate block w-full">
-                            {applicant.first_name} {applicant.last_name}
-                        </button>
+                        <p className="font-bold text-lg text-primary-dark truncate">{applicant.first_name} {applicant.last_name}</p>
                         <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
                     </div>
                 </div>
@@ -152,16 +174,18 @@ const ApplicantCard = ({ applicant, handleUpdateStatus, onViewStudentProfile, ha
                     <StatusBadge status={applicant.status} />
                 </div>
             </div>
-            <div className="flex justify-end items-center space-x-2 pt-3 border-t">
-                {renderActions()}
-                <button onClick={() => handleViewDetails(applicant)} className="text-sm font-semibold bg-primary-main text-white px-4 py-1.5 rounded-md hover:bg-primary-dark">View Details</button>
-            </div>
+            {(applicant.status === 'pending' || applicant.status === 'viewed') && (
+                 <div className="flex justify-end items-center space-x-2 pt-3 border-t">
+                    <button onClick={(e) => handleActionClick(e, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
+                    <button onClick={(e) => handleActionClick(e, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
+                </div>
+            )}
         </div>
     );
 };
 
 // --- Main AllApplicants Component ---
-function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFilter }) {
+function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter }) {
     const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -199,33 +223,24 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
         }
     }, [user, searchTerm, statusFilter]);
 
-    const handleUpdateStatus = useCallback(async (applicationId, newStatus, showNotif = true) => {
-        try {
-            const response = await fetch('http://uniwiz.test/update_application_status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ application_id: applicationId, status: newStatus }),
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message);
-            if (showNotif) {
-                showNotification(`Application status updated to ${newStatus}.`, 'success');
-            }
-            fetchAllApplications();
-        } catch (err) {
-             if (showNotif) {
-                showNotification(`Error: ${err.message}`, 'error');
-             }
-        }
-    }, [fetchAllApplications]);
-
-    const handleViewDetails = useCallback(async (applicant) => {
+    // Lifted status change logic is passed via props as 'onStatusChange'
+    // This makes the component more reusable and centralizes state management in App.js
+    
+    const handleViewDetails = (applicant) => {
         setSelectedApplicant(applicant);
         setIsModalOpen(true);
-        if (applicant.status === 'pending') {
-            await handleUpdateStatus(applicant.application_id, 'viewed', false);
-        }
-    }, [handleUpdateStatus]);
+    };
+    
+    // Refresh data when status is changed from the modal
+    const handleModalStatusChange = (applicationId, newStatus, showNotif) => {
+        onStatusChange(applicationId, newStatus, showNotif);
+        // Optimistically update the list without a full re-fetch for a smoother experience
+        setAllApplicants(prev => 
+            prev.map(app => 
+                app.application_id === applicationId ? { ...app, status: newStatus } : app
+            )
+        );
+    };
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -236,9 +251,7 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
 
     useEffect(() => {
         return () => {
-            if (setInitialFilter) {
-                setInitialFilter('All');
-            }
+            if (setInitialFilter) setInitialFilter('All');
         };
     }, [setInitialFilter]);
 
@@ -246,7 +259,6 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
     if (initialFilter === 'today' && !tabs.includes('today')) {
         tabs.push('today');
     }
-
 
     return (
         <>
@@ -262,8 +274,7 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
                 <ApplicantDetailModal 
                     applicant={selectedApplicant} 
                     onClose={() => setIsModalOpen(false)}
-                    onStatusChange={handleUpdateStatus}
-                    onViewFullProfile={onViewStudentProfile}
+                    onStatusChange={handleModalStatusChange}
                 />
             )}
 
@@ -301,14 +312,12 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
                     <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>
                 ) : allApplicants.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* --- FIX: Pass handler functions to ApplicantCard --- */}
                         {allApplicants.map(app => (
                             <ApplicantCard 
                                 key={app.application_id} 
                                 applicant={app} 
-                                handleUpdateStatus={handleUpdateStatus}
-                                onViewStudentProfile={onViewStudentProfile}
-                                handleViewDetails={handleViewDetails}
+                                onStatusChange={onStatusChange}
+                                onViewDetails={handleViewDetails}
                             />
                         ))}
                     </div>

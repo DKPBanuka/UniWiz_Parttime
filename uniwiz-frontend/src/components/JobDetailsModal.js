@@ -1,17 +1,18 @@
-// FILE: src/components/JobDetailsModal.js (FIXED)
-// =====================================================================
-// This component displays the full details of a single job in a modal window.
+// FILE: src/components/JobDetailsModal.js (ENHANCED with Application Status Display)
+// ===================================================================================
+// This component now displays the application status in the top-right corner
+// and hides the "Apply Now" button if the student has already applied.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// --- Reusable Loading Spinner ---
+// --- Reusable Components ---
+
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-main"></div>
     </div>
 );
 
-// --- Reusable Detail Item ---
 const DetailItem = ({ label, value, children }) => (
     <div>
         <p className="text-sm text-gray-500">{label}</p>
@@ -19,17 +20,33 @@ const DetailItem = ({ label, value, children }) => (
     </div>
 );
 
-// --- Reusable Skill Badge ---
 const SkillBadge = ({ skill }) => (
     <span className="bg-primary-lighter text-primary-dark font-medium px-3 py-1 rounded-full text-sm capitalize">
         {skill}
     </span>
 );
 
+// Reusable StatusBadge component to show application status
+const StatusBadge = ({ status }) => {
+    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
+    const statusClasses = {
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        default: "bg-gray-100 text-gray-800"
+    };
+    return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
+};
+
+
 function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
     const [jobDetails, setJobDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // The application status is passed directly in the 'job' prop from the parent component.
+    const applicationStatus = job?.application_status;
 
     const fetchJobDetails = useCallback(async () => {
         if (!job || !job.id) {
@@ -39,12 +56,14 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
         }
         setIsLoading(true);
         try {
+            // We fetch full details to ensure all data is up-to-date
             const response = await fetch(`http://uniwiz.test/get_job_details.php?job_id=${job.id}`);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "Failed to fetch job details.");
             }
-            setJobDetails(data);
+            // Combine the initial job object (which includes the status) with the full details
+            setJobDetails({ ...job, ...data });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -65,7 +84,7 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl font-bold z-10">&times;</button>
                 
                 {isLoading ? (
                     <LoadingSpinner />
@@ -75,11 +94,18 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
                     <div className="p-8 text-center text-gray-500">Job details not found.</div>
                 ) : (
                     <div className="space-y-6">
-                        {/* Header */}
-                        <div>
-                            <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.title}</h1>
-                            {/* FIX: Use company_name from the fetched jobDetails state */}
-                            <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
+                        {/* Header with Status Badge */}
+                        <div className="flex justify-between items-start">
+                             <div>
+                                <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.title}</h1>
+                                <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
+                            </div>
+                            {/* **NEW**: Display status badge in the top right */}
+                            {applicationStatus && (
+                                <div className="flex-shrink-0 ml-4">
+                                    <StatusBadge status={applicationStatus} />
+                                </div>
+                            )}
                         </div>
                         
                         {/* Description */}
@@ -127,15 +153,18 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
                         
                         {/* Action Buttons */}
                         <div className="flex justify-end pt-4 border-t mt-4">
-                             <button 
-                                onClick={() => {
-                                    onClose(); // Close this modal
-                                    handleApply(job); // Open the apply modal
-                                }} 
-                                className="bg-primary-main text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-colors"
-                            >
-                                Apply Now
-                            </button>
+                            {/* **CHANGE**: Only show Apply Now button if student has NOT applied */}
+                            {!applicationStatus && (
+                                <button 
+                                    onClick={() => {
+                                        onClose(); // Close this modal
+                                        handleApply(job); // Open the apply modal
+                                    }} 
+                                    className="bg-primary-main text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-colors"
+                                >
+                                    Apply Now
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

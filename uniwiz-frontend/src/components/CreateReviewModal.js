@@ -38,8 +38,8 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         setError(null);
 
         try {
-            // FIX: Corrected the API URL to use the standard 'localhost' path.
-            const response = await fetch('http://localhost/uniwiz-backend/api/create_review.php', {
+            // FIX: Corrected the API URL to match the project's standard 'uniwiz.test' domain.
+            const response = await fetch('http://uniwiz.test/create_review.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
