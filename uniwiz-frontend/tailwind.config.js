@@ -6,20 +6,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // New custom color palette based on the provided image
-        'primary-dark': '#211C84',
-        'primary-main': '#4D55CC',
-        'primary-light': '#89CDFE',
-        'primary-lighter': '#9e9fefff',
-        // Existing custom colors, mapped to new palette or kept if general
-        // Mapping old colors to new ones for consistency
-        'dark-blue-text': '#211C84', // Formerly #2D336B
-        'app-blue': '#4D55CC',     // Formerly #7886C7
-        'app-light-blue': '#7A73D1', // Formerly #A9B5DF
-        'app-bg-light': '#9eadefff',   // Formerly #E8EAF6
-        // Keeping these as they are general background colors
-        'bg-student-dashboard': '#FFF2F2',
-        'bg-publisher-dashboard': '#F4F7FC',
+        // Superb modern color palette
+        'primary-dark': '#1A202C', // Deep charcoal/navy for strong accents
+        'primary-main': '#4F46E5', // Vibrant indigo for main actions
+        'primary-light': '#818CF8', // Lighter indigo for secondary elements
+        'primary-lighter': '#E0E7FF', // Very light blue for backgrounds/hovers
+        
+        'accent-green': '#10B981',   // Bright green for success/positive actions
+        'accent-red': '#EF4444',     // Classic red for errors/destructive actions
+        'accent-yellow': '#F59E0B',  // Warm yellow for warnings/highlights
+        
+        'neutral-dark': '#374151',   // Dark gray for primary text
+        'neutral-medium': '#6B7280', // Medium gray for secondary text/borders
+        'neutral-light': '#F9FAFB',  // Off-white for light backgrounds
+        
+        // Backgrounds for different dashboards (can be adjusted to fit new palette)
+        'bg-student-dashboard': '#FDF2F8', // Soft pinkish-white
+        'bg-publisher-dashboard': '#F0F4F8', // Light bluish-gray
       },
     },
   },

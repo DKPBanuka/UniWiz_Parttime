@@ -1,68 +1,194 @@
-// FILE: src/components/Sidebar.js (Final Version with All Links)
+// FILE: src/components/Sidebar.js (Modern UI/UX Update)
 // =================================================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Reusable navigation link component
-const NavLink = ({ icon, text, isActive, isCollapsed, onClick }) => (
-    <button 
-        onClick={onClick} 
-        className={`w-full flex items-center py-3 rounded-lg transition-colors ${isCollapsed ? 'px-3 justify-center' : 'px-4'} ${isActive ? 'bg-primary-main text-white shadow-lg' : 'text-gray-600 hover:bg-primary-lighter'}`}
+// Reusable navigation link component with enhanced animations
+const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }) => {
+  const [isHovering, setIsHovering] = useState(false);
+  
+  return (
+    <div className="relative group" 
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
-        {icon}
-        {!isCollapsed && <span className="ml-4 font-semibold">{text}</span>}
-    </button>
-);
+      <motion.button
+        onClick={onClick}
+        whileHover={{ scale: isExpanded ? 1.02 : 1 }}
+        whileTap={{ scale: 0.98 }}
+        className={`w-full flex items-center transition-all duration-200
+          ${!isExpanded ? 'px-3 justify-center' : 'px-4'} 
+          ${isActive
+            ? 'bg-gradient-to-r from-primary-light to-primary-lighter border-l-4 border-primary-main text-primary-dark shadow-sm py-3.5 rounded-lg' 
+            : isLogout
+              ? 'text-red-500 hover:bg-red-50 py-3 rounded-lg'
+              : 'text-gray-600 hover:bg-gray-50 py-3 rounded-lg'
+          }
+        `}
+      >
+        <motion.div animate={{ rotate: isHovering && !isActive ? 5 : 0 }}>
+          {icon}
+        </motion.div>
+        {isExpanded && (
+          <motion.span 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="ml-4 font-medium"
+          >
+            {text}
+          </motion.span>
+        )}
+      </motion.button>
+      
+      {!isExpanded && (
+        <motion.div 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ 
+            opacity: isHovering ? 1 : 0,
+            y: isHovering ? 0 : -5
+          }}
+          className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md shadow-lg pointer-events-none whitespace-nowrap"
+        >
+          {text}
+          <div className="absolute w-2 h-2 bg-gray-900 rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
+        </motion.div>
+      )}
+    </div>
+  );
+};
 
-function Sidebar({ user, currentPage, setPage, onLogout, isCollapsed, toggleSidebar }) {
-    // Icons for the navigation links
-    const dashboardIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>;
-    const jobsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
-    const applicantsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
-    const profileIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
-    const settingsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-    const logoutIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
-    const toggleIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>;
+function Sidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }) {
+    const [isHovered, setIsHovered] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
+    const isExpanded = isLocked || isHovered;
+
+    // Modern icons with consistent stroke width
+    const dashboardIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    );
+    
+    const jobsIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    );
+    
+    const applicantsIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    );
+    
+    const profileIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    );
+    
+    const settingsIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    );
+    
+    const logoutIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+    );
+    
+    const pinIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+      </svg>
+    );
+    
+    const unpinIcon = (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary-main" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" />
+      </svg>
+    );
+
+    // Prevent rapid toggling during animation
+    const handleToggleLock = () => {
+      if (isAnimating) return;
+      setIsAnimating(true);
+      toggleLock();
+      setTimeout(() => setIsAnimating(false), 300);
+    };
 
     return (
-        <aside className={`bg-white h-full flex-shrink-0 p-4 flex flex-col shadow-lg transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24' : 'w-72'}`}>
-            <div className={`flex items-center mb-8 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-                {/* Reverted to h1 for UniWiz text in sidebar */}
-                {!isCollapsed && <h1 className="text-3xl font-bold text-primary-dark">UniWiz</h1>}
-                <button onClick={toggleSidebar} className="p-2 rounded-full hover:bg-gray-200">
-                    {toggleIcon}
-                </button>
-            </div>
-            
-            <div className={`flex items-center p-2 rounded-xl mb-8 ${isCollapsed ? 'flex-col' : ''}`}>
-                {user.profile_image_url ? (
-                    <img src={`http://uniwiz.test/${user.profile_image_url}`} alt="Profile" className="h-12 w-12 rounded-full object-cover flex-shrink-0" />
-                ) : (
-                    <div className="bg-primary-main text-white h-12 w-12 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0">
-                        {user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U'}
+        <motion.aside 
+            className={`bg-white h-full flex-shrink-0 p-4 flex flex-col shadow-xl transition-all duration-200 ease-out relative z-20 ${isExpanded ? 'w-64' : 'w-20'}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            initial={{ width: isLocked ? 256 : 80 }}
+            animate={{ width: isExpanded ? 256 : 80 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+            <div className="flex items-center justify-between mb-8">
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="flex items-center gap-3"
+                    >
+                        <img src="/logo.png" alt="UniWiz Logo" className="h-12" />
+                        <motion.h1 className="text-xl font-bold text-primary-dark">UniWiz</motion.h1>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {!isExpanded && (
+                    <div className="flex justify-center w-full">
+                        <img src="/logo.png" alt="UniWiz Logo" className="h-12" />
                     </div>
                 )}
-                {!isCollapsed && (
-                    <div className="ml-4 overflow-hidden">
-                        <p className="font-bold text-gray-800 truncate">{user.first_name} {user.last_name}</p>
-                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                    </div>
-                )}
+                
+                <motion.button 
+                  onClick={handleToggleLock}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={`p-1.5 rounded-full hover:bg-gray-100 ${!isExpanded ? 'hidden' : ''}`}
+                  title={isLocked ? "Unlock Sidebar" : "Lock Sidebar"}
+                >
+                    {isLocked ? unpinIcon : pinIcon}
+                </motion.button>
             </div>
 
-            <nav className="flex-grow space-y-3">
-                <NavLink text="Dashboard" icon={dashboardIcon} isActive={currentPage === 'home'} isCollapsed={isCollapsed} onClick={() => setPage('home')} />
-                <NavLink text="Jobs" icon={jobsIcon} isActive={currentPage === 'manage-jobs'} isCollapsed={isCollapsed} onClick={() => setPage('manage-jobs')} />
-                <NavLink text="Applicants" icon={applicantsIcon} isActive={currentPage === 'applicants'} isCollapsed={isCollapsed} onClick={() => setPage('applicants')} />
-                <NavLink text="Profile" icon={profileIcon} isActive={currentPage === 'profile'} isCollapsed={isCollapsed} onClick={() => setPage('profile')} />
-                <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isCollapsed={isCollapsed} onClick={() => setPage('settings')} /> {/* NEW Settings Link */}
+            <nav className="flex-grow space-y-2">
+                <NavLink text="Dashboard" icon={dashboardIcon} isActive={currentPage === 'home'} isExpanded={isExpanded} onClick={() => setPage('home')} />
+                <NavLink text="Jobs" icon={jobsIcon} isActive={currentPage === 'manage-jobs'} isExpanded={isExpanded} onClick={() => setPage('manage-jobs')} />
+                <NavLink text="Applicants" icon={applicantsIcon} isActive={currentPage === 'applicants'} isExpanded={isExpanded} onClick={() => setPage('applicants')} />
+                <NavLink text="Profile" icon={profileIcon} isActive={currentPage === 'profile'} isExpanded={isExpanded} onClick={() => setPage('profile')} />
+                <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isExpanded={isExpanded} onClick={() => setPage('settings')} />
             </nav>
 
             <div className="mt-auto">
-                <div className="border-t my-3"></div>
-                <NavLink text="Log Out" icon={logoutIcon} isCollapsed={isCollapsed} onClick={onLogout} />
+                <motion.div 
+                  className="border-t border-gray-200 my-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                ></motion.div>
+                <NavLink text="Log Out" icon={logoutIcon} isExpanded={isExpanded} onClick={onLogout} isLogout={true} />
             </div>
-        </aside>
+            
+            {/* Modern subtle indicator for collapsed state */}
+            {!isExpanded && !isLocked && (
+              <motion.div 
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 bg-primary-main rounded-l-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              />
+            )}
+        </motion.aside>
     );
 }
 

@@ -1,4 +1,4 @@
-// FILE: src/App.js (FIXED API Paths)
+// FILE: src/App.js (Updated with Sidebar Locking Logic)
 // =====================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -25,8 +25,32 @@ import FindJobsPage from './components/FindJobsPage';
 import CompanyProfilePage from './components/CompanyProfilePage';
 import StudentProfilePage from './components/StudentProfilePage';
 import JobDetailsPage from './components/JobDetailsPage';
-import NotificationsPage from './components/NotificationsPage'; // Import the new component
+import NotificationsPage from './components/NotificationsPage';
 import './output.css';
+
+// Reusable Notification Popup (Toast)
+const NotificationPopup = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const baseClasses = "fixed top-20 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-transform transform translate-x-0";
+    const typeClasses = {
+        success: "bg-green-500",
+        error: "bg-red-500",
+        info: "bg-blue-500",
+    };
+
+    return (
+        <div className={`${baseClasses} ${typeClasses[type] || 'bg-gray-800'}`}>
+            {message}
+        </div>
+    );
+};
+
 
 function App() {
   // --- State Management ---
@@ -48,21 +72,32 @@ function App() {
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [applyingStatus, setApplyingStatus] = useState({}); 
 
-  // Sidebar state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  // --- NEW: Sidebar state for locking/pinning ---
+  const [isSidebarLocked, setIsSidebarLocked] = useState(true); // Default to locked/expanded
 
   // Filter state for the AllApplicants page
   const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
 
-  // **NEW**: Notification States
+  // Notification States
   const [notifications, setNotifications] = useState([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [notificationError, setNotificationError] = useState(null);
+  const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
+
+  // --- Utility Functions ---
+  const showPopupNotification = (message, type = 'info') => {
+      setPopupNotification({ message, type, key: Date.now() });
+  };
+  
+  const toggleSidebarLock = () => {
+      setIsSidebarLocked(prev => !prev);
+  };
+
 
   // --- Data Fetching Functions ---
   const fetchAppliedJobs = async (userId) => {
     try {
-        const response = await fetch(`http://uniwiz.test/api/get_applied_jobs.php?user_id=${userId}`);
+        const response = await fetch(`http://uniwiz.test/get_applied_jobs.php?user_id=${userId}`);
         const appliedIds = await response.json();
         if (response.ok) {
             setAppliedJobs(new Set(appliedIds.map(id => parseInt(id, 10))));
@@ -76,21 +111,28 @@ function App() {
     if (!currentUser) return;
     setIsLoadingNotifications(true);
     try {
-        const response = await fetch(`http://uniwiz.test/api/get_notifications.php?user_id=${currentUser.id}`);
+        const response = await fetch(`http://uniwiz.test/get_notifications.php?user_id=${currentUser.id}`);
         const data = await response.json();
-        if (!response.ok) throw new Error('Failed to fetch notifications.');
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch notifications.');
+        
+        const newUnread = data.filter(n => !n.is_read && !notifications.some(oldN => oldN.id === n.id));
+        if (newUnread.length > 0) {
+            showPopupNotification(`You have ${newUnread.length} new notification(s)!`, 'info');
+        }
+
         setNotifications(data);
     } catch (err) {
         setNotificationError(err.message);
+        showPopupNotification(err.message, 'error');
     } finally {
         setIsLoadingNotifications(false);
     }
-  }, [currentUser]);
+  }, [currentUser, notifications]);
 
   useEffect(() => {
     if (currentUser) {
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000); // Check for new notifications every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }
   }, [currentUser, fetchNotifications]);
@@ -123,6 +165,7 @@ function App() {
     setCurrentUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     setPage('profile-setup');
+    showPopupNotification('Registration successful! Please complete your profile.', 'success');
   };
 
   const handleLoginSuccess = async (userData) => {
@@ -131,11 +174,12 @@ function App() {
     if (userData.role === 'student') {
         await fetchAppliedJobs(userData.id);
     }
-    if (!userData.first_name) {
+    if (!userData.first_name || (userData.role === 'publisher' && !userData.company_name)) {
         setPage('profile-setup');
     } else {
         setPage('home');
     }
+    showPopupNotification(`Welcome back, ${userData.first_name}!`, 'success');
   };
 
   const handleLogout = () => {
@@ -150,11 +194,13 @@ function App() {
     setCurrentUser(updatedUserData);
     localStorage.setItem('user', JSON.stringify(updatedUserData));
     setPage('home');
+    showPopupNotification('Profile setup complete!', 'success');
   };
 
   const handleProfileUpdate = (updatedUserData) => {
     setCurrentUser(updatedUserData);
     localStorage.setItem('user', JSON.stringify(updatedUserData));
+    showPopupNotification('Profile updated successfully!', 'success');
   };
   
   // --- Navigation & Notification Handlers ---
@@ -179,21 +225,19 @@ function App() {
   };
 
   const handleNotificationClick = async (notification) => {
-    // Mark as read on the backend
     if (!notification.is_read) {
         try {
-            await fetch('http://uniwiz.test/api/mark_notification_read.php', {
+            await fetch('http://uniwiz.test/mark_notification_read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notification_id: notification.id, user_id: currentUser.id })
             });
-            // Update state locally for instant UI update
             setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: 1 } : n));
         } catch (err) {
             console.error("Failed to mark notification as read:", err);
+            showPopupNotification('Could not update notification status.', 'error');
         }
     }
-    // Navigate to the link if it exists
     if (notification.link) {
         const linkParts = notification.link.split('/');
         const pageTarget = linkParts[1];
@@ -211,7 +255,7 @@ function App() {
   // --- Application Handlers ---
   const handleOpenApplyModal = (job) => {
     if (!currentUser) {
-      console.warn("Please log in to apply.");
+      showPopupNotification("Please log in to apply for jobs.", 'info');
       setPage('login'); 
       return;
     }
@@ -224,7 +268,7 @@ function App() {
     const jobId = jobToApply.id;
     setApplyingStatus(prev => ({ ...prev, [jobId]: 'applying' }));
     try {
-        const apiUrl = 'http://uniwiz.test/api/applications.php';
+        const apiUrl = 'http://uniwiz.test/applications.php';
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -234,9 +278,11 @@ function App() {
         if (!response.ok) throw new Error(result.message || 'Could not submit application.');
         setAppliedJobs(prev => new Set(prev).add(jobId));
         setApplyingStatus(prev => ({ ...prev, [jobId]: 'applied' }));
+        showPopupNotification('Application submitted successfully!', 'success');
     } catch (err) {
         console.error(`Error: ${err.message}`);
         setApplyingStatus(prev => ({ ...prev, [jobId]: 'error' }));
+        showPopupNotification(err.message, 'error');
     }
   };
 
@@ -264,7 +310,7 @@ function App() {
                       onViewStudentProfile={handleViewStudentProfile}
                   />;
               case 'create-job':
-                  return <CreateJob user={currentUser} onJobPosted={() => setPage('home')} />;
+                  return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
               case 'manage-jobs':
                   return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetails} />; 
               case 'view-applications':
@@ -311,6 +357,7 @@ function App() {
                             handleApply={handleOpenApplyModal}
                             appliedJobs={appliedJobs}
                             applyingStatus={applyingStatus}
+                            showNotification={showPopupNotification}
                          />;
               default:
                   return <StudentDashboard currentUser={currentUser} />;
@@ -332,18 +379,30 @@ function App() {
         return <ProfileSetup user={currentUser} onSetupComplete={handleProfileSetupComplete} />;
     }
     
-    const unreadCount = notifications.filter(n => !n.is_read).length;
-
     return (
         <div className={`flex h-screen ${currentUser.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
             {currentUser.role === 'publisher' ? (
-                <Sidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                <Sidebar 
+                    user={currentUser}
+                    currentPage={page} 
+                    setPage={setPage} 
+                    onLogout={handleLogout} 
+                    isLocked={isSidebarLocked} 
+                    toggleLock={toggleSidebarLock} 
+                />
             ) : (
-                <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+                <StudentSidebar 
+                    user={currentUser}
+                    currentPage={page} 
+                    setPage={setPage} 
+                    onLogout={handleLogout} 
+                    isLocked={isSidebarLocked} 
+                    toggleLock={toggleSidebarLock} 
+                />
             )}
             
             <div className="flex-1 flex flex-col overflow-hidden">
-                <TopNavbar user={currentUser} setPage={setPage} unreadCount={unreadCount} />
+                <TopNavbar user={currentUser} setPage={setPage} notifications={notifications} onNotificationClick={handleNotificationClick} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     {renderLoggedInPageContent()}
                 </main>
@@ -354,6 +413,14 @@ function App() {
 
   return (
     <>
+      {popupNotification.message && (
+          <NotificationPopup
+              key={popupNotification.key}
+              message={popupNotification.message}
+              type={popupNotification.type}
+              onClose={() => setPopupNotification({ message: '', type: '', key: 0 })}
+          />
+      )}
       {renderPage()}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={() => setSignUpModalOpen(false)} onRegisterSuccess={handleRegisterSuccess} />
       <ApplyModal isOpen={isApplyModalOpen} onClose={() => setApplyModalOpen(false)} jobTitle={jobToApply?.title} onSubmit={handleSubmitApplication} />
