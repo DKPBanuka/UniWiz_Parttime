@@ -1,10 +1,11 @@
 <?php
-// FILE: uniwiz-backend/api/create_review.php (NEW FILE)
+// FILE: uniwiz-backend/api/create_review.php (FIXED & ENHANCED)
 // =====================================================================
 // This file handles submitting a company review from a student
 // and creates a notification for the publisher.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+// FIX: Changed to allow requests from any origin, which is helpful for local development.
+header("Access-Control-Allow-Origin: *"); 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Max-Age: 3600");
@@ -83,7 +84,6 @@ try {
 
     if ($stmt_insert->execute()) {
         // 3. Create a notification for the publisher
-        // Get student's name for the notification message
         $query_student = "SELECT first_name, last_name FROM users WHERE id = :student_id";
         $stmt_student = $db->prepare($query_student);
         $stmt_student->bindParam(':student_id', $student_id);
@@ -93,8 +93,8 @@ try {
 
         $notification_message = "$student_name has left a $rating-star review for your company.";
         
-        // **CHANGE**: The link now points to the specific student's profile
-        $notification_link = "/student-profile/" . $student_id;
+        // The link will navigate the publisher to the page showing all their applicants.
+        $notification_link = "/applicants";
 
         $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, 'new_review', :message, :link)";
         $stmt_notif = $db->prepare($query_notif);

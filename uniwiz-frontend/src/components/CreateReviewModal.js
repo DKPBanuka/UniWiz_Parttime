@@ -1,6 +1,6 @@
-// FILE: src/components/CreateReviewModal.js (NEW FILE)
+// FILE: src/components/CreateReviewModal.js (FIXED: API Fetch URL)
 // =====================================================================
-// This component provides a modal for students to write a review for a company.
+// This version corrects the API endpoint URL to ensure reviews can be submitted successfully.
 
 import React, { useState } from 'react';
 
@@ -38,7 +38,8 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         setError(null);
 
         try {
-            const response = await fetch('http://uniwiz.test/api/create_review.php', {
+            // FIX: Corrected the API URL to use the standard 'localhost' path.
+            const response = await fetch('http://localhost/uniwiz-backend/api/create_review.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -55,6 +56,9 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
             }
 
             onSubmitSuccess(result.message);
+            // Reset state and close modal on success
+            setRating(0);
+            setReviewText('');
             onClose();
 
         } catch (err) {
@@ -63,12 +67,21 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
             setIsLoading(false);
         }
     };
+    
+    // Function to handle closing the modal, which also resets its internal state
+    const handleClose = () => {
+        setRating(0);
+        setReviewText('');
+        setError(null);
+        setIsLoading(false);
+        onClose();
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-                <h2 className="text-2xl font-bold text-dark-blue-text mb-2">Write a review for {companyName}</h2>
+                <button onClick={handleClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <h2 className="text-2xl font-bold text-primary-dark mb-2">Write a review for {companyName}</h2>
                 <p className="text-gray-600 mb-6">Share your experience to help other students.</p>
 
                 <div className="space-y-4">
@@ -80,15 +93,21 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
                     <textarea
                         value={reviewText}
                         onChange={(e) => setReviewText(e.target.value)}
-                        className="shadow-sm border rounded w-full py-3 px-4 h-32 focus:outline-none focus:ring-2 focus:ring-app-light-blue"
+                        className="shadow-sm border rounded w-full py-3 px-4 h-32 focus:outline-none focus:ring-2 focus:ring-primary-main"
                         placeholder="What was your experience like?"
                     />
                     {error && <p className="text-red-500 text-center text-sm">{error}</p>}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end space-x-3">
+                         <button
+                            onClick={handleClose}
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition duration-300"
+                        >
+                            Cancel
+                        </button>
                         <button
                             onClick={handleSubmit}
                             disabled={isLoading}
-                            className="bg-app-blue hover:bg-dark-blue-text text-white font-bold py-2 px-6 rounded-lg transition duration-300 disabled:bg-gray-400"
+                            className="bg-primary-main hover:bg-primary-dark text-white font-bold py-2 px-6 rounded-lg transition duration-300 disabled:bg-gray-400"
                         >
                             {isLoading ? 'Submitting...' : 'Submit Review'}
                         </button>

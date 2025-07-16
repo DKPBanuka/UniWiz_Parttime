@@ -1,5 +1,5 @@
-// FILE: src/App.js (Full Code with all components and logic)
-// =================================================================
+// FILE: src/App.js (FIXED: Corrected useEffect dependency to stop auto-sending requests)
+// =======================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -26,7 +26,7 @@ import CompanyProfilePage from './components/CompanyProfilePage';
 import StudentProfilePage from './components/StudentProfilePage';
 import JobDetailsPage from './components/JobDetailsPage';
 import NotificationsPage from './components/NotificationsPage';
-import JobDetailsModal from './components/JobDetailsModal'; // Import the new modal
+import JobDetailsModal from './components/JobDetailsModal';
 import './output.css';
 
 // Reusable Notification Popup (Toast)
@@ -99,7 +99,7 @@ function App() {
   // --- Data Fetching Functions ---
   const fetchAppliedJobs = async (userId) => {
     try {
-        const response = await fetch(`http://uniwiz.test/get_applied_jobs.php?user_id=${userId}`);
+        const response = await fetch(`http://localhost/uniwiz-backend/api/get_applied_jobs.php?user_id=${userId}`);
         const appliedIds = await response.json();
         if (response.ok) {
             setAppliedJobs(new Set(appliedIds.map(id => parseInt(id, 10))));
@@ -109,35 +109,39 @@ function App() {
     }
   };
   
-  const fetchNotifications = useCallback(async () => {
-    if (!currentUser) return;
-    setIsLoadingNotifications(true);
-    try {
-        const response = await fetch(`http://uniwiz.test/get_notifications.php?user_id=${currentUser.id}`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Failed to fetch notifications.');
-        
-        const newUnread = data.filter(n => !n.is_read && !notifications.some(oldN => oldN.id === n.id));
-        if (newUnread.length > 0) {
-            showPopupNotification(`You have ${newUnread.length} new notification(s)!`, 'info');
-        }
-
-        setNotifications(data);
-    } catch (err) {
-        setNotificationError(err.message);
-        showPopupNotification(err.message, 'error');
-    } finally {
-        setIsLoadingNotifications(false);
-    }
-  }, [currentUser, notifications]);
-
+  // FIX: The notification fetching logic is now entirely inside useEffect
+  // to prevent the infinite loop caused by dependency array issues.
   useEffect(() => {
-    if (currentUser) {
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
-    }
-  }, [currentUser, fetchNotifications]);
+    if (!currentUser) return;
+
+    const fetchNotifications = async () => {
+        setIsLoadingNotifications(true);
+        try {
+            const response = await fetch(`http://localhost/uniwiz-backend/api/get_notifications.php?user_id=${currentUser.id}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to fetch notifications.');
+            
+            setNotifications(prevNotifications => {
+                const newUnread = data.filter(n => !n.is_read && !prevNotifications.some(oldN => oldN.id === n.id));
+                if (newUnread.length > 0) {
+                    showPopupNotification(`You have ${newUnread.length} new notification(s)!`, 'info');
+                }
+                return data;
+            });
+
+        } catch (err) {
+            setNotificationError(err.message);
+            showPopupNotification(err.message, 'error');
+        } finally {
+            setIsLoadingNotifications(false);
+        }
+    };
+
+    fetchNotifications(); // Fetch immediately on login
+    const interval = setInterval(fetchNotifications, 30000); // Then fetch every 30 seconds
+
+    return () => clearInterval(interval); // Cleanup interval on logout
+  }, [currentUser]); // This effect only re-runs when the user logs in or out.
 
 
   // --- Initial Load Effect ---
@@ -234,7 +238,7 @@ function App() {
   const handleNotificationClick = async (notification) => {
     if (!notification.is_read) {
         try {
-            await fetch('http://uniwiz.test/mark_notification_read.php', {
+            await fetch('http://localhost/uniwiz-backend/api/mark_notification_read.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notification_id: notification.id, user_id: currentUser.id })
@@ -275,7 +279,7 @@ function App() {
     const jobId = jobToApply.id;
     setApplyingStatus(prev => ({ ...prev, [jobId]: 'applying' }));
     try {
-        const apiUrl = 'http://uniwiz.test/applications.php';
+        const apiUrl = 'http://localhost/uniwiz-backend/api/applications.php';
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
