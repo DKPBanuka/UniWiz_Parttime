@@ -1,7 +1,7 @@
-// FILE: src/App.js (Full, Corrected Version)
+// FILE: src/App.js (FIXED API Paths)
 // =====================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Import all components
 import SignUpModal from './components/SignUpModal';
@@ -24,6 +24,8 @@ import LoginPage from './components/LoginPage';
 import FindJobsPage from './components/FindJobsPage';
 import CompanyProfilePage from './components/CompanyProfilePage';
 import StudentProfilePage from './components/StudentProfilePage';
+import JobDetailsPage from './components/JobDetailsPage';
+import NotificationsPage from './components/NotificationsPage'; // Import the new component
 import './output.css';
 
 function App() {
@@ -52,10 +54,15 @@ function App() {
   // Filter state for the AllApplicants page
   const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
 
+  // **NEW**: Notification States
+  const [notifications, setNotifications] = useState([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+  const [notificationError, setNotificationError] = useState(null);
+
   // --- Data Fetching Functions ---
   const fetchAppliedJobs = async (userId) => {
     try {
-        const response = await fetch(`http://uniwiz.test/get_applied_jobs.php?user_id=${userId}`);
+        const response = await fetch(`http://uniwiz.test/api/get_applied_jobs.php?user_id=${userId}`);
         const appliedIds = await response.json();
         if (response.ok) {
             setAppliedJobs(new Set(appliedIds.map(id => parseInt(id, 10))));
@@ -64,6 +71,30 @@ function App() {
         console.error("Could not fetch applied jobs:", err);
     }
   };
+  
+  const fetchNotifications = useCallback(async () => {
+    if (!currentUser) return;
+    setIsLoadingNotifications(true);
+    try {
+        const response = await fetch(`http://uniwiz.test/api/get_notifications.php?user_id=${currentUser.id}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error('Failed to fetch notifications.');
+        setNotifications(data);
+    } catch (err) {
+        setNotificationError(err.message);
+    } finally {
+        setIsLoadingNotifications(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000); // Check for new notifications every 30 seconds
+        return () => clearInterval(interval);
+    }
+  }, [currentUser, fetchNotifications]);
+
 
   // --- Initial Load Effect ---
   useEffect(() => {
@@ -110,6 +141,7 @@ function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     setAppliedJobs(new Set());
+    setNotifications([]);
     localStorage.removeItem('user');
     setPage('login'); 
   };
@@ -125,7 +157,7 @@ function App() {
     localStorage.setItem('user', JSON.stringify(updatedUserData));
   };
   
-  // --- Navigation Handlers ---
+  // --- Navigation & Notification Handlers ---
   const handleViewApplications = (jobId) => {
       setSelectedJobId(jobId);
       setPage('view-applications');
@@ -139,6 +171,41 @@ function App() {
   const handleViewApplicants = (filter = 'All') => {
       setApplicantsPageFilter(filter);
       setPage('applicants');
+  };
+
+  const handleViewJobDetails = (jobId) => {
+    setSelectedJobId(jobId);
+    setPage('view-job-details');
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Mark as read on the backend
+    if (!notification.is_read) {
+        try {
+            await fetch('http://uniwiz.test/api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notification_id: notification.id, user_id: currentUser.id })
+            });
+            // Update state locally for instant UI update
+            setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: 1 } : n));
+        } catch (err) {
+            console.error("Failed to mark notification as read:", err);
+        }
+    }
+    // Navigate to the link if it exists
+    if (notification.link) {
+        const linkParts = notification.link.split('/');
+        const pageTarget = linkParts[1];
+        const id = linkParts[2];
+
+        if (pageTarget === 'applicants') setPage('applicants');
+        if (pageTarget === 'applied-jobs') setPage('applied-jobs');
+        if (pageTarget === 'student-profile' && id) {
+            setStudentIdForProfile(id);
+            setPage('student-profile');
+        }
+    }
   };
 
   // --- Application Handlers ---
@@ -157,7 +224,7 @@ function App() {
     const jobId = jobToApply.id;
     setApplyingStatus(prev => ({ ...prev, [jobId]: 'applying' }));
     try {
-        const apiUrl = 'http://uniwiz.test/applications.php';
+        const apiUrl = 'http://uniwiz.test/api/applications.php';
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -177,6 +244,15 @@ function App() {
   const renderLoggedInPageContent = () => {
       if (!currentUser) return null;
 
+      const commonPages = {
+        'notifications': <NotificationsPage user={currentUser} notifications={notifications} isLoading={isLoadingNotifications} error={notificationError} onNotificationClick={handleNotificationClick} />,
+        'profile': <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />,
+        'settings': <SettingsPage />,
+      };
+      if (commonPages[page]) {
+          return commonPages[page];
+      }
+
       if (currentUser.role === 'publisher') {
           switch (page) {
               case 'home':
@@ -190,11 +266,11 @@ function App() {
               case 'create-job':
                   return <CreateJob user={currentUser} onJobPosted={() => setPage('home')} />;
               case 'manage-jobs':
-                  return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} />; 
+                  return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetails} />; 
               case 'view-applications':
                   return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} onViewStudentProfile={handleViewStudentProfile} />;
-              case 'profile':
-                  return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
+              case 'view-job-details':
+                  return <JobDetailsPage jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
               case 'applicants':
                   return <AllApplicants 
                       user={currentUser} 
@@ -202,8 +278,6 @@ function App() {
                       initialFilter={applicantsPageFilter}
                       setInitialFilter={setApplicantsPageFilter}
                   />;
-              case 'settings':
-                  return <SettingsPage />;
               case 'student-profile':
                   return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default:
@@ -230,10 +304,6 @@ function App() {
                          />;
               case 'applied-jobs':
                   return <AppliedJobsPage user={currentUser} />;
-              case 'profile':
-                  return <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />;
-              case 'settings':
-                  return <SettingsPage />;
               case 'company-profile':
                   return <CompanyProfilePage 
                             publisherId={publisherIdForProfile} 
@@ -251,50 +321,29 @@ function App() {
   // --- Main Render Logic ---
   const renderPage = () => {
     if (page === 'loading') {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>Loading...</p>
-            </div>
-        );
+        return <div className="flex items-center justify-center min-h-screen"><p>Loading...</p></div>;
     }
     
     if (page === 'login' || !currentUser) {
-        return (
-            <LoginPage 
-                onLoginSuccess={handleLoginSuccess} 
-                onShowSignUp={() => setSignUpModalOpen(true)} 
-            />
-        );
+        return <LoginPage onLoginSuccess={handleLoginSuccess} onShowSignUp={() => setSignUpModalOpen(true)} />;
     }
 
     if (page === 'profile-setup') {
         return <ProfileSetup user={currentUser} onSetupComplete={handleProfileSetupComplete} />;
     }
     
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+
     return (
         <div className={`flex h-screen ${currentUser.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
             {currentUser.role === 'publisher' ? (
-                <Sidebar
-                    user={currentUser} 
-                    currentPage={page} 
-                    setPage={setPage} 
-                    onLogout={handleLogout}
-                    isCollapsed={isSidebarCollapsed}
-                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                />
+                <Sidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
             ) : (
-                <StudentSidebar
-                    user={currentUser} 
-                    currentPage={page} 
-                    setPage={setPage} 
-                    onLogout={handleLogout}
-                    isCollapsed={isSidebarCollapsed}
-                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                />
+                <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isCollapsed={isSidebarCollapsed} toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
             )}
             
             <div className="flex-1 flex flex-col overflow-hidden">
-                <TopNavbar user={currentUser} />
+                <TopNavbar user={currentUser} setPage={setPage} unreadCount={unreadCount} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     {renderLoggedInPageContent()}
                 </main>
@@ -307,12 +356,7 @@ function App() {
     <>
       {renderPage()}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={() => setSignUpModalOpen(false)} onRegisterSuccess={handleRegisterSuccess} />
-      <ApplyModal 
-        isOpen={isApplyModalOpen}
-        onClose={() => setApplyModalOpen(false)}
-        jobTitle={jobToApply?.title}
-        onSubmit={handleSubmitApplication}
-      />
+      <ApplyModal isOpen={isApplyModalOpen} onClose={() => setApplyModalOpen(false)} jobTitle={jobToApply?.title} onSubmit={handleSubmitApplication} />
     </>
   );
 }

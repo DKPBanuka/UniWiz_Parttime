@@ -1,4 +1,4 @@
-// FILE: src/components/CreateJob.js (Final Advanced Version with Date Range)
+// FILE: src/components/CreateJob.js (ENHANCED with more fields)
 // ========================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -20,6 +20,15 @@ function CreateJob({ user, onJobPosted }) {
     const [currentSkill, setCurrentSkill] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // --- NEW: State for additional fields ---
+    const [workMode, setWorkMode] = useState('on-site');
+    const [location, setLocation] = useState('');
+    const [applicationDeadline, setApplicationDeadline] = useState('');
+    const [vacancies, setVacancies] = useState(1);
+    const [workingHours, setWorkingHours] = useState('');
+    const [experienceLevel, setExperienceLevel] = useState('any');
+
 
     // --- Other states ---
     const [categories, setCategories] = useState([]);
@@ -68,10 +77,17 @@ function CreateJob({ user, onJobPosted }) {
             description,
             job_type: jobType,
             payment_range: paymentRange,
-            skills_required: skills.join(','), // **FIX**: Ensure skills are joined to a string
+            skills_required: skills.join(','),
             start_date: startDate,
             end_date: endDate,
             status: status,
+            // Add new fields to the submission data
+            work_mode: workMode,
+            location: workMode !== 'remote' ? location : null,
+            application_deadline: applicationDeadline,
+            vacancies: vacancies,
+            working_hours: workingHours,
+            experience_level: experienceLevel
         };
 
         try {
@@ -98,22 +114,22 @@ function CreateJob({ user, onJobPosted }) {
     };
 
     return (
-        <div className="min-h-screen bg-bg-publisher-dashboard flex justify-center items-start py-12 px-4"> {/* Changed bg color */}
+        <div className="min-h-screen bg-bg-publisher-dashboard flex justify-center items-start py-12 px-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl">
                 <div className="text-center mb-10">
-                    <h2 className="text-4xl font-bold text-dark-blue-text">Create a New Job Posting</h2> {/* Changed text color */}
+                    <h2 className="text-4xl font-bold text-dark-blue-text">Create a New Job Posting</h2>
                     <p className="text-gray-500 mt-2">Fill in the details below to find the perfect student for your job.</p>
                 </div>
                 
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
                     {/* --- Section 1: Core Details --- */}
                     <div className="p-6 border rounded-xl">
-                        <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Core Details</h3> {/* Changed text color */}
+                        <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Core Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="title">Job Title</label>
                                 <div className="relative">
-                                    <InputIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></InputIcon>
+                                    <InputIcon><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002 2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></InputIcon>
                                     <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="pl-10 shadow-sm border rounded w-full py-3 px-4" required />
                                 </div>
                             </div>
@@ -140,16 +156,47 @@ function CreateJob({ user, onJobPosted }) {
                         </div>
                     </div>
 
+                    {/* --- NEW Section: Job Logistics --- */}
+                     <div className="p-6 border rounded-xl">
+                         <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Job Logistics</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="work-mode">Work Mode</label>
+                                <select id="work-mode" value={workMode} onChange={(e) => setWorkMode(e.target.value)} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="on-site">On-site</option>
+                                    <option value="remote">Remote</option>
+                                    <option value="hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                            {workMode !== 'remote' && (
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2" htmlFor="location">Location</label>
+                                    <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g., Colombo 07" className="shadow-sm border rounded w-full py-3 px-4" />
+                                </div>
+                            )}
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="application-deadline">Application Deadline</label>
+                                <input id="application-deadline" type="date" value={applicationDeadline} onChange={(e) => setApplicationDeadline(e.target.value)} className="shadow-sm border rounded w-full py-3 px-4 text-gray-500" />
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="working-hours">Working Hours</label>
+                                <input id="working-hours" type="text" value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} placeholder="e.g., 20 hours/week" className="shadow-sm border rounded w-full py-3 px-4" />
+                            </div>
+                         </div>
+                    </div>
+
                     {/* --- Section 2: Specifics --- */}
                     <div className="p-6 border rounded-xl">
-                         <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Specifics</h3> {/* Changed text color */}
+                         <h3 className="text-xl font-semibold text-dark-blue-text mb-4">Specifics</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="payment">Payment / Salary</label>
                                 <input id="payment" type="text" value={paymentRange} onChange={(e) => setPaymentRange(e.target.value)} placeholder="e.g., Rs. 20,000 per month" className="shadow-sm border rounded w-full py-3 px-4" required />
                             </div>
-                            
-                            {/* --- NEW: Date Range Pickers --- */}
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="vacancies">Number of Vacancies</label>
+                                <input id="vacancies" type="number" min="1" value={vacancies} onChange={(e) => setVacancies(e.target.value)} className="shadow-sm border rounded w-full py-3 px-4" />
+                            </div>
                             <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2">Job Duration (Optional)</label>
                                 <div className="flex items-center space-x-4">
@@ -158,12 +205,20 @@ function CreateJob({ user, onJobPosted }) {
                                     <input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="shadow-sm border rounded w-full py-3 px-4 text-gray-500" />
                                 </div>
                             </div>
-
+                             <div className="md:col-span-2">
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="experience-level">Experience Level</label>
+                                <select id="experience-level" value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="any">Any Experience</option>
+                                    <option value="no-experience">No Experience Required</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                </select>
+                             </div>
                              <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="skills">Required Skills (Press Enter to add)</label>
                                 <div className="flex flex-wrap items-center gap-2 p-2 border rounded-lg shadow-sm">
                                     {skills.map((skill, index) => (
-                                        <div key={index} className="flex items-center bg-app-light-blue text-dark-blue-text text-sm font-semibold px-3 py-1 rounded-full capitalize"> {/* Changed bg and text color */}
+                                        <div key={index} className="flex items-center bg-app-light-blue text-dark-blue-text text-sm font-semibold px-3 py-1 rounded-full capitalize">
                                             <span>{skill}</span>
                                             <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-red-700 hover:text-red-900 font-bold">×</button>
                                         </div>
@@ -181,7 +236,7 @@ function CreateJob({ user, onJobPosted }) {
                         <button type="button" onClick={() => handleSubmit('draft')} disabled={isLoading} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Saving...' : 'Save as Draft'}
                         </button>
-                        <button type="button" onClick={() => handleSubmit('active')} disabled={isLoading} className="bg-app-blue hover:bg-dark-blue-text text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto"> {/* Changed bg and hover bg */}
+                        <button type="button" onClick={() => handleSubmit('active')} disabled={isLoading} className="bg-app-blue hover:bg-dark-blue-text text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Posting...' : 'Post Job Live'}
                         </button>
                     </div>

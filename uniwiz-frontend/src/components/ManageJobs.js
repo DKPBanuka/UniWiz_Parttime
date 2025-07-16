@@ -1,4 +1,4 @@
-// FILE: src/components/ManageJobs.js (Updated with Portal for Popup Menu)
+// FILE: src/components/ManageJobs.js (ENHANCED Edit Modal)
 // ==============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -49,7 +49,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionT
     );
 };
 
-// --- Edit Job Modal Component ---
+// --- Edit Job Modal Component (ENHANCED) ---
 const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     const [formData, setFormData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,21 +60,29 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
                 ...jobData,
                 start_date: jobData.start_date ? new Date(jobData.start_date).toISOString().split('T')[0] : '',
                 end_date: jobData.end_date ? new Date(jobData.end_date).toISOString().split('T')[0] : '',
+                application_deadline: jobData.application_deadline ? new Date(jobData.application_deadline).toISOString().split('T')[0] : '',
             });
         }
     }, [jobData]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
+            // Ensure location is null if work mode is remote
+            const submissionData = {
+                ...formData,
+                location: formData.work_mode === 'remote' ? null : formData.location
+            };
+
             const response = await fetch('http://uniwiz.test/update_job.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(submissionData),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
@@ -91,30 +99,87 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-3xl">
                 <h2 className="text-2xl font-bold text-dark-blue-text mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2>
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Title</label>
-                        <input type="text" name="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-4 -mr-4">
+                    {/* Core Details */}
+                    <div className="p-4 border rounded-lg">
+                        <h3 className="text-lg font-semibold text-gray-600 mb-3">Core Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Title</label>
+                                <input type="text" name="title" value={formData.title} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Description</label>
+                                <textarea name="description" value={formData.description} onChange={handleChange} rows="4" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Category</label>
+                                <select name="category_id" value={formData.category_id} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                                   {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                </select>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700">Status</label>
+                                <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                                    <option value="active">Active</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Description</label>
-                        <textarea name="description" value={formData.description} onChange={handleChange} rows="4" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                     {/* Job Logistics */}
+                    <div className="p-4 border rounded-lg">
+                        <h3 className="text-lg font-semibold text-gray-600 mb-3">Job Logistics</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700">Work Mode</label>
+                                <select name="work_mode" value={formData.work_mode} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                                    <option value="on-site">On-site</option>
+                                    <option value="remote">Remote</option>
+                                    <option value="hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                            {formData.work_mode !== 'remote' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Location</label>
+                                    <input type="text" name="location" value={formData.location || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Application Deadline</label>
+                                <input type="date" name="application_deadline" value={formData.application_deadline || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-600" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Working Hours</label>
+                                <input type="text" name="working_hours" value={formData.working_hours || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                            </div>
+                        </div>
                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Category</label>
-                        <select name="category_id" value={formData.category_id} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
-                           {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                        </select>
-                    </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                        <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
-                            <option value="active">Active</option>
-                            <option value="draft">Draft</option>
-                            <option value="closed">Closed</option>
-                        </select>
+                     {/* Specifics */}
+                    <div className="p-4 border rounded-lg">
+                        <h3 className="text-lg font-semibold text-gray-600 mb-3">Specifics</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Payment / Salary</label>
+                                <input type="text" name="payment_range" value={formData.payment_range || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Number of Vacancies</label>
+                                <input type="number" name="vacancies" min="1" value={formData.vacancies || 1} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Experience Level</label>
+                                <select name="experience_level" value={formData.experience_level || 'any'} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white">
+                                    <option value="any">Any Experience</option>
+                                    <option value="no-experience">No Experience Required</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-4">
@@ -127,6 +192,7 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
         </div>
     );
 };
+
 
 // --- Actions Dropdown Component (Portal Version) ---
 const ActionsDropdown = ({ job, onAction }) => {
@@ -217,7 +283,7 @@ const ActionsDropdown = ({ job, onAction }) => {
 };
 
 
-function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
+function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDetails }) {
     const [myJobs, setMyJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -397,7 +463,11 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick }) {
                                 ) : myJobs.length > 0 ? (
                                     myJobs.map(job => (
                                         <tr key={job.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{job.title}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                <button onClick={() => onViewJobDetails(job.id)} className="text-primary-main hover:underline">
+                                                    {job.title}
+                                                </button>
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><StatusBadge status={job.status} /></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-dark-blue-text">{job.application_count}</td>

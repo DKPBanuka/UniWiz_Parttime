@@ -1,7 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_publisher_stats.php (ENHANCED)
+// FILE: uniwiz-backend/api/get_publisher_stats.php (CORRECTED VERSION)
 // =============================================================================
-// This file now includes a pending applicants count.
+// This file now includes a unique application_id for the recent applicants list.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -47,14 +47,14 @@ try {
     $stmt->execute();
     $stats['new_applicants_today'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
-    // 4. NEW: Pending Applicants Count
+    // 4. Pending Applicants Count
     $stmt = $db->prepare("SELECT COUNT(ja.id) as count FROM job_applications ja INNER JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id AND ja.status = 'pending'");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['pending_applicants'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
     // 5. Recent Applicants (Top 5)
-    $stmt = $db->prepare("SELECT u.id as student_id, u.first_name, u.last_name, u.profile_image_url, j.title as job_title, ja.applied_at FROM job_applications ja JOIN users u ON ja.student_id = u.id JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id ORDER BY ja.applied_at DESC LIMIT 5");
+    $stmt = $db->prepare("SELECT ja.id as application_id, u.id as student_id, u.first_name, u.last_name, u.profile_image_url, j.title as job_title, ja.applied_at FROM job_applications ja JOIN users u ON ja.student_id = u.id JOIN jobs j ON ja.job_id = j.id WHERE j.publisher_id = :publisher_id ORDER BY ja.applied_at DESC LIMIT 5");
     $stmt->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt->execute();
     $stats['recent_applicants'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -64,6 +64,22 @@ try {
     $stmt_jobs->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt_jobs->execute();
     $stats['job_overview'] = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
+
+    // 7. Latest Reviews
+    $stmt_reviews = $db->prepare("
+        SELECT 
+            r.id as review_id, r.rating, r.review_text, r.created_at,
+            s.first_name, s.last_name, s.profile_image_url as student_image_url
+        FROM company_reviews r
+        JOIN users s ON r.student_id = s.id
+        WHERE r.publisher_id = :publisher_id
+        ORDER BY r.created_at DESC
+        LIMIT 3
+    ");
+    $stmt_reviews->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
+    $stmt_reviews->execute();
+    $stats['latest_reviews'] = $stmt_reviews->fetchAll(PDO::FETCH_ASSOC);
+
 
     http_response_code(200);
     echo json_encode($stats);

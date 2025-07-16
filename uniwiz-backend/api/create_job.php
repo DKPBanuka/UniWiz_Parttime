@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/create_job.php (Final Advanced Version)
+// FILE: uniwiz-backend/api/create_job.php (ENHANCED with more fields)
 // =================================================================
 
 // --- Headers, DB Connection ---
@@ -29,12 +29,12 @@ if ( $data === null || !isset($data->publisher_id) || !isset($data->title) || !i
 
 // --- Main Create Job Logic ---
 try {
-    // **CHANGE**: Removed estimated_duration, added start_date and end_date
+    // **CHANGE**: Added new fields to the query
     $query = "
         INSERT INTO jobs 
-        (publisher_id, category_id, title, description, skills_required, job_type, payment_range, start_date, end_date, status) 
+        (publisher_id, category_id, title, description, skills_required, job_type, payment_range, start_date, end_date, status, work_mode, location, application_deadline, vacancies, working_hours, experience_level) 
         VALUES 
-        (:publisher_id, :category_id, :title, :description, :skills_required, :job_type, :payment_range, :start_date, :end_date, :status)
+        (:publisher_id, :category_id, :title, :description, :skills_required, :job_type, :payment_range, :start_date, :end_date, :status, :work_mode, :location, :application_deadline, :vacancies, :working_hours, :experience_level)
     ";
 
     $stmt = $db->prepare($query);
@@ -46,17 +46,22 @@ try {
     $description = htmlspecialchars(strip_tags($data->description));
     $job_type = htmlspecialchars(strip_tags($data->job_type));
     $payment_range = htmlspecialchars(strip_tags($data->payment_range));
-    
-    // **FIX**: Ensure skills_required is handled correctly
     $skills_required = isset($data->skills_required) ? htmlspecialchars(strip_tags($data->skills_required)) : "";
-    
     $start_date = isset($data->start_date) && !empty($data->start_date) ? htmlspecialchars(strip_tags($data->start_date)) : null;
     $end_date = isset($data->end_date) && !empty($data->end_date) ? htmlspecialchars(strip_tags($data->end_date)) : null;
-    
     $status = htmlspecialchars(strip_tags($data->status));
     if ($status !== 'active' && $status !== 'draft') {
         $status = 'draft';
     }
+
+    // Sanitize new fields
+    $work_mode = isset($data->work_mode) ? htmlspecialchars(strip_tags($data->work_mode)) : 'on-site';
+    $location = isset($data->location) ? htmlspecialchars(strip_tags($data->location)) : null;
+    $application_deadline = isset($data->application_deadline) && !empty($data->application_deadline) ? htmlspecialchars(strip_tags($data->application_deadline)) : null;
+    $vacancies = isset($data->vacancies) ? filter_var($data->vacancies, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]) : 1;
+    $working_hours = isset($data->working_hours) ? htmlspecialchars(strip_tags($data->working_hours)) : null;
+    $experience_level = isset($data->experience_level) ? htmlspecialchars(strip_tags($data->experience_level)) : 'any';
+
 
     // Bind parameters
     $stmt->bindParam(':publisher_id', $publisher_id);
@@ -70,6 +75,15 @@ try {
     $stmt->bindParam(':end_date', $end_date);
     $stmt->bindParam(':status', $status);
 
+    // Bind new parameters
+    $stmt->bindParam(':work_mode', $work_mode);
+    $stmt->bindParam(':location', $location);
+    $stmt->bindParam(':application_deadline', $application_deadline);
+    $stmt->bindParam(':vacancies', $vacancies, PDO::PARAM_INT);
+    $stmt->bindParam(':working_hours', $working_hours);
+    $stmt->bindParam(':experience_level', $experience_level);
+
+
     if ($stmt->execute()) {
         http_response_code(201);
         echo json_encode(["message" => "Job post saved successfully."]);
@@ -79,6 +93,6 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(503); 
-    echo json_encode(["message" => "A database error occurred while saving the job."]);
+    echo json_encode(["message" => "A database error occurred while saving the job: " . $e->getMessage()]);
 }
 ?>

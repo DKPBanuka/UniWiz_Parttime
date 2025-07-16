@@ -1,8 +1,8 @@
 <?php
-// FILE: uniwiz-backend/api/get_all_publisher_applications.php (ENHANCED)
+// FILE: uniwiz-backend/api/get_all_publisher_applications.php (FIXED for 'today' filter)
 // =====================================================================
 // This file fetches all job applications for a publisher.
-// It can be filtered by publisher_id, job_id, search term, and status.
+// It can be filtered by publisher_id, job_id, search term, and status (including 'today').
 
 // --- Headers ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -28,7 +28,6 @@ if ($db === null) {
 }
 
 // --- Get and Validate Parameters ---
-// At least one of publisher_id or job_id must be present.
 if (!isset($_GET['publisher_id']) && !isset($_GET['job_id'])) {
     http_response_code(400);
     echo json_encode(["message" => "A Publisher ID or Job ID is required."]);
@@ -84,7 +83,10 @@ try {
         $params[':job_id'] = $job_id;
     }
 
-    if ($status_filter !== 'All') {
+    // **FIX**: Handle the 'today' filter case by checking the date
+    if ($status_filter === 'today') {
+        $query .= " AND DATE(ja.applied_at) = CURDATE()";
+    } elseif ($status_filter !== 'All') {
         $query .= " AND ja.status = :status";
         $params[':status'] = $status_filter;
     }
@@ -100,7 +102,6 @@ try {
 
     // Bind all the dynamic parameters.
     foreach ($params as $key => &$val) {
-        // Determine the parameter type based on the key.
         $param_type = is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR;
         $stmt->bindParam($key, $val, $param_type);
     }

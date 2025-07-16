@@ -1,7 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_job_details.php (NEW FILE)
+// FILE: uniwiz-backend/api/get_job_details.php (ENHANCED to include accepted count)
 // =======================================================
-// This file fetches all details for a single job to pre-fill the edit form.
+// This file fetches all details for a single job, including the count of accepted applications.
 
 // --- Headers & DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -29,8 +29,18 @@ if (!isset($_GET['job_id']) || !filter_var($_GET['job_id'], FILTER_VALIDATE_INT)
 $job_id = (int)$_GET['job_id'];
 
 try {
-    // Select all columns for the specific job
-    $query = "SELECT * FROM jobs WHERE id = :job_id LIMIT 1";
+    // **CHANGE**: Added a subquery to count accepted applications
+    $query = "
+        SELECT 
+            j.*,
+            (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id AND ja.status = 'accepted') as accepted_count
+        FROM 
+            jobs j
+        WHERE 
+            j.id = :job_id 
+        LIMIT 1
+    ";
+    
     $stmt = $db->prepare($query);
     $stmt->bindParam(':job_id', $job_id, PDO::PARAM_INT);
     $stmt->execute();
@@ -47,6 +57,6 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(503); 
-    echo json_encode(["message" => "Database error while fetching job details."]);
+    echo json_encode(["message" => "Database error while fetching job details: " . $e->getMessage()]);
 }
 ?>

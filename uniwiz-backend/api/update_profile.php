@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/update_profile.php (Refactored to handle multipart/form-data)
+// FILE: uniwiz-backend/api/update_profile.php (FIXED to handle publisher profiles)
 // =========================================================================
 
 // --- Headers ---
@@ -63,7 +63,7 @@ try {
         $target_file = $target_dir . $new_filename;
         
         if (move_uploaded_file($file['tmp_name'], $target_file)) {
-            $profile_image_url_to_update = $target_file; // Using target_file as it's relative to the 'api' folder
+            $profile_image_url_to_update = $target_file; 
         } else {
             throw new Exception("Failed to move uploaded profile picture.");
         }
@@ -83,7 +83,7 @@ try {
         $target_file = $target_dir . $new_filename;
 
         if (move_uploaded_file($file['tmp_name'], $target_file)) {
-            $cv_url_to_update = $target_file; // Using target_file as it's relative to the 'api' folder
+            $cv_url_to_update = $target_file;
         } else {
             throw new Exception("Failed to move uploaded CV.");
         }
@@ -135,24 +135,55 @@ try {
             }
             $query_student .= " WHERE user_id = :user_id";
         } else {
-            $cols = implode(", ", array_keys($params_student));
-            $vals = implode(", ", array_keys($params_student));
-            $query_student = "INSERT INTO student_profiles (user_id, university_name, field_of_study, year_of_study, languages_spoken, preferred_categories, skills, cv_url) VALUES (:user_id, :university_name, :field_of_study, :year_of_study, :languages_spoken, :preferred_categories, :skills, :cv_url)";
-            if($cv_url_to_update === null) {
-                $params_student[':cv_url'] = null; // Ensure it's in params for INSERT
+            $cols = "user_id, university_name, field_of_study, year_of_study, languages_spoken, preferred_categories, skills";
+            $vals = ":user_id, :university_name, :field_of_study, :year_of_study, :languages_spoken, :preferred_categories, :skills";
+            if ($cv_url_to_update !== null) {
+                $cols .= ", cv_url";
+                $vals .= ", :cv_url";
             }
+            $query_student = "INSERT INTO student_profiles ($cols) VALUES ($vals)";
         }
         $stmt_student = $db->prepare($query_student);
         $stmt_student->execute($params_student);
     }
+
+    // --- 5. **FIX**: Update or Insert 'publisher_profiles' table (if publisher) ---
+    if ($user_role === 'publisher') {
+        $stmt_check = $db->prepare("SELECT id FROM publisher_profiles WHERE user_id = :user_id LIMIT 1");
+        $stmt_check->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $stmt_check->execute();
+        $profile_exists = $stmt_check->rowCount() > 0;
+
+        $params_publisher = [
+            ':user_id' => $user_id,
+            ':about' => isset($_POST['about']) ? htmlspecialchars(strip_tags($_POST['about'])) : null,
+            ':industry' => isset($_POST['industry']) ? htmlspecialchars(strip_tags($_POST['industry'])) : null,
+            ':website_url' => isset($_POST['website_url']) ? htmlspecialchars(strip_tags($_POST['website_url'])) : null,
+            ':address' => isset($_POST['address']) ? htmlspecialchars(strip_tags($_POST['address'])) : null,
+            ':phone_number' => isset($_POST['phone_number']) ? htmlspecialchars(strip_tags($_POST['phone_number'])) : null,
+            ':facebook_url' => isset($_POST['facebook_url']) ? htmlspecialchars(strip_tags($_POST['facebook_url'])) : null,
+            ':linkedin_url' => isset($_POST['linkedin_url']) ? htmlspecialchars(strip_tags($_POST['linkedin_url'])) : null,
+            ':instagram_url' => isset($_POST['instagram_url']) ? htmlspecialchars(strip_tags($_POST['instagram_url'])) : null,
+        ];
+
+        if ($profile_exists) {
+            $query_publisher = "UPDATE publisher_profiles SET about = :about, industry = :industry, website_url = :website_url, address = :address, phone_number = :phone_number, facebook_url = :facebook_url, linkedin_url = :linkedin_url, instagram_url = :instagram_url WHERE user_id = :user_id";
+        } else {
+            $query_publisher = "INSERT INTO publisher_profiles (user_id, about, industry, website_url, address, phone_number, facebook_url, linkedin_url, instagram_url) VALUES (:user_id, :about, :industry, :website_url, :address, :phone_number, :facebook_url, :linkedin_url, :instagram_url)";
+        }
+        $stmt_publisher = $db->prepare($query_publisher);
+        $stmt_publisher->execute($params_publisher);
+    }
     
-    // --- 5. Fetch and Return Fully Updated User Data ---
+    // --- 6. Fetch and Return Fully Updated User Data ---
     $query_fetch = "
         SELECT 
             u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
-            sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url
+            sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
+            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url
         FROM users u
         LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        LEFT JOIN publisher_profiles pp ON u.id = pp.user_id
         WHERE u.id = :id
     ";
     $stmt_fetch = $db->prepare($query_fetch);

@@ -213,20 +213,26 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
                         <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
                     </span>
                 )}
-                <div className="flex items-center space-x-4">
-                    <img 
-                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
-                        alt="profile" 
-                        className="h-16 w-16 rounded-full object-cover"
-                    />
-                    <div className="flex-grow">
-                        <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline">
-                            {applicant.first_name} {applicant.last_name}
-                        </button>
-                        <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
+                {/* --- FIX START: Applicant card top section layout --- */}
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-4 min-w-0">
+                        <img 
+                            src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
+                            alt="profile" 
+                            className="h-16 w-16 rounded-full object-cover flex-shrink-0"
+                        />
+                        <div className="min-w-0">
+                            <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline truncate block w-full">
+                                {applicant.first_name} {applicant.last_name}
+                            </button>
+                            <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
+                        </div>
                     </div>
-                    <StatusBadge status={applicant.status} />
+                    <div className="flex-shrink-0 ml-4">
+                        <StatusBadge status={applicant.status} />
+                    </div>
                 </div>
+                {/* --- FIX END --- */}
                 <div className="flex justify-end items-center space-x-2 pt-3 border-t">
                     {renderActions()}
                     <button onClick={() => handleViewDetails(applicant)} className="text-sm font-semibold bg-primary-main text-white px-4 py-1.5 rounded-md hover:bg-primary-dark">View Details</button>
@@ -235,7 +241,6 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
         );
     };
 
-    // **FIX**: Add 'today' to the list of tabs if it's the initial filter
     const tabs = ['All', 'pending', 'viewed', 'accepted', 'rejected'];
     if (initialFilter === 'today' && !tabs.includes('today')) {
         tabs.push('today');
