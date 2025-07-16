@@ -1,7 +1,7 @@
-// FILE: src/components/ManageJobs.js (ENHANCED Edit Modal)
+// FILE: src/components/ManageJobs.js (ENHANCED with Vacancy Column and Sorting)
 // ==============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom'; // Import ReactDOM for portals
 
 // --- Reusable Notification Component (Toast) ---
@@ -73,7 +73,6 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
-            // Ensure location is null if work mode is remote
             const submissionData = {
                 ...formData,
                 location: formData.work_mode === 'remote' ? null : formData.location
@@ -210,8 +209,8 @@ const ActionsDropdown = ({ job, onAction }) => {
         if (!isOpen) {
             const rect = buttonRef.current.getBoundingClientRect();
             setPosition({
-                top: rect.bottom + window.scrollY + 8, // Position below the button with some space
-                left: rect.right + window.scrollX - 224, // 224px is w-56
+                top: rect.bottom + window.scrollY + 8,
+                left: rect.right + window.scrollX - 224,
             });
         }
         setIsOpen(!isOpen);
@@ -288,8 +287,8 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDe
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    
-    // --- State for modals and notifications ---
+    const [sortOrder, setSortOrder] = useState('desc'); // **NEW**: State for sorting
+
     const [modalState, setModalState] = useState({ isOpen: false, title: '', message: '', actionType: 'delete', onConfirm: () => {} });
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -395,6 +394,16 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDe
         return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.draft}`}>{status}</span>;
     };
 
+    // **NEW**: Memoized sorted jobs list
+    const sortedJobs = useMemo(() => {
+        return [...myJobs].sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+    }, [myJobs, sortOrder]);
+
+
     return (
         <>
             {notification.message && (
@@ -437,6 +446,15 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDe
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="shadow-sm border rounded py-2 px-4"
                         />
+                        {/* **NEW**: Sort Order Dropdown */}
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="shadow-sm border rounded py-2 px-4 bg-white"
+                        >
+                            <option value="desc">Newest First</option>
+                            <option value="asc">Oldest First</option>
+                        </select>
                         <button onClick={onPostJobClick} className="flex items-center bg-app-blue text-white font-bold py-2 px-5 rounded-lg hover:bg-dark-blue-text">
                             Post New Job
                         </button>
@@ -452,16 +470,18 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDe
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
+                                    {/* **NEW**: Vacancies Column Header */}
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Vacancies</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-gray-500">Loading jobs...</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 text-gray-500">Loading jobs...</td></tr>
                                 ) : error ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-red-500">{error}</td></tr>
-                                ) : myJobs.length > 0 ? (
-                                    myJobs.map(job => (
+                                    <tr><td colSpan="6" className="text-center py-8 text-red-500">{error}</td></tr>
+                                ) : sortedJobs.length > 0 ? (
+                                    sortedJobs.map(job => (
                                         <tr key={job.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <button onClick={() => onViewJobDetails(job.id)} className="text-primary-main hover:underline">
@@ -471,13 +491,19 @@ function ManageJobs({ user, onViewApplicationsClick, onPostJobClick, onViewJobDe
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><StatusBadge status={job.status} /></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-dark-blue-text">{job.application_count}</td>
+                                            {/* **NEW**: Vacancies Column Data */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold">
+                                                <span className={job.accepted_count >= job.vacancies ? 'text-red-500' : 'text-green-600'}>
+                                                    {job.accepted_count}
+                                                </span> / {job.vacancies}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <ActionsDropdown job={job} onAction={handleJobAction} />
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="5" className="text-center py-8 text-gray-500">No jobs found.</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 text-gray-500">No jobs found.</td></tr>
                                 )}
                             </tbody>
                         </table>

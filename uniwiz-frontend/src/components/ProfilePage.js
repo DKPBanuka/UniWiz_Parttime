@@ -1,5 +1,6 @@
-// FILE: src/components/ProfilePage.js (Updated for All User Roles)
+// FILE: src/components/ProfilePage.js (ENHANCED with Suggestions)
 // =================================================================
+// This version adds clickable suggestions for skills and categories for students.
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -24,6 +25,26 @@ const Notification = ({ message, type, onClose }) => {
         </div>
     );
 };
+
+// **NEW**: Reusable component for showing suggestions
+const Suggestions = ({ title, suggestions, onSelect }) => (
+    <div>
+        <h4 className="text-sm font-medium text-gray-500 mb-2">{title}</h4>
+        <div className="flex flex-wrap gap-2">
+            {suggestions.map((item, index) => (
+                <button
+                    key={index}
+                    type="button"
+                    onClick={() => onSelect(item)}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-primary-lighter hover:text-primary-dark transition-colors"
+                >
+                    + {item}
+                </button>
+            ))}
+        </div>
+    </div>
+);
+
 
 function ProfilePage({ user, onProfileUpdate }) {
     const [formData, setFormData] = useState({
@@ -58,6 +79,13 @@ function ProfilePage({ user, onProfileUpdate }) {
     const [selectedCV, setSelectedCV] = useState(null);
     const cvInputRef = useRef();
 
+    // **NEW**: State for suggestions
+    const [allCategories, setAllCategories] = useState([]);
+    const commonSkills = [
+        'Web Development', 'Graphic Design', 'Content Writing', 'Social Media', 'Data Entry',
+        'Tutoring', 'Event Management', 'Customer Service', 'Video Editing', 'MS Office'
+    ];
+
 
     useEffect(() => {
         if (user) {
@@ -84,6 +112,22 @@ function ProfilePage({ user, onProfileUpdate }) {
                 skills: user.skills || '',
             });
             setProfilePicturePreview(user.profile_image_url ? `http://uniwiz.test/${user.profile_image_url}` : null);
+        }
+
+        // **NEW**: Fetch categories if user is a student
+        if (user && user.role === 'student') {
+            const fetchCategories = async () => {
+                try {
+                    const response = await fetch('http://uniwiz.test/get_categories.php');
+                    const data = await response.json();
+                    if (response.ok) {
+                        setAllCategories(data.map(cat => cat.name));
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch categories:", err);
+                }
+            };
+            fetchCategories();
         }
     }, [user]);
 
@@ -125,6 +169,22 @@ function ProfilePage({ user, onProfileUpdate }) {
         }
     };
     
+    // **NEW**: Function to handle adding suggestions to text fields
+    const handleSuggestionSelect = (fieldName, value) => {
+        setFormData(prevData => {
+            const currentValues = prevData[fieldName] 
+                ? prevData[fieldName].split(',').map(s => s.trim()) 
+                : [];
+            
+            // Check for duplicates (case-insensitive)
+            if (!currentValues.some(v => v.toLowerCase() === value.toLowerCase())) {
+                const newValues = [...currentValues, value];
+                return { ...prevData, [fieldName]: newValues.join(', ') };
+            }
+            return prevData; // Return previous data if value already exists
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -313,13 +373,25 @@ function ProfilePage({ user, onProfileUpdate }) {
                                             <label className="block text-sm font-medium text-gray-700">Languages Spoken</label>
                                             <input type="text" name="languages_spoken" value={formData.languages_spoken} placeholder="e.g., Sinhala, English" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
-                                        <div className="md:col-span-2">
+                                        {/* **UPDATED**: Skills with Suggestions */}
+                                        <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Skills</label>
                                             <input type="text" name="skills" value={formData.skills} placeholder="e.g., Web Development, Graphic Design" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <Suggestions 
+                                                title="Suggestions:"
+                                                suggestions={commonSkills}
+                                                onSelect={(skill) => handleSuggestionSelect('skills', skill)}
+                                            />
                                         </div>
-                                        <div className="md:col-span-2">
+                                        {/* **UPDATED**: Categories with Suggestions */}
+                                        <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Preferred Job Categories</label>
                                             <input type="text" name="preferred_categories" value={formData.preferred_categories} placeholder="e.g., Event, IT" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
+                                            <Suggestions 
+                                                title="Suggestions:"
+                                                suggestions={allCategories}
+                                                onSelect={(category) => handleSuggestionSelect('preferred_categories', category)}
+                                            />
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">Upload CV (PDF only, max 5MB)</label>

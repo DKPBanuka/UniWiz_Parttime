@@ -1,10 +1,10 @@
-// FILE: src/components/AllApplicants.js (ENHANCED with new Profile Modal)
+// FILE: src/components/AllApplicants.js (ENHANCED with new Profile Modal & Direct Linking)
 // ==================================================================================
 // This version replaces the navigation to a separate profile page with a detailed
 // popup modal, improving the publisher's workflow. It now displays all available
-// student details in the modal.
+// student details in the modal and can be opened directly via a prop.
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // --- Reusable Components ---
 
@@ -38,9 +38,10 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
-// --- NEW: Enhanced Applicant Detail Modal with all details ---
+// --- Enhanced Applicant Detail Modal with all details ---
 const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
+    const modalRef = useRef();
 
     // Automatically mark as 'viewed' when modal opens
     useEffect(() => {
@@ -51,6 +52,20 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
             setCurrentStatus(applicant.status);
         }
     }, [applicant, onStatusChange]);
+
+    // Close modal on escape key press
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [onClose]);
+
 
     if (!applicant) return null;
 
@@ -64,7 +79,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4" onClick={onClose}>
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div ref={modalRef} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-5 text-gray-400 hover:text-gray-600 text-3xl font-bold z-10">&times;</button>
                 
                 {/* Header Section */}
@@ -78,7 +93,6 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
                         <div>
                             <h2 className="text-3xl font-bold text-primary-dark">{applicant.first_name} {applicant.last_name}</h2>
                             <p className="text-gray-600">{applicant.field_of_study || 'Student'}</p>
-                            {/* **CHANGE**: Added Email and Applied Date */}
                             <p className="text-sm text-gray-500 mt-1">Email: <span className="font-semibold">{applicant.email}</span></p>
                             <p className="text-sm text-gray-500">Applied for: <span className="font-semibold">{applicant.job_title}</span> on <span className="font-semibold">{new Date(applicant.applied_at).toLocaleDateString()}</span></p>
                         </div>
@@ -119,7 +133,6 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
                                 )) : <p className="text-gray-500 text-sm">No skills specified.</p>}
                             </div>
                         </div>
-                        {/* **CHANGE**: Added Languages Spoken */}
                         <div>
                             <h3 className="text-lg font-bold text-gray-800 mb-2">Languages</h3>
                              <p className="text-gray-700">{applicant.languages_spoken || 'Not specified'}</p>
@@ -185,7 +198,8 @@ const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
 };
 
 // --- Main AllApplicants Component ---
-function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter }) {
+// **UPDATED**: Added initialApplicationId and onModalClose props
+function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, initialApplicationId, onModalClose }) {
     const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -195,6 +209,9 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter }
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedApplicant, setSelectedApplicant] = useState(null);
+    
+    // Ref to ensure modal is only opened once per navigation
+    const modalOpenedRef = useRef(false);
 
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
@@ -223,18 +240,35 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter }
         }
     }, [user, searchTerm, statusFilter]);
 
-    // Lifted status change logic is passed via props as 'onStatusChange'
-    // This makes the component more reusable and centralizes state management in App.js
+    // **NEW**: Effect to open the modal automatically if an ID is passed
+    useEffect(() => {
+        if (initialApplicationId && allApplicants.length > 0 && !modalOpenedRef.current) {
+            const applicantToShow = allApplicants.find(app => app.application_id === initialApplicationId);
+            if (applicantToShow) {
+                setSelectedApplicant(applicantToShow);
+                setIsModalOpen(true);
+                modalOpenedRef.current = true; // Mark as opened
+            }
+        }
+    }, [initialApplicationId, allApplicants]);
     
+    // **NEW**: Handler to close the modal and reset the state in App.js
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedApplicant(null);
+        if (onModalClose) {
+            onModalClose();
+        }
+        modalOpenedRef.current = false; // Reset ref for next time
+    };
+
     const handleViewDetails = (applicant) => {
         setSelectedApplicant(applicant);
         setIsModalOpen(true);
     };
     
-    // Refresh data when status is changed from the modal
     const handleModalStatusChange = (applicationId, newStatus, showNotif) => {
         onStatusChange(applicationId, newStatus, showNotif);
-        // Optimistically update the list without a full re-fetch for a smoother experience
         setAllApplicants(prev => 
             prev.map(app => 
                 app.application_id === applicationId ? { ...app, status: newStatus } : app
@@ -273,7 +307,7 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter }
             {isModalOpen && (
                 <ApplicantDetailModal 
                     applicant={selectedApplicant} 
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={handleCloseModal}
                     onStatusChange={handleModalStatusChange}
                 />
             )}

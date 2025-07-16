@@ -1,8 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_all_publisher_applications.php (FIXED for 'today' filter)
-// =====================================================================
-// This file fetches all job applications for a publisher.
-// It can be filtered by publisher_id, job_id, search term, and status (including 'today').
+// FILE: uniwiz-backend/api/get_all_publisher_applications.php (FIXED & ENHANCED for Vacancy Check)
+// ==============================================================================================
+// This file now also returns the vacancy and accepted counts for each job.
 
 // --- Headers ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -40,7 +39,7 @@ $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? trim($_GET['status']) : 'All';
 
 try {
-    // The base query joins all necessary tables to get complete applicant info.
+    // **UPDATED**: The query now includes vacancy and accepted counts.
     $query = "
         SELECT
             ja.id as application_id,
@@ -50,6 +49,8 @@ try {
             u.email,
             u.profile_image_url,
             j.title as job_title,
+            j.vacancies,
+            (SELECT COUNT(*) FROM job_applications WHERE job_id = j.id AND status = 'accepted') as accepted_count,
             ja.proposal,
             ja.status,
             ja.applied_at,
@@ -82,8 +83,7 @@ try {
         $query .= " AND ja.job_id = :job_id";
         $params[':job_id'] = $job_id;
     }
-
-    // **FIX**: Handle the 'today' filter case by checking the date
+    
     if ($status_filter === 'today') {
         $query .= " AND DATE(ja.applied_at) = CURDATE()";
     } elseif ($status_filter !== 'All') {
@@ -100,7 +100,6 @@ try {
 
     $stmt = $db->prepare($query);
 
-    // Bind all the dynamic parameters.
     foreach ($params as $key => &$val) {
         $param_type = is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR;
         $stmt->bindParam($key, $val, $param_type);

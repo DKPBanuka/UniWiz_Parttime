@@ -2,7 +2,8 @@
 // =======================================================================================
 // This version standardizes all API calls to use the 'uniwiz.test' domain,
 // resolving all "failed to fetch" errors. It also includes enhanced logic
-// to prevent duplicate notification popups.
+// to prevent duplicate notification popups and links the dashboard/notifications
+// directly to the applicant details modal.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -63,6 +64,7 @@ function App() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [publisherIdForProfile, setPublisherIdForProfile] = useState(null);
   const [studentIdForProfile, setStudentIdForProfile] = useState(null);
+  const [applicationIdToView, setApplicationIdToView] = useState(null); // **NEW**: For opening applicant modal
 
   // Modal states
   const [isApplyModalOpen, setApplyModalOpen] = useState(false);
@@ -102,7 +104,6 @@ function App() {
         }
     } catch (err) {
         console.error("Fetch Applied Jobs Error:", err);
-        // Do not show a popup for this as it's a background task
     }
   }, []);
 
@@ -118,7 +119,6 @@ function App() {
             
             setNotifications(data);
 
-            // Logic to show popup only for new, unread notifications
             const newNotificationsForPopup = data.filter(n => !n.is_read && !shownPopupIds.has(n.id));
 
             if (newNotificationsForPopup.length > 0) {
@@ -131,18 +131,14 @@ function App() {
             }
         } catch (err) {
             console.error("Fetch Notifications Error:", err.message);
-            // Show a generic fetch error only once if it persists
-            if (notifications.length === 0) { // Avoid spamming popups
-                 showPopupNotification(err.message, 'error');
-            }
         }
     };
 
-    fetchNotifications(); // Fetch immediately on login
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); 
 
-    return () => clearInterval(interval); // Cleanup on logout or component unmount
-  }, [currentUser, showPopupNotification, shownPopupIds, notifications.length]);
+    return () => clearInterval(interval);
+  }, [currentUser, showPopupNotification, shownPopupIds]);
 
 
   // --- Initial Load Effect (from localStorage) ---
@@ -155,7 +151,6 @@ function App() {
             if (user.role === 'student') {
                 await fetchAppliedJobs(user.id);
             }
-            // Redirect to profile setup if essential info is missing
             if (!user.first_name || (user.role === 'publisher' && !user.company_name)) {
                 setPage('profile-setup');
             } else {
@@ -196,7 +191,6 @@ function App() {
   const handleProfileUpdate = useCallback((updatedUserData) => {
     setCurrentUser(updatedUserData);
     localStorage.setItem('user', JSON.stringify(updatedUserData));
-    // If setup is complete, redirect home
     if (page === 'profile-setup') {
         setPage('home');
         showPopupNotification('Profile setup complete!', 'success');
@@ -213,6 +207,12 @@ function App() {
   const handleViewJobDetailsPage = (jobId) => { setSelectedJobId(jobId); setPage('view-job-details'); };
   const handleViewJobDetailsModal = (job) => { setSelectedJobForDetails(job); setIsJobDetailsModalOpen(true); };
 
+  // **NEW**: Handler to navigate to applicants page and set the ID for the modal
+  const handleViewApplicantDetails = (applicationId) => {
+      setApplicationIdToView(applicationId);
+      setPage('applicants');
+  };
+
   const handleNotificationClick = useCallback(async (notification) => {
     if (!notification.is_read) {
         try {
@@ -227,15 +227,20 @@ function App() {
             showPopupNotification('Could not update notification status.', 'error');
         }
     }
-    // Navigate based on link if available
+    // **UPDATED**: Navigate based on link, specifically for applicant view
     if (notification.link) {
-        const linkParts = notification.link.split('/');
+        const linkParts = notification.link.split('/'); // e.g., ['', 'applicants', 'view', '123']
         const pageTarget = linkParts[1];
-        const id = linkParts[2];
+        const action = linkParts[2];
+        const id = linkParts[3];
 
-        if (pageTarget === 'applicants') setPage('applicants');
-        else if (pageTarget === 'applied-jobs') setPage('applied-jobs');
-        else if (pageTarget === 'student-profile' && id) { handleViewStudentProfile(id); }
+        if (pageTarget === 'applicants' && action === 'view' && id) {
+            handleViewApplicantDetails(parseInt(id, 10));
+        } else if (pageTarget === 'applicants') {
+            setPage('applicants');
+        } else if (pageTarget === 'applied-jobs') {
+            setPage('applied-jobs');
+        }
     }
   }, [currentUser, showPopupNotification]);
 
@@ -286,14 +291,14 @@ function App() {
 
       if (currentUser.role === 'publisher') {
           switch (page) {
-              case 'home': return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewStudentProfile={handleViewStudentProfile} />;
+              case 'home': return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
               case 'create-job': return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
               case 'manage-jobs': return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
               case 'view-applications': return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} onViewStudentProfile={handleViewStudentProfile} />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
-              case 'applicants': return <AllApplicants user={currentUser} onViewStudentProfile={handleViewStudentProfile} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} />;
+              case 'applicants': return <AllApplicants user={currentUser} onViewStudentProfile={handleViewStudentProfile} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
-              default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewStudentProfile={handleViewStudentProfile} />;
+              default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
           }
       } else { // Student Role
           switch (page) {
