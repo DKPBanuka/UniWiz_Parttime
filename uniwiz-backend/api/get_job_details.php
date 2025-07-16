@@ -1,7 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_job_details.php (ENHANCED to include accepted count)
-// =======================================================
-// This file fetches all details for a single job, including the count of accepted applications.
+// FILE: uniwiz-backend/api/get_job_details.php (FIXED to include company name)
+// ==============================================================================
+// This file fetches all details for a single job, including the company name.
 
 // --- Headers & DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -29,13 +29,16 @@ if (!isset($_GET['job_id']) || !filter_var($_GET['job_id'], FILTER_VALIDATE_INT)
 $job_id = (int)$_GET['job_id'];
 
 try {
-    // **CHANGE**: Added a subquery to count accepted applications
+    // FIX: Join with the users table to get the company_name
     $query = "
         SELECT 
             j.*,
+            u.company_name,
             (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id AND ja.status = 'accepted') as accepted_count
         FROM 
             jobs j
+        LEFT JOIN
+            users u ON j.publisher_id = u.id
         WHERE 
             j.id = :job_id 
         LIMIT 1

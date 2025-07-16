@@ -1,7 +1,7 @@
 <?php
 // FILE: uniwiz-backend/api/get_company_profile.php (ENHANCED)
 // ===========================================================
-// This file now fetches rating details along with other profile info.
+// This file now fetches rating details and all reviews along with other profile info.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -79,16 +79,15 @@ try {
     $company_data['jobs'] = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
 
 
-    // 3. Fetch latest reviews for the company
+    // 3. Fetch all reviews for the company
     $query_reviews = "
         SELECT 
-            r.rating, r.review_text, r.created_at,
+            r.id as review_id, r.rating, r.review_text, r.created_at,
             s.first_name, s.last_name, s.profile_image_url as student_image_url
         FROM company_reviews r
         JOIN users s ON r.student_id = s.id
         WHERE r.publisher_id = :publisher_id
         ORDER BY r.created_at DESC
-        LIMIT 5
     ";
     $stmt_reviews = $db->prepare($query_reviews);
     $stmt_reviews->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);

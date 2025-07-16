@@ -1,5 +1,7 @@
-// FILE: src/components/AllApplicants.js (Updated with Conditional Action Buttons)
+// FILE: src/components/AllApplicants.js (FIXED)
 // =====================================================================
+// This file contains the component to display all applicants for a publisher.
+// The fix ensures that all buttons on the applicant cards are now functional.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -107,6 +109,57 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, onViewFullPr
     );
 };
 
+// --- FIX: ApplicantCard now receives handler functions as props ---
+const ApplicantCard = ({ applicant, handleUpdateStatus, onViewStudentProfile, handleViewDetails }) => {
+    const renderActions = () => {
+        if (applicant.status === 'accepted') {
+            return <p className="text-sm font-bold text-green-600">Application Accepted</p>;
+        }
+        if (applicant.status === 'rejected') {
+            return <p className="text-sm font-bold text-red-600">Application Rejected</p>;
+        }
+        return (
+            <>
+                <button onClick={() => handleUpdateStatus(applicant.application_id, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
+                <button onClick={() => handleUpdateStatus(applicant.application_id, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
+            </>
+        );
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg transition-shadow duration-300 relative">
+            {applicant.status === 'pending' && (
+                <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
+                </span>
+            )}
+            <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4 min-w-0">
+                    <img 
+                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
+                        alt="profile" 
+                        className="h-16 w-16 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                        <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline truncate block w-full">
+                            {applicant.first_name} {applicant.last_name}
+                        </button>
+                        <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 ml-4">
+                    <StatusBadge status={applicant.status} />
+                </div>
+            </div>
+            <div className="flex justify-end items-center space-x-2 pt-3 border-t">
+                {renderActions()}
+                <button onClick={() => handleViewDetails(applicant)} className="text-sm font-semibold bg-primary-main text-white px-4 py-1.5 rounded-md hover:bg-primary-dark">View Details</button>
+            </div>
+        </div>
+    );
+};
+
 // --- Main AllApplicants Component ---
 function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFilter }) {
     const [allApplicants, setAllApplicants] = useState([]);
@@ -189,58 +242,6 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
         };
     }, [setInitialFilter]);
 
-    const ApplicantCard = ({ applicant }) => {
-        const renderActions = () => {
-            if (applicant.status === 'accepted') {
-                return <p className="text-sm font-bold text-green-600">Application Accepted</p>;
-            }
-            if (applicant.status === 'rejected') {
-                return <p className="text-sm font-bold text-red-600">Application Rejected</p>;
-            }
-            return (
-                <>
-                    <button onClick={() => handleUpdateStatus(applicant.application_id, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
-                    <button onClick={() => handleUpdateStatus(applicant.application_id, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
-                </>
-            );
-        };
-
-        return (
-            <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg transition-shadow duration-300 relative">
-                {applicant.status === 'pending' && (
-                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
-                    </span>
-                )}
-                {/* --- FIX START: Applicant card top section layout --- */}
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-4 min-w-0">
-                        <img 
-                            src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
-                            alt="profile" 
-                            className="h-16 w-16 rounded-full object-cover flex-shrink-0"
-                        />
-                        <div className="min-w-0">
-                            <button onClick={() => onViewStudentProfile(applicant.student_id)} className="font-bold text-lg text-primary-dark text-left hover:underline truncate block w-full">
-                                {applicant.first_name} {applicant.last_name}
-                            </button>
-                            <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
-                        </div>
-                    </div>
-                    <div className="flex-shrink-0 ml-4">
-                        <StatusBadge status={applicant.status} />
-                    </div>
-                </div>
-                {/* --- FIX END --- */}
-                <div className="flex justify-end items-center space-x-2 pt-3 border-t">
-                    {renderActions()}
-                    <button onClick={() => handleViewDetails(applicant)} className="text-sm font-semibold bg-primary-main text-white px-4 py-1.5 rounded-md hover:bg-primary-dark">View Details</button>
-                </div>
-            </div>
-        );
-    };
-
     const tabs = ['All', 'pending', 'viewed', 'accepted', 'rejected'];
     if (initialFilter === 'today' && !tabs.includes('today')) {
         tabs.push('today');
@@ -300,7 +301,16 @@ function AllApplicants({ user, onViewStudentProfile, initialFilter, setInitialFi
                     <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>
                 ) : allApplicants.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {allApplicants.map(app => <ApplicantCard key={app.application_id} applicant={app} />)}
+                        {/* --- FIX: Pass handler functions to ApplicantCard --- */}
+                        {allApplicants.map(app => (
+                            <ApplicantCard 
+                                key={app.application_id} 
+                                applicant={app} 
+                                handleUpdateStatus={handleUpdateStatus}
+                                onViewStudentProfile={onViewStudentProfile}
+                                handleViewDetails={handleViewDetails}
+                            />
+                        ))}
                     </div>
                 ) : (
                     <div className="text-center py-16 bg-white rounded-xl shadow-md">

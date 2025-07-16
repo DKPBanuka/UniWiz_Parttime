@@ -1,11 +1,12 @@
-// FILE: src/components/StudentDashboard.js (Updated - Dashboard Only)
-// ===================================================
+// FILE: src/components/StudentDashboard.js (Updated with Recommended Jobs)
+// =================================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-// Custom animated card component for stats
+// --- Reusable Components ---
+
 const StatCard = ({ title, value, icon, delay = 0 }) => (
-  <div 
+  <div
     className="stat-card bg-white p-6 rounded-xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
     style={{ animationDelay: `${delay * 100}ms` }}
   >
@@ -19,9 +20,23 @@ const StatCard = ({ title, value, icon, delay = 0 }) => (
   </div>
 );
 
-// Skeleton loader for stats
+const ProfileCompletionCard = ({ percentage, setPage }) => (
+    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100">
+        <p className="text-sm font-medium text-gray-600">Profile Completion</p>
+        <div className="flex items-center mt-2">
+            <p className="text-3xl font-bold text-gray-800 mr-3">{percentage}%</p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+            </div>
+        </div>
+        <button onClick={() => setPage('profile')} className="text-sm font-semibold text-primary-main hover:underline mt-4">
+            {percentage < 100 ? 'Complete your profile to stand out!' : 'Your profile is looking great!'}
+        </button>
+    </div>
+);
+
 const StatCardSkeleton = ({ delay = 0 }) => (
-  <div 
+  <div
     className="stat-card bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-between"
     style={{ animationDelay: `${delay * 100}ms` }}
   >
@@ -35,46 +50,73 @@ const StatCardSkeleton = ({ delay = 0 }) => (
   </div>
 );
 
-// Loading spinner component (from PublisherDashboard.js)
 const LoadingSpinner = () => (
-  <div className="flex justify-center items-center p-8">
-    <div className="loading-spinner">
-      <div className="spinner-circle"></div>
+    <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-main"></div>
     </div>
-    <style jsx>{`
-      .loading-spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-      }
-      .spinner-circle {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 3px solid #B5A8D5; /* primary-lighter */
-        border-top-color: #4D55CC; /* primary-main */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
 );
 
+const JobCard = ({ job, currentUser, handleApply, appliedJobs, applyingStatus, handleViewCompanyProfile, handleViewJobDetails }) => {
+    const hasApplied = appliedJobs && appliedJobs.has(job.id);
+    const isApplying = applyingStatus && applyingStatus[job.id] === 'applying';
+    const categoryName = job.category_name || job.category;
+    return (
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 border border-gray-100">
+            <div className="p-6 flex flex-col h-full">
+                <div className="flex-grow">
+                    <span className="inline-block bg-primary-light text-primary-dark text-sm font-semibold px-3 py-1 rounded-full mb-3">{categoryName}</span>
+                    <h3 className="text-2xl font-bold text-primary-dark mb-2">{job.title}</h3>
+                    <p className="text-gray-600 mb-4">
+                        Posted by: 
+                        <button 
+                            onClick={() => handleViewCompanyProfile(job.publisher_id)} 
+                            className="font-semibold text-primary-main hover:text-primary-dark ml-1"
+                        >
+                            {job.company_name || job.publisher_name}
+                        </button>
+                    </p>
+                    <div className="space-y-2 text-gray-700">
+                        <p><strong>Type:</strong> {job.job_type}</p>
+                        <p><strong>Payment:</strong> {job.payment_range}</p>
+                    </div>
+                </div>
+                <div className="mt-6 pt-4 border-t flex justify-end items-center space-x-3">
+                    <button 
+                        onClick={() => handleViewJobDetails(job)}
+                        className="font-bold py-2 px-5 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-300"
+                    >
+                        View
+                    </button>
+                    {currentUser && currentUser.role === 'student' && (
+                        <button 
+                            onClick={() => handleApply(job)} 
+                            disabled={hasApplied || isApplying} 
+                            className={`font-bold py-2 px-5 rounded-lg transition duration-300 ${hasApplied ? 'bg-green-500 text-white cursor-not-allowed' : isApplying ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-primary-main text-white hover:bg-primary-dark'}`}
+                        >
+                            {hasApplied ? 'Applied' : isApplying ? 'Applying...' : 'Apply Now'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
-function StudentDashboard({ currentUser }) { // Removed jobs, handleApply, appliedJobs, applyingStatus props
+
+function StudentDashboard({ currentUser, handleApply, appliedJobs, applyingStatus, setPage, setPublisherIdForProfile, handleViewJobDetails }) {
     const [stats, setStats] = useState(null);
     const [isLoadingStats, setIsLoadingStats] = useState(true);
     const [errorStats, setErrorStats] = useState(null);
 
-    // Fetch student stats
+    const [recommendedJobs, setRecommendedJobs] = useState([]);
+    const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+    const [errorJobs, setErrorJobs] = useState(null);
+
+    // Fetch student statistics
     useEffect(() => {
         const fetchStats = async () => {
             if (!currentUser || !currentUser.id) return;
             setIsLoadingStats(true);
-            setErrorStats(null);
             try {
                 const response = await fetch(`http://uniwiz.test/get_student_stats.php?student_id=${currentUser.id}`);
                 const data = await response.json();
@@ -84,7 +126,6 @@ function StudentDashboard({ currentUser }) { // Removed jobs, handleApply, appli
                     throw new Error(data.message || 'Failed to fetch student stats.');
                 }
             } catch (err) {
-                console.error("Failed to fetch student stats:", err);
                 setErrorStats(err.message);
             } finally {
                 setIsLoadingStats(false);
@@ -93,11 +134,39 @@ function StudentDashboard({ currentUser }) { // Removed jobs, handleApply, appli
         fetchStats();
     }, [currentUser]);
 
-    // SVG Icons for Stat Cards
-    const ApplicationsSentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
-    const ProfileViewsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
-    const OffersReceivedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
+    // Fetch recommended jobs
+    useEffect(() => {
+        const fetchRecommendedJobs = async () => {
+            if (!currentUser || !currentUser.id) return;
+            setIsLoadingJobs(true);
+            try {
+                const response = await fetch(`http://uniwiz.test/get_recommended_jobs.php?student_id=${currentUser.id}`);
+                const data = await response.json();
+                if (response.ok) {
+                    setRecommendedJobs(data);
+                } else {
+                    throw new Error(data.message || 'Failed to fetch recommended jobs.');
+                }
+            } catch (err) {
+                setErrorJobs(err.message);
+            } finally {
+                setIsLoadingJobs(false);
+            }
+        };
+        fetchRecommendedJobs();
+    }, [currentUser]);
 
+
+    const handleViewCompanyProfile = (publisherId) => {
+        if (setPage && setPublisherIdForProfile) {
+            setPublisherIdForProfile(publisherId);
+            setPage('company-profile');
+        }
+    };
+
+    const ApplicationsSentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
+    const AcceptedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const ProfileViewsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 
     return (
         <div className="p-8 bg-bg-student-dashboard min-h-screen text-gray-800">
@@ -110,48 +179,58 @@ function StudentDashboard({ currentUser }) { // Removed jobs, handleApply, appli
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 {isLoadingStats ? (
                     <>
                         <StatCardSkeleton delay={0} />
                         <StatCardSkeleton delay={1} />
                         <StatCardSkeleton delay={2} />
+                        <StatCardSkeleton delay={3} />
                     </>
                 ) : errorStats ? (
-                    <div className="lg:col-span-3 text-center text-red-500 py-8">Error loading stats: {errorStats}</div>
+                    <div className="lg:col-span-4 text-center text-red-500 py-8">Error loading stats: {errorStats}</div>
                 ) : (
                     <>
-                        <StatCard 
-                            title="Applications Sent" 
-                            value={stats?.applications_sent ?? 0} 
-                            icon={<ApplicationsSentIcon />} 
-                            delay={0}
-                        />
-                        <StatCard 
-                            title="Profile Views" 
-                            value={stats?.profile_views ?? 0} 
-                            icon={<ProfileViewsIcon />} 
-                            delay={1}
-                        />
-                        <StatCard 
-                            title="Offers Received" 
-                            value={stats?.offers_received ?? 0} 
-                            icon={<OffersReceivedIcon />} 
-                            delay={2}
-                        />
+                        <StatCard title="Applications Sent" value={stats?.applications_sent ?? 0} icon={<ApplicationsSentIcon />} delay={0} />
+                        <StatCard title="Applications Accepted" value={stats?.applications_accepted ?? 0} icon={<AcceptedIcon />} delay={1} />
+                        <StatCard title="Profile Views" value={stats?.profile_views ?? 0} icon={<ProfileViewsIcon />} delay={2} />
+                        <ProfileCompletionCard percentage={stats?.profile_completion_percentage ?? 0} setPage={setPage} />
                     </>
                 )}
             </div>
 
-            {/* No longer displaying "Find Jobs" section directly here. It's now in FindJobsPage.js */}
-            <h3 className="text-2xl font-bold text-primary-dark mb-6">Recommended Jobs</h3>
-            <p className="text-gray-600">This section could show personalized job recommendations based on your profile or past applications. Please navigate to the "Find Jobs" page to explore all available opportunities.</p>
-            {/* Placeholder for recommended jobs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 text-center">
-                    <p className="text-gray-500">No specific recommendations yet. Use "Find Jobs" to explore!</p>
-                </div>
+            {/* Recommended Jobs Section */}
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-primary-dark">Recommended For You</h2>
+                <button onClick={() => setPage('find-jobs')} className="font-semibold text-primary-main hover:underline">
+                    View All Jobs
+                </button>
             </div>
+
+            {isLoadingJobs ? (
+                <LoadingSpinner />
+            ) : errorJobs ? (
+                 <div className="text-center text-red-500 py-16 bg-white rounded-xl shadow-md">{errorJobs}</div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {recommendedJobs.length > 0 ? recommendedJobs.map(job => (
+                        <JobCard 
+                            key={`rec-${job.id}`} 
+                            job={job} 
+                            currentUser={currentUser} 
+                            handleApply={handleApply} 
+                            appliedJobs={appliedJobs} 
+                            applyingStatus={applyingStatus} 
+                            handleViewCompanyProfile={handleViewCompanyProfile}
+                            handleViewJobDetails={handleViewJobDetails}
+                        />
+                    )) : (
+                        <div className="col-span-3 bg-white rounded-xl shadow-lg p-6 border border-gray-100 text-center">
+                            <p className="text-gray-500">No specific recommendations yet. Use "Find Jobs" to explore!</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

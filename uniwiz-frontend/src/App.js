@@ -1,5 +1,5 @@
-// FILE: src/App.js (Updated with Sidebar Locking Logic)
-// =====================================================
+// FILE: src/App.js (Full Code with all components and logic)
+// =================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -26,6 +26,7 @@ import CompanyProfilePage from './components/CompanyProfilePage';
 import StudentProfilePage from './components/StudentProfilePage';
 import JobDetailsPage from './components/JobDetailsPage';
 import NotificationsPage from './components/NotificationsPage';
+import JobDetailsModal from './components/JobDetailsModal'; // Import the new modal
 import './output.css';
 
 // Reusable Notification Popup (Toast)
@@ -64,16 +65,17 @@ function App() {
 
   // Modal states
   const [isSignUpModalOpen, setSignUpModalOpen] = useState(false);
-  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isApplyModalOpen, setApplyModalOpen] = useState(false);
+  const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState(null);
   
   // Application-related states
   const [jobToApply, setJobToApply] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [applyingStatus, setApplyingStatus] = useState({}); 
 
-  // --- NEW: Sidebar state for locking/pinning ---
-  const [isSidebarLocked, setIsSidebarLocked] = useState(true); // Default to locked/expanded
+  // --- Sidebar state for locking/pinning ---
+  const [isSidebarLocked, setIsSidebarLocked] = useState(true);
 
   // Filter state for the AllApplicants page
   const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
@@ -203,7 +205,7 @@ function App() {
     showPopupNotification('Profile updated successfully!', 'success');
   };
   
-  // --- Navigation & Notification Handlers ---
+  // --- Navigation & Modal Handlers ---
   const handleViewApplications = (jobId) => {
       setSelectedJobId(jobId);
       setPage('view-applications');
@@ -219,9 +221,14 @@ function App() {
       setPage('applicants');
   };
 
-  const handleViewJobDetails = (jobId) => {
+  const handleViewJobDetailsPage = (jobId) => {
     setSelectedJobId(jobId);
     setPage('view-job-details');
+  };
+
+  const handleViewJobDetailsModal = (job) => {
+    setSelectedJobForDetails(job);
+    setIsJobDetailsModalOpen(true);
   };
 
   const handleNotificationClick = async (notification) => {
@@ -312,7 +319,7 @@ function App() {
               case 'create-job':
                   return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
               case 'manage-jobs':
-                  return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetails} />; 
+                  return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
               case 'view-applications':
                   return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} onViewStudentProfile={handleViewStudentProfile} />;
               case 'view-job-details':
@@ -338,7 +345,15 @@ function App() {
       } else { // currentUser.role === 'student'
           switch (page) {
               case 'home':
-                  return <StudentDashboard currentUser={currentUser} />; 
+                  return <StudentDashboard 
+                            currentUser={currentUser} 
+                            handleApply={handleOpenApplyModal}
+                            appliedJobs={appliedJobs}
+                            applyingStatus={applyingStatus}
+                            setPage={setPage}
+                            setPublisherIdForProfile={setPublisherIdForProfile}
+                            handleViewJobDetails={handleViewJobDetailsModal}
+                         />;
               case 'find-jobs':
                   return <FindJobsPage 
                             currentUser={currentUser} 
@@ -347,6 +362,7 @@ function App() {
                             applyingStatus={applyingStatus}
                             setPage={setPage}
                             setPublisherIdForProfile={setPublisherIdForProfile}
+                            handleViewJobDetails={handleViewJobDetailsModal}
                          />;
               case 'applied-jobs':
                   return <AppliedJobsPage user={currentUser} />;
@@ -358,9 +374,18 @@ function App() {
                             appliedJobs={appliedJobs}
                             applyingStatus={applyingStatus}
                             showNotification={showPopupNotification}
+                            handleViewJobDetails={handleViewJobDetailsModal}
                          />;
               default:
-                  return <StudentDashboard currentUser={currentUser} />;
+                  return <StudentDashboard 
+                            currentUser={currentUser} 
+                            handleApply={handleOpenApplyModal}
+                            appliedJobs={appliedJobs}
+                            applyingStatus={applyingStatus}
+                            setPage={setPage}
+                            setPublisherIdForProfile={setPublisherIdForProfile}
+                            handleViewJobDetails={handleViewJobDetailsModal}
+                         />;
           }
       }
   };
@@ -424,6 +449,12 @@ function App() {
       {renderPage()}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={() => setSignUpModalOpen(false)} onRegisterSuccess={handleRegisterSuccess} />
       <ApplyModal isOpen={isApplyModalOpen} onClose={() => setApplyModalOpen(false)} jobTitle={jobToApply?.title} onSubmit={handleSubmitApplication} />
+      <JobDetailsModal 
+        isOpen={isJobDetailsModalOpen} 
+        onClose={() => setIsJobDetailsModalOpen(false)} 
+        job={selectedJobForDetails}
+        handleApply={handleOpenApplyModal}
+      />
     </>
   );
 }
