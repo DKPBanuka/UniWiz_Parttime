@@ -46,7 +46,9 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
     const [error, setError] = useState(null);
 
     const fetchJobDetails = useCallback(async () => {
-        if (!job || !job.id) {
+        // FIX: Use job.job_id if available, otherwise fall back to job.id
+        const jobIdToFetch = job?.job_id || job?.id; 
+        if (!jobIdToFetch) {
             setError("No job selected.");
             setIsLoading(false);
             return;
@@ -54,7 +56,7 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
         setIsLoading(true);
         try {
             // **UPDATED**: Construct URL with student_id if available
-            let apiUrl = `http://uniwiz.test/get_job_details.php?job_id=${job.id}`;
+            let apiUrl = `http://uniwiz.test/get_job_details.php?job_id=${jobIdToFetch}`;
             if (currentUser && currentUser.role === 'student') {
                 apiUrl += `&student_id=${currentUser.id}`;
             }
@@ -100,7 +102,8 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                         {/* Header with Status Badge */}
                         <div className="flex justify-between items-start">
                              <div>
-                                <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.title}</h1>
+                                {/* FIX: Use job.job_title if available, otherwise job.title */}
+                                <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.job_title || jobDetails.title}</h1>
                                 <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
                             </div>
                             {/* This now correctly uses the status from the fetched details */}

@@ -1,18 +1,17 @@
-// FILE: src/components/StudentProfilePage.js (NEW FILE)
+// FILE: src/components/StudentProfilePage.js (Modern Light Blue Design)
 // =====================================================================
-// This component displays a student's public profile page.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-main"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
     </div>
 );
 
 const ProfileSection = ({ title, children }) => (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-        <h3 className="text-xl font-bold text-primary-dark mb-4 pb-2 border-b">{title}</h3>
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">{title}</h3>
         <div className="space-y-4">{children}</div>
     </div>
 );
@@ -20,12 +19,12 @@ const ProfileSection = ({ title, children }) => (
 const InfoItem = ({ label, value }) => (
     <div>
         <p className="text-sm text-gray-500">{label}</p>
-        <p className="font-semibold text-gray-800">{value || 'Not specified'}</p>
+        <p className="font-medium text-gray-800 mt-1">{value || 'Not specified'}</p>
     </div>
 );
 
 const SkillBadge = ({ skill }) => (
-    <span className="bg-primary-lighter text-primary-dark font-medium px-3 py-1 rounded-full text-sm">
+    <span className="bg-blue-50 text-blue-600 font-medium px-3 py-1 rounded-full text-sm hover:bg-blue-100 transition-colors duration-200">
         {skill}
     </span>
 );
@@ -61,37 +60,49 @@ function StudentProfilePage({ studentId, onBackClick }) {
     }, [fetchStudentProfile]);
 
     if (isLoading) return <LoadingSpinner />;
-    if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
-    if (!student) return <div className="p-8 text-center text-gray-500">Student profile not found.</div>;
+    if (error) return (
+        <div className="p-8 text-center bg-red-50 rounded-lg border border-red-100 text-red-600 max-w-4xl mx-auto">
+            Error: {error}
+        </div>
+    );
+    if (!student) return (
+        <div className="p-8 text-center bg-gray-50 rounded-lg border border-gray-200 text-gray-500 max-w-4xl mx-auto">
+            Student profile not found.
+        </div>
+    );
 
     const skills = student.skills ? student.skills.split(',').map(s => s.trim()) : [];
 
     return (
-        <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
+        <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
             <div className="max-w-4xl mx-auto">
-                <button onClick={onBackClick} className="flex items-center text-primary-main font-semibold mb-6 hover:text-primary-dark">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {/* Back Button */}
+                <button 
+                    onClick={onBackClick} 
+                    className="flex items-center text-blue-500 hover:text-blue-600 font-medium mb-6 transition-colors duration-200"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Back to Applicants
                 </button>
 
-                {/* --- Profile Header --- */}
-                <div className="bg-white p-8 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8">
+                {/* Profile Header */}
+                <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 mb-8 flex flex-col md:flex-row items-center gap-6">
                     <img
                         src={student.profile_image_url ? `http://uniwiz.test/${student.profile_image_url}` : `https://placehold.co/128x128/E8EAF6/211C84?text=${student.first_name.charAt(0)}`}
                         alt="Profile"
-                        className="h-32 w-32 rounded-full object-cover border-4 border-primary-lighter shadow-md"
+                        className="h-28 w-28 md:h-32 md:w-32 rounded-full object-cover border-4 border-blue-100 shadow-sm"
                     />
                     <div className="text-center md:text-left">
-                        <h1 className="text-4xl font-bold text-primary-dark">{student.first_name} {student.last_name}</h1>
-                        <p className="text-lg text-gray-600 mt-1">{student.field_of_study || 'Student'}</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{student.first_name} {student.last_name}</h1>
+                        <p className="text-gray-600 mt-1">{student.field_of_study || 'Student'}</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* --- Left Column --- */}
-                    <div className="lg:col-span-2 space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column */}
+                    <div className="lg:col-span-2 space-y-6">
                         <ProfileSection title="Educational Background">
                             <InfoItem label="University / Institution" value={student.university_name} />
                             <InfoItem label="Field of Study" value={student.field_of_study} />
@@ -101,7 +112,9 @@ function StudentProfilePage({ studentId, onBackClick }) {
                         <ProfileSection title="Skills">
                             {skills.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
-                                    {skills.map((skill, index) => <SkillBadge key={index} skill={skill} />)}
+                                    {skills.map((skill, index) => (
+                                        <SkillBadge key={index} skill={skill} />
+                                    ))}
                                 </div>
                             ) : (
                                 <p className="text-gray-500">No skills specified.</p>
@@ -109,15 +122,20 @@ function StudentProfilePage({ studentId, onBackClick }) {
                         </ProfileSection>
                     </div>
 
-                    {/* --- Right Column --- */}
-                    <div className="space-y-8">
+                    {/* Right Column */}
+                    <div className="space-y-6">
                         <ProfileSection title="Additional Information">
-                             <InfoItem label="Languages Spoken" value={student.languages_spoken} />
+                            <InfoItem label="Languages Spoken" value={student.languages_spoken} />
                         </ProfileSection>
 
                         <ProfileSection title="Resume / CV">
                             {student.cv_url ? (
-                                <a href={`http://uniwiz.test/${student.cv_url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-primary-main text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors">
+                                <a 
+                                    href={`http://uniwiz.test/${student.cv_url}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="inline-flex items-center bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                                >
                                     Download CV
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -135,4 +153,3 @@ function StudentProfilePage({ studentId, onBackClick }) {
 }
 
 export default StudentProfilePage;
-

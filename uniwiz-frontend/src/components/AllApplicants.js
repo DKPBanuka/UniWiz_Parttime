@@ -1,9 +1,8 @@
-// FILE: src/components/AllApplicants.js (REVERTED TO SIMPLER, GENERAL-PURPOSE VIEW)
+// FILE: src/components/AllApplicants.js (ENHANCED with View/Sort Options)
 // ==================================================================================
-// This component is now solely for viewing ALL applicants from ALL jobs.
-// The job-specific view has been moved into the ManageJobs component.
+// This component now features view mode switching (Card/Table) and sorting options.
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // --- Reusable Components ---
 
@@ -203,6 +202,10 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState(initialFilter || 'All');
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
+    
+    // New states for view and sort
+    const [viewMode, setViewMode] = useState('card'); // 'card' or 'table'
+    const [sortOrder, setSortOrder] = useState('newest-first'); // sorting option
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedApplicant, setSelectedApplicant] = useState(null);
@@ -282,7 +285,8 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
             if (showNotif) showNotification(`Error: ${err.message}`, 'error');
         }
     };
-
+    
+    // Debounced fetch
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchAllApplications();
@@ -290,16 +294,108 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         return () => clearTimeout(delayDebounceFn);
     }, [fetchAllApplications]);
 
+    // Cleanup filter on unmount
     useEffect(() => {
         return () => {
             if (setInitialFilter) setInitialFilter('All');
         };
     }, [setInitialFilter]);
 
+    // Memoized sorting logic
+    const sortedApplicants = useMemo(() => {
+        const sorted = [...allApplicants];
+        switch (sortOrder) {
+            case 'oldest-first':
+                sorted.sort((a, b) => new Date(a.applied_at) - new Date(b.applied_at));
+                break;
+            case 'name-az':
+                sorted.sort((a, b) => a.first_name.localeCompare(b.first_name));
+                break;
+            case 'name-za':
+                sorted.sort((a, b) => b.first_name.localeCompare(a.first_name));
+                break;
+            case 'newest-first':
+            default:
+                sorted.sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at));
+                break;
+        }
+        return sorted;
+    }, [allApplicants, sortOrder]);
+
+
     const tabs = ['All', 'pending', 'viewed', 'accepted', 'rejected'];
     if (initialFilter === 'today' && !tabs.includes('today')) {
         tabs.push('today');
     }
+
+    // Render content based on view mode
+    const renderContent = () => {
+        if (isLoading) return <LoadingSpinner />;
+        if (error) return <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>;
+        if (sortedApplicants.length === 0) {
+            return (
+                <div className="text-center py-16 bg-white rounded-xl shadow-md">
+                    <h3 className="text-xl font-semibold text-gray-700">No Applicants Found</h3>
+                    <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria.</p>
+                </div>
+            );
+        }
+
+        if (viewMode === 'table') {
+            return (
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {sortedApplicants.map(app => (
+                                    <tr key={app.application_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetails(app)}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <img className="h-10 w-10 rounded-full object-cover" src={app.profile_image_url ? `http://uniwiz.test/${app.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${app.first_name.charAt(0)}`} alt="" />
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</div>
+                                                    <div className="text-sm text-gray-500">{app.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.job_title}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.applied_at).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <StatusBadge status={app.status} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // Default to card view
+        return (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {sortedApplicants.map(app => (
+                    <ApplicantCard 
+                        key={app.application_id} 
+                        applicant={app} 
+                        onStatusChange={handleStatusChange}
+                        onViewDetails={handleViewDetails}
+                    />
+                ))}
+            </div>
+        );
+    };
 
     return (
         <>
@@ -322,14 +418,32 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
             <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <h2 className="text-4xl font-bold text-gray-800">All Applicants</h2>
-                    <div className="w-full md:w-auto">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                         <input 
                             type="text"
                             placeholder="Search by name, job, or skill..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="shadow-sm border rounded-lg py-2 px-4 w-full md:w-72"
+                            className="shadow-sm border rounded-lg py-2 px-4 w-full md:w-60"
                         />
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="shadow-sm border rounded-lg py-2 px-4 bg-white"
+                        >
+                            <option value="newest-first">Newest First</option>
+                            <option value="oldest-first">Oldest First</option>
+                            <option value="name-az">Name (A-Z)</option>
+                            <option value="name-za">Name (Z-A)</option>
+                        </select>
+                         <div className="bg-gray-200 p-1 rounded-lg flex items-center">
+                            <button onClick={() => setViewMode('card')} className={`p-1.5 rounded-md ${viewMode === 'card' ? 'bg-white shadow' : 'text-gray-500'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                            </button>
+                             <button onClick={() => setViewMode('table')} className={`p-1.5 rounded-md ${viewMode === 'table' ? 'bg-white shadow' : 'text-gray-500'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -347,27 +461,8 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
                     ))}
                 </div>
 
-                {isLoading ? (
-                    <LoadingSpinner />
-                ) : error ? (
-                    <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>
-                ) : allApplicants.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {allApplicants.map(app => (
-                            <ApplicantCard 
-                                key={app.application_id} 
-                                applicant={app} 
-                                onStatusChange={handleStatusChange}
-                                onViewDetails={handleViewDetails}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-16 bg-white rounded-xl shadow-md">
-                        <h3 className="text-xl font-semibold text-gray-700">No Applicants Found</h3>
-                        <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria.</p>
-                    </div>
-                )}
+                {renderContent()}
+
             </div>
         </>
     );

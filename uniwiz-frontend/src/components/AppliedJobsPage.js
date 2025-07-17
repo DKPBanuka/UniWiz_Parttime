@@ -1,44 +1,18 @@
-// FILE: src/components/AppliedJobsPage.js (Updated for My Applications UI - Light Theme & Filtering)
+// FILE: src/components/AppliedJobsPage.js (Modern Light Blue Design)
 // ===================================================
-// This component displays the list of jobs a student has applied for,
-// with status filtering tabs, now in a light theme. It can now receive an initial
-// filter from its parent to set the active tab on load.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Reusable Loading spinner component
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-8">
-    <div className="loading-spinner">
-      <div className="spinner-circle"></div>
-    </div>
-    <style jsx>{`
-      .loading-spinner {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-      }
-      .spinner-circle {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 3px solid #E0E7FF; /* primary-lighter */
-        border-top-color: #4F46E5; /* primary-main */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
   </div>
 );
 
-// Status Badge Component
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
-        applied: "bg-primary-lighter text-primary-dark",
+        applied: "bg-blue-50 text-blue-600",
         pending: "bg-yellow-100 text-yellow-800",
         viewed: "bg-blue-100 text-blue-800",
         accepted: "bg-green-100 text-green-800",
@@ -48,8 +22,7 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-
-function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
+function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobDetails }) {
     const [allApplications, setAllApplications] = useState([]);
     const [filteredApplications, setFilteredApplications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +31,6 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
 
     const tabs = ['All', 'Pending', 'Viewed', 'Accepted', 'Rejected'];
 
-    // Fetch all application details for the student
     const fetchApplicationDetails = useCallback(async () => {
         if (!user || !user.id) {
             setIsLoading(false);
@@ -85,7 +57,6 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
         }
     }, [user]);
 
-    // Function to filter applications based on the active tab
     const filterApplications = useCallback((applicationsToFilter, tab) => {
         if (tab === 'All') {
             setFilteredApplications(applicationsToFilter);
@@ -94,17 +65,14 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
         }
     }, []);
 
-    // Effect to fetch applications on component mount or user change
     useEffect(() => {
         fetchApplicationDetails();
     }, [fetchApplicationDetails]);
 
-    // Effect to re-filter applications when activeTab or allApplications change
     useEffect(() => {
         filterApplications(allApplications, activeTab);
     }, [activeTab, allApplications, filterApplications]);
 
-    // When the component is unmounted, reset the filter in App.js to 'All'
     useEffect(() => {
         return () => {
             if (setInitialFilter) {
@@ -113,10 +81,8 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
         };
     }, [setInitialFilter]);
     
-    // Handler for changing tabs
     const handleTabClick = (tab) => {
         setActiveTab(tab);
-        // Also update the state in App.js so it's remembered if we navigate away and back
         if (setInitialFilter) {
             setInitialFilter(tab);
         }
@@ -127,61 +93,78 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
     }
 
     return (
-        <div className="p-8 bg-bg-student-dashboard min-h-screen text-gray-800">
-            <div className="flex justify-between items-center mb-8">
-                <h2 className="text-4xl font-bold text-primary-dark">My Applications</h2>
-            </div>
+        <div className="p-6 md:p-8 bg-gray-50 min-h-screen text-gray-800">
+            <div className="max-w-7xl mx-auto">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-800">My Applications</h2>
+                </div>
 
-            <div className="bg-white p-2 rounded-lg flex space-x-2 mb-8 shadow-md border border-gray-100">
-                {tabs.map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => handleTabClick(tab)}
-                        className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors ${
-                            activeTab === tab ? 'bg-primary-main text-white shadow' : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </div>
+                {/* Filter Tabs */}
+                <div className="bg-white p-1 rounded-lg flex flex-wrap gap-1 mb-6 shadow-sm border border-gray-200">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => handleTabClick(tab)}
+                            className={`px-3 py-2 rounded-md font-medium text-sm transition-colors ${
+                                activeTab === tab 
+                                    ? 'bg-blue-500 text-white shadow-sm' 
+                                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Applied</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {isLoading ? (
-                                <tr><td colSpan="5" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
-                            ) : error ? (
-                                <tr><td colSpan="5" className="text-center py-8 text-red-500">{error}</td></tr>
-                            ) : filteredApplications.length > 0 ? (
-                                filteredApplications.map(app => (
-                                    <tr key={app.job_id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.job_title}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{app.publisher_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(app.applied_at).toLocaleDateString()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            <StatusBadge status={app.status} />
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button className="text-primary-main hover:text-primary-dark mr-3">View</button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500">No applications found for this status.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                {/* Applications Table */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-blue-50">
+                                <tr>
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Job Title</th>
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Company</th>
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Date Applied</th>
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {isLoading ? (
+                                    <tr><td colSpan="5" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
+                                ) : error ? (
+                                    <tr><td colSpan="5" className="text-center py-8 bg-red-50 text-red-600">{error}</td></tr>
+                                ) : filteredApplications.length > 0 ? (
+                                    filteredApplications.map(app => (
+                                        <tr key={app.job_id} className="hover:bg-blue-50 transition-colors duration-150">
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.job_title}</td>
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">{app.publisher_name}</td>
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {new Date(app.applied_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                })}
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
+                                                <StatusBadge status={app.status} />
+                                            </td>
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button 
+                                                    onClick={() => handleViewJobDetails(app)}
+                                                    className="text-blue-500 hover:text-blue-600 hover:underline transition-colors duration-200"
+                                                >
+                                                    View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500 bg-gray-50">No applications found for this status.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

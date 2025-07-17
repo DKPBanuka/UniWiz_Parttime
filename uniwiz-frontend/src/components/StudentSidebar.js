@@ -20,7 +20,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }
         className={`w-full flex items-center transition-all duration-200
           ${!isExpanded ? 'px-3 justify-center' : 'px-4'} 
           ${isActive
-            ? 'bg-gradient-to-r from-primary-light to-primary-lighter border-l-4 border-primary-main text-primary-dark shadow-sm py-3.5 rounded-lg' 
+            ? 'bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-300 text-blue-600 shadow-sm py-3.5 rounded-lg' 
             : isLogout
               ? 'text-red-500 hover:bg-red-50 py-3 rounded-lg'
               : 'text-gray-600 hover:bg-gray-50 py-3 rounded-lg'
@@ -108,7 +108,7 @@ function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }
     );
     
     const unpinIcon = (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary-main" viewBox="0 0 20 20" fill="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" />
       </svg>
     );
@@ -140,7 +140,7 @@ function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }
                       className="flex items-center gap-3"
                     >
                         <img src="/logo.png" alt="UniWiz Logo" className="h-12" />
-                        <motion.h1 className="text-xl font-bold text-primary-dark">UniWiz</motion.h1>
+                        <motion.h1 className="text-xl font-bold text-blue-600">UniWiz</motion.h1>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -182,7 +182,7 @@ function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }
             {/* Modern subtle indicator for collapsed state */}
             {!isExpanded && !isLocked && (
               <motion.div 
-                className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 bg-primary-main rounded-l-full"
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 bg-blue-300 rounded-l-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}

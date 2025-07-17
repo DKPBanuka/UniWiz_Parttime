@@ -1,12 +1,11 @@
-// FILE: src/components/ManageJobs.js (UPDATED TO SHOW APPLICANTS IN-PAGE)
+// FILE: src/components/ManageJobs.js (UPDATED with Clickable Applicant Rows)
 // ==============================================================================
-// This component now manages two views: the list of jobs, and a detailed view
-// of applicants for a selected job. This is handled internally without navigating away.
+// This component now allows clicking on the entire applicant row in the table
+// to view their details, instead of using a separate "View" button.
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import ReactDOM from 'react-dom';
 
-// --- Reusable Components (Copied from AllApplicants.js for self-containment) ---
+// --- Reusable Components (Self-contained for this component) ---
 
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
@@ -134,43 +133,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     );
 };
 
-const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
-    const handleActionClick = (e, status) => {
-        e.stopPropagation(); 
-        onStatusChange(applicant.application_id, status, true);
-    };
-
-    return (
-        <div onClick={() => onViewDetails(applicant)} className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg hover:border-primary-main transition-all duration-300 cursor-pointer relative">
-            {applicant.status === 'pending' && (
-                <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
-                </span>
-            )}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4 min-w-0">
-                    <img src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} alt="profile" className="h-16 w-16 rounded-full object-cover flex-shrink-0" />
-                    <div className="min-w-0">
-                        <p className="font-bold text-lg text-primary-dark truncate">{applicant.first_name} {applicant.last_name}</p>
-                        <p className="text-sm text-gray-600 truncate">Applied on: {new Date(applicant.applied_at).toLocaleDateString()}</p>
-                    </div>
-                </div>
-                <div className="flex-shrink-0 ml-4">
-                    <StatusBadge status={applicant.status} />
-                </div>
-            </div>
-            {(applicant.status === 'pending' || applicant.status === 'viewed') && (
-                 <div className="flex justify-end items-center space-x-2 pt-3 border-t">
-                    <button onClick={(e) => handleActionClick(e, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
-                    <button onClick={(e) => handleActionClick(e, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- View for Applicants of a Single Job ---
+// --- View for Applicants of a Single Job (TABLE VIEW) ---
 const ApplicantsForJobView = ({ job, onBack, onStatusChange }) => {
     const [applicants, setApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -208,8 +171,9 @@ const ApplicantsForJobView = ({ job, onBack, onStatusChange }) => {
         setSelectedApplicant(null);
     };
     
-    const handleModalStatusChange = (applicationId, newStatus, showNotif) => {
-        onStatusChange(applicationId, newStatus, showNotif);
+    const handleStatusUpdate = (e, applicationId, newStatus) => {
+        e.stopPropagation(); // Prevent row click from firing when a button is clicked
+        onStatusChange(applicationId, newStatus, true);
         setApplicants(prev => 
             prev.map(app => 
                 app.application_id === applicationId ? { ...app, status: newStatus } : app
@@ -223,7 +187,7 @@ const ApplicantsForJobView = ({ job, onBack, onStatusChange }) => {
                 <ApplicantDetailModal 
                     applicant={selectedApplicant} 
                     onClose={handleCloseModal}
-                    onStatusChange={handleModalStatusChange}
+                    onStatusChange={onStatusChange} // Pass the original handler to the modal
                 />
             )}
             <div className="flex justify-between items-center mb-8">
@@ -241,15 +205,50 @@ const ApplicantsForJobView = ({ job, onBack, onStatusChange }) => {
             ) : error ? (
                 <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>
             ) : applicants.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {applicants.map(app => (
-                        <ApplicantCard 
-                            key={app.application_id} 
-                            applicant={app} 
-                            onStatusChange={handleModalStatusChange}
-                            onViewDetails={handleViewDetails}
-                        />
-                    ))}
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {applicants.map(applicant => (
+                                    <tr key={applicant.application_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetails(applicant)}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <img className="h-10 w-10 rounded-full object-cover" src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} alt="" />
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-gray-900">{applicant.first_name} {applicant.last_name}</div>
+                                                    <div className="text-sm text-gray-500">{applicant.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(applicant.applied_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <StatusBadge status={applicant.status} />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            {(applicant.status === 'pending' || applicant.status === 'viewed') && (
+                                                <>
+                                                    <button onClick={(e) => handleStatusUpdate(e, applicant.application_id, 'accepted')} className="text-green-600 hover:text-green-800 font-semibold">Accept</button>
+                                                    <button onClick={(e) => handleStatusUpdate(e, applicant.application_id, 'rejected')} className="text-red-600 hover:text-red-800 font-semibold">Reject</button>
+                                                </>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             ) : (
                 <div className="text-center py-16 bg-white rounded-xl shadow-md">
@@ -260,6 +259,7 @@ const ApplicantsForJobView = ({ job, onBack, onStatusChange }) => {
         </>
     );
 };
+
 
 // --- Confirmation Modal ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionType = 'delete' }) => {
@@ -388,7 +388,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('desc'); 
 
-    // **NEW**: State to control which view is active
+    // State to control which view is active
     const [viewingJob, setViewingJob] = useState(null); // Will hold the job object
 
     const [modalState, setModalState] = useState({ isOpen: false, title: '', message: '', actionType: 'delete', onConfirm: () => {} });
@@ -447,7 +447,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails }) {
 
     const handleJobAction = async (job, action) => {
         if (action === 'view') {
-            setViewingJob(job); // **CHANGE**: Set the job to view applicants for
+            setViewingJob(job); // Set the job to view applicants for
             return;
         }
         if (action === 'edit') {
@@ -509,7 +509,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails }) {
     }, [myJobs, sortOrder]);
 
     return (
-        <div className="p-8">
+        <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
             {notification.message && (
                 <Notification 
                     key={notification.key}
@@ -537,7 +537,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails }) {
                 }}
             />
 
-            {/* **NEW**: Conditional rendering based on `viewingJob` state */}
+            {/* Conditional rendering based on `viewingJob` state */}
             {viewingJob ? (
                 <ApplicantsForJobView 
                     job={viewingJob} 
@@ -546,15 +546,15 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails }) {
                 />
             ) : (
                 <>
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                         <h2 className="text-4xl font-bold text-gray-800">Manage Jobs</h2>
                         <div className="flex items-center space-x-4">
-                            <input type="text" placeholder="Search by job title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="shadow-sm border rounded py-2 px-4" />
+                            <input type="text" placeholder="Search by job title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="shadow-sm border rounded py-2 px-4 w-full md:w-auto" />
                             <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="shadow-sm border rounded py-2 px-4 bg-white">
                                 <option value="desc">Newest First</option>
                                 <option value="asc">Oldest First</option>
                             </select>
-                            <button onClick={onPostJobClick} className="flex items-center bg-primary-main text-white font-bold py-2 px-5 rounded-lg hover:bg-primary-dark">
+                            <button onClick={onPostJobClick} className="flex-shrink-0 flex items-center bg-primary-main text-white font-bold py-2 px-5 rounded-lg hover:bg-primary-dark">
                                 Post New Job
                             </button>
                         </div>

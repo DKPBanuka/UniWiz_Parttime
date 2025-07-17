@@ -200,7 +200,8 @@ function App() {
   const handleViewCompanyProfile = (pubId) => { setPublisherIdForProfile(pubId); setPage('company-profile'); };
   const handleViewApplicants = (filter = 'All') => { setApplicantsPageFilter(filter); setPage('applicants'); };
   const handleViewJobDetailsPage = (jobId) => { setSelectedJobIdForDetailsPage(jobId); setPage('view-job-details'); };
-  const handleViewJobDetailsModal = (job) => { setSelectedJobForDetails(job); setIsJobDetailsModalOpen(true); };
+  // Modified handleViewJobDetails to accept job object instead of just job.id
+  const handleViewJobDetails = (job) => { setSelectedJobForDetails(job); setIsJobDetailsModalOpen(true); };
   const handleViewApplicantDetails = (applicationId) => {
       setApplicationIdToView(applicationId);
       setPage('applicants');
@@ -277,7 +278,7 @@ function App() {
       const commonPages = {
         'notifications': <NotificationsPage user={currentUser} notifications={notifications} onNotificationClick={handleNotificationClick} />,
         'profile': <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />,
-        'settings': <SettingsPage />,
+        'settings': <SettingsPage user={currentUser} onLogout={handleLogout} />,
       };
       if (commonPages[page]) return commonPages[page];
 
@@ -296,11 +297,11 @@ function App() {
           }
       } else { // Student Role
           switch (page) {
-              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
-              case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
-              case 'applied-jobs': return <AppliedJobsPage user={currentUser} />;
-              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetailsModal} />;
-              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
+              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} />;
+              case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetails} />;
+              case 'applied-jobs': return <AppliedJobsPage user={currentUser} handleViewJobDetails={handleViewJobDetails} />;
+              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
+              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} />;
           }
       }
   };
@@ -349,6 +350,7 @@ function App() {
         isOpen={isJobDetailsModalOpen} 
         onClose={() => setIsJobDetailsModalOpen(false)} 
         job={selectedJobForDetails}
+        currentUser={currentUser} // Pass currentUser to JobDetailsModal
         handleApply={handleOpenApplyModal}
       />
     </>
