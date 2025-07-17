@@ -1,6 +1,6 @@
-// FILE: src/components/AllApplicants.js (ENHANCED with View/Sort Options)
+// FILE: src/components/admin/AllApplicants.js (ENHANCED with More Detailed Cards & Table-First View)
 // ==================================================================================
-// This component now features view mode switching (Card/Table) and sorting options.
+// This component now defaults to a table view and features a much more detailed card view.
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
@@ -151,13 +151,15 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
 };
 
 
-// --- ApplicantCard Component ---
+// --- ApplicantCard Component (ENHANCED with all details) ---
 const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
     
     const handleActionClick = (e, status) => {
         e.stopPropagation(); 
         onStatusChange(applicant.application_id, status, true);
     };
+    
+    const skills = applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : [];
 
     return (
         <div onClick={() => onViewDetails(applicant)} className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg hover:border-primary-main transition-all duration-300 cursor-pointer relative">
@@ -167,6 +169,8 @@ const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
                     <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
                 </span>
             )}
+
+            {/* Header section */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4 min-w-0">
                     <img 
@@ -176,13 +180,40 @@ const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
                     />
                     <div className="min-w-0">
                         <p className="font-bold text-lg text-primary-dark truncate">{applicant.first_name} {applicant.last_name}</p>
-                        <p className="text-sm text-gray-600 truncate">Applied for: {applicant.job_title}</p>
+                        <p className="text-sm text-gray-500 truncate">{applicant.email}</p>
                     </div>
                 </div>
                 <div className="flex-shrink-0 ml-4">
                     <StatusBadge status={applicant.status} />
                 </div>
             </div>
+
+            {/* Job Details */}
+            <div className="text-sm text-gray-600">
+                Applied for <strong className="text-gray-800">{applicant.job_title}</strong> on <strong className="text-gray-800">{new Date(applicant.applied_at).toLocaleDateString()}</strong>
+            </div>
+
+            {/* Proposal */}
+            {applicant.proposal && (
+                <div>
+                    <h4 className="font-semibold text-gray-700 text-sm">Proposal:</h4>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded-md border mt-1 italic">"{applicant.proposal}"</p>
+                </div>
+            )}
+
+            {/* Skills */}
+            {skills.length > 0 && (
+                <div>
+                    <h4 className="font-semibold text-gray-700 text-sm mb-2">Skills:</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {skills.map((skill, index) => (
+                            <span key={index} className="bg-primary-lighter text-primary-dark font-medium px-2 py-1 rounded-full text-xs">{skill}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Action Buttons */}
             {(applicant.status === 'pending' || applicant.status === 'viewed') && (
                  <div className="flex justify-end items-center space-x-2 pt-3 border-t">
                     <button onClick={(e) => handleActionClick(e, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
@@ -203,9 +234,9 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
     const [statusFilter, setStatusFilter] = useState(initialFilter || 'All');
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
     
-    // New states for view and sort
-    const [viewMode, setViewMode] = useState('card'); // 'card' or 'table'
-    const [sortOrder, setSortOrder] = useState('newest-first'); // sorting option
+    // UPDATED: Default view mode is now 'table'
+    const [viewMode, setViewMode] = useState('table'); 
+    const [sortOrder, setSortOrder] = useState('newest-first');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedApplicant, setSelectedApplicant] = useState(null);
@@ -382,9 +413,9 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
             );
         }
 
-        // Default to card view
+        // Card view
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
                 {sortedApplicants.map(app => (
                     <ApplicantCard 
                         key={app.application_id} 

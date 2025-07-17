@@ -1,39 +1,43 @@
-// FILE: src/components/PublisherDashboard.js (UPDATED with Job Overview Vacancy & Accepted Counts)
+// FILE: src/components/PublisherDashboard.js (UPDATED with Dynamic Colors & Job Vacancy Counts)
 // =================================================================================
 // This version now displays the publisher's average rating on the dashboard,
 // and includes vacancy and accepted counts in the Job Overview section.
+// It also features a modern, colorful UI for the stat cards.
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Reusable Components ---
-const StatCard = ({ title, value, icon, onClick, description }) => (
-    <motion.div 
+
+// UPDATED: StatCard now accepts dynamic color props
+const StatCard = ({ title, value, icon, onClick, description, color }) => (
+    <motion.div
         whileHover={{ y: -3 }}
         className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col justify-between"
     >
         <div className="flex items-start justify-between">
             <div>
                 <p className="text-sm font-medium text-gray-500">{title}</p>
-                <p className="text-4xl font-bold text-primary-dark mt-1">{value}</p>
+                <p className="text-4xl font-bold text-gray-800 mt-1">{value}</p>
             </div>
-            <motion.div 
+            {/* UPDATED: Icon background and text color are now dynamic */}
+            <motion.div
                 whileHover={{ rotate: 10 }}
-                className="bg-primary-lighter/50 p-3 rounded-full text-primary-dark"
+                className={`p-3 rounded-full ${color.bg} ${color.text}`}
             >
                 {icon}
             </motion.div>
         </div>
-        <button 
-            onClick={onClick} 
-            className="text-left text-sm text-primary-main font-semibold mt-4 hover:underline flex items-center group"
+        <button
+            onClick={onClick}
+            className={`text-left text-sm font-semibold mt-4 hover:underline flex items-center group ${color.text}`}
         >
             {description}
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
             >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -42,7 +46,8 @@ const StatCard = ({ title, value, icon, onClick, description }) => (
     </motion.div>
 );
 
-// **NEW**: StarRating component (copied from CompanyProfilePage for consistency)
+
+// StarRating component (copied from CompanyProfilePage for consistency)
 const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false }) => {
     const totalStars = 5;
     const numericRating = parseFloat(rating) || 0;
@@ -60,16 +65,16 @@ const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false })
 };
 
 
-// **UPDATED**: ApplicantRow now calls onViewProfile with application_id
+// ApplicantRow now calls onViewProfile with application_id
 const ApplicantRow = ({ applicant, onViewProfile }) => (
-    <motion.div 
+    <motion.div
         whileHover={{ x: 2 }}
         className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
     >
         <div className="flex items-center space-x-3">
-            <img 
-                src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://ui-avatars.com/api/?name=${applicant.first_name}+${applicant.last_name}&background=E8EAF6&color=211C84`} 
-                alt="profile" 
+            <img
+                src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://ui-avatars.com/api/?name=${applicant.first_name}+${applicant.last_name}&background=E8EAF6&color=211C84`}
+                alt="profile"
                 className="h-10 w-10 rounded-full object-cover"
             />
             <div>
@@ -77,8 +82,8 @@ const ApplicantRow = ({ applicant, onViewProfile }) => (
                 <p className="text-xs text-gray-500">Applied for: {applicant.job_title}</p>
             </div>
         </div>
-        <button 
-            onClick={() => onViewProfile(applicant.application_id)} 
+        <button
+            onClick={() => onViewProfile(applicant.application_id)}
             className="text-xs font-bold text-primary-main hover:text-primary-dark flex items-center"
         >
             View
@@ -89,7 +94,7 @@ const ApplicantRow = ({ applicant, onViewProfile }) => (
     </motion.div>
 );
 
-// UPDATED: JobOverviewRow now displays vacancies and accepted counts
+// JobOverviewRow now displays vacancies and accepted counts
 const JobOverviewRow = ({ job, onViewJob }) => {
     const statusClasses = {
         active: "bg-green-100 text-green-800",
@@ -98,7 +103,7 @@ const JobOverviewRow = ({ job, onViewJob }) => {
     };
     
     return (
-        <motion.div 
+        <motion.div
             whileHover={{ x: 2 }}
             className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
         >
@@ -129,13 +134,13 @@ const ReviewCard = ({ review }) => {
     );
 
     return (
-        <motion.div 
+        <motion.div
             whileHover={{ x: 2 }}
             className="p-3 hover:bg-gray-50 rounded-lg transition-colors"
         >
             <div className="flex items-start space-x-3">
-                <img 
-                    src={review.student_image_url ? `http://uniwiz.test/${review.student_image_url}` : `https://ui-avatars.com/api/?name=${review.first_name}+${review.last_name}&background=E8EAF6&color=211C84`} 
+                <img
+                    src={review.student_image_url ? `http://uniwiz.test/${review.student_image_url}` : `https://ui-avatars.com/api/?name=${review.first_name}+${review.last_name}&background=E8EAF6&color=211C84`}
                     alt="student profile"
                     className="h-10 w-10 rounded-full object-cover"
                 />
@@ -156,7 +161,7 @@ const ReviewCard = ({ review }) => {
 const LoadingSkeleton = ({ count = 3 }) => (
     <div className="space-y-4">
         {[...Array(count)].map((_, i) => (
-            <motion.div 
+            <motion.div
                 key={i}
                 initial={{ opacity: 0.5 }}
                 animate={{ opacity: 1 }}
@@ -168,7 +173,7 @@ const LoadingSkeleton = ({ count = 3 }) => (
 );
 
 // --- Main Dashboard Component ---
-// **UPDATED**: Prop renamed from onViewStudentProfile to onViewApplicantDetails
+// UPDATED: Prop renamed from onViewStudentProfile to onViewApplicantDetails
 function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewApplicants, onViewApplicantDetails }) {
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -196,12 +201,20 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
         fetchStats();
     }, [user]);
 
-    // Modern Icons with consistent styling
+    // --- Icons and Colors for StatCards ---
     const BriefcaseIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
     const UsersIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
     const ClockIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const PlusCircleIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const StarFilledIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>;
+    
+    // NEW: Dynamic color mapping for stat cards
+    const statCardColors = {
+        activeJobs: { bg: 'bg-accent-blue-light', text: 'text-accent-blue-dark' },
+        totalApplicants: { bg: 'bg-accent-purple-light', text: 'text-accent-purple-dark' },
+        pending: { bg: 'bg-accent-pink-light', text: 'text-accent-pink-dark' },
+        newToday: { bg: 'bg-accent-teal-light', text: 'text-accent-teal-dark' },
+    };
 
 
     return (
@@ -225,17 +238,17 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                     <>
                         {[...Array(4)].map((_, i) => (
                             <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
-                                <div className="h-8 w-3/4 bg-gray-200 rounded mb-4"></div>
-                                <div className="h-10 w-1/2 bg-gray-200 rounded"></div>
+                                <div className="h-8 w-3/4 bg-gray-200 rounded mb-4 animate-pulse"></div>
+                                <div className="h-10 w-1/2 bg-gray-200 rounded animate-pulse"></div>
                             </motion.div>
                         ))}
                     </>
                 ) : (
                     <>
-                        <StatCard title="Active Jobs" value={stats?.active_jobs ?? 0} icon={BriefcaseIcon} onClick={onViewAllJobsClick} description="Manage all jobs" />
-                        <StatCard title="Total Applicants" value={stats?.total_applicants ?? 0} icon={UsersIcon} onClick={() => onViewApplicants('All')} description="View all applicants"/>
-                        <StatCard title="Pending Applicants" value={stats?.pending_applicants ?? 0} icon={ClockIcon} onClick={() => onViewApplicants('pending')} description="Review pending applicants" />
-                        <StatCard title="New Today" value={stats?.new_applicants_today ?? 0} icon={PlusCircleIcon} onClick={() => onViewApplicants('today')} description="See today's applicants" />
+                        <StatCard title="Active Jobs" value={stats?.active_jobs ?? 0} icon={BriefcaseIcon} onClick={onViewAllJobsClick} description="Manage all jobs" color={statCardColors.activeJobs}/>
+                        <StatCard title="Total Applicants" value={stats?.total_applicants ?? 0} icon={UsersIcon} onClick={() => onViewApplicants('All')} description="View all applicants" color={statCardColors.totalApplicants}/>
+                        <StatCard title="Pending Applicants" value={stats?.pending_applicants ?? 0} icon={ClockIcon} onClick={() => onViewApplicants('pending')} description="Review pending applicants" color={statCardColors.pending}/>
+                        <StatCard title="New Today" value={stats?.new_applicants_today ?? 0} icon={PlusCircleIcon} onClick={() => onViewApplicants('today')} description="See today's applicants" color={statCardColors.newToday}/>
                     </>
                 )}
             </div>

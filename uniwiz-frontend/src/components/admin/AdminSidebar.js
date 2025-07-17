@@ -1,6 +1,6 @@
-// FILE: src/components/admin/AdminSidebar.js (NEW FILE)
+// FILE: src/components/admin/AdminSidebar.js (ENHANCED with New Colors & Icons)
 // ===================================================
-// Sidebar navigation for the Administrator panel.
+// Sidebar navigation for the Administrator panel, updated with a distinct green theme and new icons.
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }
         className={`w-full flex items-center transition-all duration-200
           ${!isExpanded ? 'px-3 justify-center' : 'px-4'} 
           ${isActive
-            ? 'bg-gradient-to-r from-primary-light to-primary-lighter border-l-4 border-primary-main text-primary-dark shadow-sm py-3.5 rounded-lg' 
+            ? 'bg-gradient-to-r from-green-100 to-green-50 border-l-4 border-green-400 text-green-700 shadow-sm py-3.5 rounded-lg' 
             : isLogout
               ? 'text-red-500 hover:bg-red-50 py-3 rounded-lg'
               : 'text-gray-600 hover:bg-gray-50 py-3 rounded-lg'
@@ -63,7 +63,7 @@ function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }) 
     const [isHovered, setIsHovered] = useState(false);
     const isExpanded = isLocked || isHovered;
 
-    // Icons for Admin Panel
+    // NEW ICONS for Admin Panel
     const dashboardIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
     const usersIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
     const jobsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
@@ -71,7 +71,7 @@ function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }) 
     const logoutIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
     
     const pinIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>;
-    const unpinIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary-main" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" /></svg>;
+    const unpinIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" /></svg>;
 
     return (
         <motion.aside 

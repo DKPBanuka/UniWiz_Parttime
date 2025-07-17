@@ -1,12 +1,11 @@
-// FILE: src/components/JobDetailsModal.js (UPDATED - Visitor Mode Compatibility & API_BASE_URL Fix)
+// FILE: src/components/JobDetailsModal.js (UPDATED - Company name is now a link)
 // ===================================================================================
-// This component now fetches the application status directly from the API
-// ensuring the correct state is always displayed.
+// This component now fetches the application status directly and allows clicking
+// on the company name to navigate to the company's profile page.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
 // --- Constants ---
-// FIXED: Define API_BASE_URL within this component
 const API_BASE_URL = 'http://uniwiz.test';
 
 // --- Reusable Components ---
@@ -43,8 +42,8 @@ const StatusBadge = ({ status }) => {
 };
 
 
-// **UPDATED**: Added currentUser prop to pass the student's ID to the API
-function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
+// UPDATED: Added handleViewCompanyProfile prop
+function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handleViewCompanyProfile }) {
     const [jobDetails, setJobDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -58,7 +57,6 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
         }
         setIsLoading(true);
         try {
-            // Construct URL with student_id if available (only for logged-in students)
             let apiUrl = `${API_BASE_URL}/get_job_details.php?job_id=${jobIdToFetch}`;
             if (currentUser && currentUser.role === 'student') {
                 apiUrl += `&student_id=${currentUser.id}`;
@@ -75,7 +73,7 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
         } finally {
             setIsLoading(false);
         }
-    }, [job, currentUser]); // Added currentUser to dependency array
+    }, [job, currentUser]);
 
     useEffect(() => {
         if (isOpen) {
@@ -85,9 +83,15 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
 
     if (!isOpen) return null;
 
-    // Derive applicationStatus directly from the fetched jobDetails state
     const applicationStatus = jobDetails?.application_status;
     const skills = jobDetails?.skills_required ? jobDetails.skills_required.split(',').map(s => s.trim()) : [];
+
+    const handleCompanyClick = () => {
+        if (handleViewCompanyProfile && jobDetails?.publisher_id) {
+            handleViewCompanyProfile(jobDetails.publisher_id);
+            onClose(); // Close the modal after clicking the link
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
@@ -102,28 +106,27 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                     <div className="p-8 text-center text-gray-500">Job details not found.</div>
                 ) : (
                     <div className="space-y-6">
-                        {/* Header with Status Badge */}
                         <div className="flex justify-between items-start">
                              <div>
                                 <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.job_title || jobDetails.title}</h1>
-                                <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
+                                {/* UPDATED: Company name is now a clickable button */}
+                                <button onClick={handleCompanyClick} className="text-lg text-blue-600 hover:text-blue-700 hover:underline text-left mt-1">
+                                    {jobDetails.company_name || 'A Reputed Company'}
+                                </button>
                             </div>
-                            {/* This now correctly uses the status from the fetched details */}
-                            {currentUser && applicationStatus && ( // Only show status badge if user is logged in
+                            {currentUser && applicationStatus && (
                                 <div className="flex-shrink-0 ml-4">
                                     <StatusBadge status={applicationStatus} />
                                 </div>
                             )}
                         </div>
                         
-                        {/* Description */}
                         <div>
                             <h3 className="text-xl font-bold text-primary-dark mb-2 flex items-center"><span className="mr-2">&#9776;</span> Job Description</h3>
                             <p className="whitespace-pre-wrap text-base leading-relaxed text-gray-700">{jobDetails.description}</p>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Job Details */}
                             <div className="bg-gray-50 p-6 rounded-xl border">
                                 <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center"><span className="mr-2">&#8505;</span> Job Details</h3>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -146,7 +149,6 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                                 </div>
                             </div>
 
-                            {/* Required Skills */}
                             <div className="bg-gray-50 p-6 rounded-xl border">
                                 <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center"><span className="mr-2">&#10003;</span> Required Skills</h3>
                                 {skills.length > 0 ? (
@@ -159,26 +161,22 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                             </div>
                         </div>
                         
-                        {/* Action Buttons */}
                         <div className="flex justify-end pt-4 border-t mt-4">
-                            {/* Only show Apply Now if currentUser is a student AND no application status exists */}
                             {currentUser && currentUser.role === 'student' && !applicationStatus && (
                                 <button 
                                     onClick={() => {
-                                        onClose(); // Close this modal
-                                        handleApply(jobDetails); // Open the apply modal
+                                        onClose();
+                                        handleApply(jobDetails);
                                     }} 
                                     className="bg-primary-main text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-colors"
                                 >
                                     Apply Now
                                 </button>
                             )}
-                            {/* NEW: For visitors, show a "Sign Up to Apply" button */}
                             {!currentUser && (
                                 <button 
                                     onClick={() => { 
-                                        onClose(); // Close this modal
-                                        // handleApply will redirect to login if currentUser is null
+                                        onClose();
                                         handleApply(jobDetails); 
                                     }} 
                                     className="bg-gray-700 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition-colors"

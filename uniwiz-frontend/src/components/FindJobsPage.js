@@ -1,11 +1,11 @@
-// FILE: src/components/FindJobsPage.js (UPDATED with More Compact Filters)
+// FILE: src/components/FindJobsPage.js (UPDATED with More Compact Filters UI)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // --- Constants ---
 const API_BASE_URL = 'http://uniwiz.test';
-const MAX_SALARY = 200000;
+const MAX_SALARY = 40000;
 
 // --- Reusable Components ---
 
@@ -189,65 +189,65 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
 
     return (
         <div className="p-6 md:p-8 bg-gray-50 min-h-screen text-gray-800">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Find Your Next Job</h1>
                     <p className="text-gray-600 mt-2">Use the filters below to find your perfect match.</p>
                 </div>
             </div>
 
-            {/* UPDATED: Compact Filter Section */}
-            <div className="mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
-                    {/* Row 1: Primary Filters */}
-                    <input type="text" placeholder="Search by job, company..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="lg:col-span-2 w-full p-2 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-400" />
-                    <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
-                        <option value="">All Categories</option>
-                        {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
-                    </select>
-                    <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
-                        <option value="">All Job Types</option>
-                        <option value="freelance">Freelance</option><option value="part-time">Part-time</option><option value="internship">Internship</option><option value="task-based">Task-based</option><option value="full-time">Full-time</option>
-                    </select>
-                    <button onClick={handleResetFilters} className="w-full p-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">Reset</button>
+            {/* UPDATED: Ultra-Compact Filter Section */}
+            <div className="mb-6 p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs items-end">
+                    {/* --- Row 1 --- */}
+                    <div className="lg:col-span-2 md:col-span-4">
+                        <label className="block text-gray-600 font-medium mb-1">Search</label>
+                        <input type="text" placeholder="Job, company..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-2 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-400" />
+                    </div>
+                    <div className="lg:col-span-2 md:col-span-2">
+                        <label className="block text-gray-600 font-medium mb-1">Category</label>
+                        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
+                            <option value="">All Categories</option>
+                            {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
+                        </select>
+                    </div>
+                    <div className="lg:col-span-2 md:col-span-2">
+                        <label className="block text-gray-600 font-medium mb-1">Job Type</label>
+                        <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
+                            <option value="">All Job Types</option>
+                            <option value="freelance">Freelance</option><option value="part-time">Part-time</option><option value="internship">Internship</option><option value="task-based">Task-based</option><option value="full-time">Full-time</option>
+                        </select>
+                    </div>
+                     <div className="lg:col-span-2 md:col-span-4">
+                        <label className="block text-gray-600 font-medium mb-1">District</label>
+                        <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
+                            <option value="">All Districts</option>
+                            {sriLankaDistricts.sort().map(dist => (<option key={dist} value={dist}>{dist}</option>))}
+                        </select>
+                    </div>
 
-                    {/* Row 2: Secondary Filters */}
-                    <div className="lg:col-span-2 space-y-1">
-                        <label className="block font-medium text-gray-700 text-xs">Job Start / End Date</label>
-                        <div className="flex items-center border rounded-lg p-2 focus-within:ring-1 focus-within:ring-blue-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            <input type="date" value={jobDateFrom} onChange={(e) => setJobDateFrom(e.target.value)} className="w-full bg-transparent outline-none text-gray-600"/>
-                            <span className="mx-2 text-gray-400">to</span>
-                            <input type="date" value={jobDateTo} onChange={(e) => setJobDateTo(e.target.value)} className="w-full bg-transparent outline-none text-gray-600"/>
-                        </div>
-                    </div>
-                    <div className="lg:col-span-3 grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="block font-medium text-gray-700 text-xs">District</label>
-                            <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400">
-                                <option value="">All Districts</option>
-                                {sriLankaDistricts.sort().map(dist => (<option key={dist} value={dist}>{dist}</option>))}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                             <label className="block font-medium text-gray-700 text-xs">Posted Date</label>
-                            <select value={postedDateFilter} onChange={(e) => setPostedDateFilter(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
-                                <option value="anytime">Anytime</option>
-                                <option value="24hours">Last 24 hours</option>
-                                <option value="7days">Last 7 days</option>
-                                <option value="30days">Last 30 days</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    {/* Salary Slider */}
-                    <div className="lg:col-span-full space-y-1">
-                        <label className="block font-medium text-gray-700 text-xs">Minimum Salary (LKR)</label>
+                    {/* --- Row 2 --- */}
+                     <div className="lg:col-span-3 md:col-span-4">
+                        <label className="block text-gray-600 font-medium mb-1">Salary Range (Minimum LKR)</label>
                         <div className="flex items-center gap-2">
-                             <input type="range" min="0" max={MAX_SALARY} step="5000" value={minSalary} onChange={(e) => setMinSalary(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
-                            <span className="font-bold text-blue-600 w-24 text-center bg-gray-100 p-1.5 rounded-md text-xs">Rs. {minSalary.toLocaleString()}</span>
+                            <input type="range" min="0" max={MAX_SALARY} step="500" value={minSalary} onChange={(e) => setMinSalary(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+                            <span className="font-bold text-blue-600 w-24 text-center bg-gray-100 p-1 rounded-md text-xs">Rs.{minSalary}</span>
                         </div>
                     </div>
+                     <div className="lg:col-span-2 md:col-span-2">
+                        <label className="block text-gray-600 font-medium mb-1">Date Posted</label>
+                        <select value={postedDateFilter} onChange={(e) => setPostedDateFilter(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+                            <option value="anytime">Anytime</option>
+                            <option value="24hours">Last 24h</option>
+                            <option value="7days">Last 7d</option>
+                            <option value="30days">Last 30d</option>
+                        </select>
+                    </div>
+                     <div className="lg:col-span-2 md:col-span-2">
+                        <label className="block text-gray-600 font-medium mb-1">Job Start Date</label>
+                        <input type="date" value={jobDateFrom} onChange={(e) => setJobDateFrom(e.target.value)} className="w-full p-2 rounded-lg border bg-white focus:ring-1 focus:ring-blue-400"/>
+                     </div>
+                    <button onClick={handleResetFilters} className="lg:col-span-1 md:col-span-2 w-full p-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">Reset</button>
                 </div>
             </div>
 

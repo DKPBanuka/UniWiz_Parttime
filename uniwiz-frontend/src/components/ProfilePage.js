@@ -1,6 +1,7 @@
-// FILE: src/components/ProfilePage.js (ENHANCED with Suggestions)
+// FILE: src/components/ProfilePage.js (UPDATED with Consistent Background Color)
 // =================================================================
-// This version adds clickable suggestions for skills and categories for students.
+// This version now uses the standard 'bg-gray-50' for the student profile page background,
+// matching the student dashboard for a consistent user experience.
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -26,7 +27,7 @@ const Notification = ({ message, type, onClose }) => {
     );
 };
 
-// **NEW**: Reusable component for showing suggestions
+// Reusable component for showing suggestions
 const Suggestions = ({ title, suggestions, onSelect }) => (
     <div>
         <h4 className="text-sm font-medium text-gray-500 mb-2">{title}</h4>
@@ -79,7 +80,6 @@ function ProfilePage({ user, onProfileUpdate }) {
     const [selectedCV, setSelectedCV] = useState(null);
     const cvInputRef = useRef();
 
-    // **NEW**: State for suggestions
     const [allCategories, setAllCategories] = useState([]);
     const commonSkills = [
         'Web Development', 'Graphic Design', 'Content Writing', 'Social Media', 'Data Entry',
@@ -114,7 +114,6 @@ function ProfilePage({ user, onProfileUpdate }) {
             setProfilePicturePreview(user.profile_image_url ? `http://uniwiz.test/${user.profile_image_url}` : null);
         }
 
-        // **NEW**: Fetch categories if user is a student
         if (user && user.role === 'student') {
             const fetchCategories = async () => {
                 try {
@@ -169,19 +168,17 @@ function ProfilePage({ user, onProfileUpdate }) {
         }
     };
     
-    // **NEW**: Function to handle adding suggestions to text fields
     const handleSuggestionSelect = (fieldName, value) => {
         setFormData(prevData => {
             const currentValues = prevData[fieldName] 
                 ? prevData[fieldName].split(',').map(s => s.trim()) 
                 : [];
             
-            // Check for duplicates (case-insensitive)
             if (!currentValues.some(v => v.toLowerCase() === value.toLowerCase())) {
                 const newValues = [...currentValues, value];
                 return { ...prevData, [fieldName]: newValues.join(', ') };
             }
-            return prevData; // Return previous data if value already exists
+            return prevData;
         });
     };
 
@@ -235,6 +232,7 @@ function ProfilePage({ user, onProfileUpdate }) {
         return <div className="p-8">Loading profile...</div>;
     }
 
+    // UPDATED: Changed the background for students to 'bg-gray-50' for consistency with their dashboard.
     return (
         <>
             {notification.message && (
@@ -245,7 +243,7 @@ function ProfilePage({ user, onProfileUpdate }) {
                     onClose={() => setNotification({ message: '', type: '', key: 0 })}
                 />
             )}
-            <div className={`p-8 min-h-screen text-gray-800 ${user.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-bg-student-dashboard'}`}>
+            <div className={`p-8 min-h-screen text-gray-800 ${user.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-gray-50'}`}>
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h2 className="text-4xl font-bold text-primary-dark">My Profile</h2>
@@ -309,15 +307,15 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Industry</label>
-                                            <input type="text" name="industry" value={formData.industry} onChange={handleChange} placeholder="e.g., IT, Hospitality" className="mt-1 block w-full border rounded-md p-2" />
+                                            <input type="text" name="industry" value={formData.industry} placeholder="e.g., IT, Hospitality" className="mt-1 block w-full border rounded-md p-2" />
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">About Your Company</label>
-                                            <textarea name="about" value={formData.about} onChange={handleChange} rows="4" className="mt-1 block w-full border rounded-md p-2" />
+                                            <textarea name="about" value={formData.about} rows="4" className="mt-1 block w-full border rounded-md p-2" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Website URL</label>
-                                            <input type="url" name="website_url" value={formData.website_url} onChange={handleChange} placeholder="https://example.com" className="mt-1 block w-full border rounded-md p-2" />
+                                            <input type="url" name="website_url" value={formData.website_url} placeholder="https://example.com" className="mt-1 block w-full border rounded-md p-2" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
@@ -373,7 +371,6 @@ function ProfilePage({ user, onProfileUpdate }) {
                                             <label className="block text-sm font-medium text-gray-700">Languages Spoken</label>
                                             <input type="text" name="languages_spoken" value={formData.languages_spoken} placeholder="e.g., Sinhala, English" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
                                         </div>
-                                        {/* **UPDATED**: Skills with Suggestions */}
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Skills</label>
                                             <input type="text" name="skills" value={formData.skills} placeholder="e.g., Web Development, Graphic Design" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
@@ -383,7 +380,6 @@ function ProfilePage({ user, onProfileUpdate }) {
                                                 onSelect={(skill) => handleSuggestionSelect('skills', skill)}
                                             />
                                         </div>
-                                        {/* **UPDATED**: Categories with Suggestions */}
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Preferred Job Categories</label>
                                             <input type="text" name="preferred_categories" value={formData.preferred_categories} placeholder="e.g., Event, IT" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />

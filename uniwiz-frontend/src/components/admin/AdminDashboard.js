@@ -1,10 +1,10 @@
-// FILE: src/components/admin/AdminDashboard.js (FIXED - Filter Passing to setPage)
+// FILE: src/components/admin/AdminDashboard.js (ENHANCED with New Colors & Icons)
 // =======================================================
-// Main dashboard/landing page for the Administrator.
+// Main dashboard for the Administrator, updated with a new color scheme and fresh icons.
 
 import React, { useState, useEffect } from 'react';
 
-// A reusable card for displaying stats
+// A reusable card for displaying stats with dynamic colors
 const StatCard = ({ title, value, icon, colorClass, onClick, description }) => (
     <div 
         className="bg-white p-6 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 hover:-translate-y-1 border-l-4" 
@@ -22,7 +22,8 @@ const StatCard = ({ title, value, icon, colorClass, onClick, description }) => (
         {onClick && description && (
             <button 
                 onClick={onClick} 
-                className="text-left text-sm text-primary-main font-semibold mt-4 hover:underline flex items-center group"
+                className="text-left text-sm font-semibold mt-4 hover:underline flex items-center group"
+                style={{color: colorClass}}
             >
                 {description}
                 <svg 
@@ -39,6 +40,7 @@ const StatCard = ({ title, value, icon, colorClass, onClick, description }) => (
     </div>
 );
 
+
 // Loading skeleton for StatCard
 const StatCardSkeleton = ({ colorClass }) => (
     <div className="bg-white p-6 rounded-xl shadow-md flex items-center justify-between animate-pulse border-l-4" style={{borderColor: colorClass}}>
@@ -51,14 +53,14 @@ const StatCardSkeleton = ({ colorClass }) => (
 );
 
 
-function AdminDashboard({ setPage }) { // Added setPage prop for navigation
+function AdminDashboard({ setPage }) {
     const [stats, setStats] = useState({
         totalUsers: 0,
         totalJobs: 0,
         jobsPendingApproval: 0,
         totalStudents: 0,
         totalPublishers: 0,
-        unverifiedUsers: 0, // NEW: Added unverifiedUsers to state
+        unverifiedUsers: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -84,27 +86,42 @@ function AdminDashboard({ setPage }) { // Added setPage prop for navigation
         fetchAdminStats();
     }, []);
 
+    // NEW ICONS & COLORS
+    const icons = {
+        totalUsers: '👥',
+        totalJobs: '💼',
+        pendingJobs: '⏳',
+        unverifiedUsers: '🛡️'
+    };
+
+    const colors = {
+        totalUsers: '#4F46E5', // Indigo
+        totalJobs: '#10B981', // Green
+        pendingJobs: '#F59E0B', // Amber
+        unverifiedUsers: '#EF4444' // Red
+    };
+
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <h1 className="text-4xl font-bold text-primary-dark mb-8">Administrator Dashboard</h1>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {isLoading ? (
                     <>
-                        <StatCardSkeleton colorClass="#4F46E5" />
-                        <StatCardSkeleton colorClass="#10B981" />
-                        <StatCardSkeleton colorClass="#F59E0B" />
-                        <StatCardSkeleton colorClass="#EF4444" /> {/* Skeleton for new card */}
+                        <StatCardSkeleton colorClass={colors.totalUsers} />
+                        <StatCardSkeleton colorClass={colors.totalJobs} />
+                        <StatCardSkeleton colorClass={colors.pendingJobs} />
+                        <StatCardSkeleton colorClass={colors.unverifiedUsers} />
                     </>
                 ) : error ? (
-                    <div className="lg:col-span-3 text-center text-red-500 py-8 bg-white rounded-xl shadow-md">Error: {error}</div>
+                    <div className="lg:col-span-4 text-center text-red-500 py-8 bg-white rounded-xl shadow-md">Error: {error}</div>
                 ) : (
                     <>
-                        <StatCard title="Total Users" value={stats.totalUsers} icon="則" colorClass="#4F46E5" description="Manage all users" onClick={() => setPage('user-management', { filter: 'All' })} />
-                        <StatCard title="Total Jobs Posted" value={stats.totalJobs} icon="直" colorClass="#10B981" description="Manage all jobs" onClick={() => setPage('job-management', { filter: 'All' })} />
-                        <StatCard title="Jobs Pending Approval" value={stats.jobsPendingApproval} icon="竢ｳ" colorClass="#F59E0B" description="Review pending jobs" onClick={() => setPage('job-management', { filter: 'draft' })} />
-                        <StatCard title="Unverified Users" value={stats.unverifiedUsers} icon="圻" colorClass="#EF4444" description="Review unverified accounts" onClick={() => setPage('user-management', { filter: 'unverified' })} /> {/* NEW CARD */}
+                        <StatCard title="Total Users" value={stats.totalUsers} icon={icons.totalUsers} colorClass={colors.totalUsers} description="Manage all users" onClick={() => setPage('user-management', { filter: 'All' })} />
+                        <StatCard title="Total Jobs Posted" value={stats.totalJobs} icon={icons.totalJobs} colorClass={colors.totalJobs} description="Manage all jobs" onClick={() => setPage('job-management', { filter: 'All' })} />
+                        <StatCard title="Jobs Pending Approval" value={stats.jobsPendingApproval} icon={icons.pendingJobs} colorClass={colors.pendingJobs} description="Review pending jobs" onClick={() => setPage('job-management', { filter: 'draft' })} />
+                        <StatCard title="Unverified Users" value={stats.unverifiedUsers} icon={icons.unverifiedUsers} colorClass={colors.unverifiedUsers} description="Review unverified accounts" onClick={() => setPage('user-management', { filter: 'unverified' })} />
                     </>
                 )}
             </div>
@@ -116,7 +133,6 @@ function AdminDashboard({ setPage }) { // Added setPage prop for navigation
                     <div className="space-y-3">
                         <button onClick={() => setPage('user-management', { filter: 'All' })} className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Manage Users</button>
                         <button onClick={() => setPage('job-management', { filter: 'All' })} className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Review Job Postings</button>
-                        {/* <button className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Manage Categories</button> */}
                     </div>
                 </div>
 

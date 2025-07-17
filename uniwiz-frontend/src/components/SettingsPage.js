@@ -1,8 +1,7 @@
-// FILE: src/components/SettingsPage.js (ENHANCED with functionality & FIX)
+// FILE: src/components/SettingsPage.js (ENHANCED with Modern UI/UX and Functionality)
 // ===============================================
-// This component provides a functional interface for application settings,
+// This component provides a functional and well-designed interface for application settings,
 // including password change and account deletion with confirmation modals.
-// FIX: Added checks to ensure the 'user' prop is available before use, preventing crashes.
 
 import React, { useState, useEffect } from 'react';
 
@@ -69,7 +68,6 @@ function SettingsPage({ user, onLogout }) {
     };
     
     const handleUpdatePassword = async () => {
-        // FIX: Add a guard clause to ensure user object exists.
         if (!user || !user.id) {
             showNotification("User data is not available. Please try again.", "error");
             return;
@@ -112,7 +110,6 @@ function SettingsPage({ user, onLogout }) {
     };
 
     const handleDeleteAccount = async () => {
-        // FIX: Add a guard clause to ensure user object exists.
         if (!user || !user.id) {
             showNotification("User data is not available. Please try again.", "error");
             return;
@@ -134,7 +131,7 @@ function SettingsPage({ user, onLogout }) {
             
             showNotification(result.message, 'success');
             setDeleteModalOpen(false);
-            // Log the user out after successful deletion
+            
             setTimeout(() => {
                 if(onLogout) onLogout();
             }, 2000);
@@ -146,7 +143,6 @@ function SettingsPage({ user, onLogout }) {
         }
     };
     
-    // FIX: Add a check to prevent rendering if the user prop is missing.
     if (!user) {
         return (
             <div className="min-h-screen bg-gray-50 flex justify-center items-center p-4">
