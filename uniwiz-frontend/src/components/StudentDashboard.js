@@ -1,13 +1,14 @@
-// FILE: src/components/StudentDashboard.js (FIXED - applyingStatus prop to JobCard)
+// FILE: src/components/StudentDashboard.js (UPDATED with Dynamic Colors)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// --- Reusable Components ---
+// --- Reusable Components with Dynamic Colors ---
 
-const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description }) => (
+// UPDATED: StatCard now accepts color classes
+const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description, color }) => (
   <div
-    className="stat-card bg-white p-6 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-gray-100 hover:border-blue-200"
+    className="stat-card bg-white p-6 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-gray-100"
     style={{ animationDelay: `${delay * 100}ms` }}
   >
     <div className="flex items-center justify-between">
@@ -15,11 +16,12 @@ const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description }) =
             <p className="text-sm font-medium text-gray-600">{title}</p>
             <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
         </div>
-        <div className="bg-blue-50 p-3 rounded-full text-blue-500">
+        {/* UPDATED: Icon background and text color are now dynamic */}
+        <div className={`p-3 rounded-full ${color.bg} ${color.text}`}>
             {icon}
         </div>
     </div>
-    <button onClick={onLinkClick} className="text-left text-sm text-blue-500 font-semibold mt-4 hover:underline flex items-center group">
+    <button onClick={onLinkClick} className={`text-left text-sm font-semibold mt-4 hover:underline flex items-center group ${color.text}`}>
         {description}
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -43,21 +45,6 @@ const ProfileCompletionCard = ({ percentage, setPage }) => (
     </div>
 );
 
-const StatCardSkeleton = ({ delay = 0 }) => (
-  <div
-    className="stat-card bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
-    style={{ animationDelay: `${delay * 100}ms` }}
-  >
-    <div>
-      <div className="h-4 w-24 bg-gray-200 rounded mb-3 animate-pulse"></div>
-      <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
-    </div>
-    <div className="bg-gray-100 p-3 rounded-full">
-      <div className="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
-    </div>
-  </div>
-);
-
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
@@ -77,16 +64,32 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-// FIXED: JobCard now correctly receives and uses applyingStatus
+// --- NEW: Category Color Mapping ---
+const categoryColors = {
+    'Graphic Design': 'bg-accent-pink-light text-accent-pink-dark',
+    'Content Writing': 'bg-accent-teal-light text-accent-teal-dark',
+    'Web Development': 'bg-accent-blue-light text-accent-blue-dark',
+    'IT & Software Development': 'bg-accent-blue-light text-accent-blue-dark',
+    'Tutoring': 'bg-accent-purple-light text-accent-purple-dark',
+    'Event Support': 'bg-yellow-100 text-yellow-800',
+    'default': 'bg-gray-100 text-gray-800'
+};
+
+// UPDATED: JobCard uses dynamic category colors
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
-    // Determine the displayed status: use applyingStatus first if available, then job.application_status
     const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
     const categoryName = job.category_name || job.category;
+    // NEW: Get color class based on category name
+    const categoryColorClass = categoryColors[categoryName] || categoryColors.default;
+
     return (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md">
             <div className="p-6 flex flex-col h-full">
                 <div className="flex-grow">
-                    <span className="inline-block bg-blue-50 text-blue-600 text-sm font-semibold px-3 py-1 rounded-full mb-3">{categoryName}</span>
+                    {/* UPDATED: Category badge with dynamic colors */}
+                    <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full mb-3 ${categoryColorClass}`}>
+                        {categoryName}
+                    </span>
                     <h3 className="text-xl font-bold text-gray-800 mb-2">{job.title}</h3>
                     <p className="text-gray-600 mb-4">
                         Posted by:
@@ -104,7 +107,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                 </div>
                 <div className="mt-6 pt-4 border-t flex justify-between items-center">
                     <div>
-                        {currentApplicationStatus && ( // Use currentApplicationStatus here
+                        {currentApplicationStatus && (
                             <StatusBadge status={currentApplicationStatus} />
                         )}
                     </div>
@@ -115,7 +118,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         >
                             View
                         </button>
-                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && ( // Use currentApplicationStatus here
+                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && (
                             <button
                                 onClick={() => handleApply(job)}
                                 className={'bg-blue-500 text-white hover:bg-blue-600 font-medium py-2 px-4 rounded-lg transition duration-300 text-sm'}
@@ -131,7 +134,6 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
 };
 
 
-// FIXED: StudentDashboard now accepts applyingStatus as a prop
 function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, setAppliedJobsPageFilter, applyingStatus }) {
     const [stats, setStats] = useState(null);
     const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -141,7 +143,6 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
     const [errorJobs, setErrorJobs] = useState(null);
 
-    // Fetch student statistics
     useEffect(() => {
         const fetchStats = async () => {
             if (!currentUser || !currentUser.id) return;
@@ -149,21 +150,14 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
             try {
                 const response = await fetch(`http://uniwiz.test/get_student_stats.php?student_id=${currentUser.id}`);
                 const data = await response.json();
-                if (response.ok) {
-                    setStats(data);
-                } else {
-                    throw new Error(data.message || 'Failed to fetch student stats.');
-                }
-            } catch (err) {
-                setErrorStats(err.message);
-            } finally {
-                setIsLoadingStats(false);
-            }
+                if (response.ok) setStats(data);
+                else throw new Error(data.message || 'Failed to fetch student stats.');
+            } catch (err) { setErrorStats(err.message); } 
+            finally { setIsLoadingStats(false); }
         };
         fetchStats();
     }, [currentUser]);
 
-    // Fetch recommended jobs
     useEffect(() => {
         const fetchRecommendedJobs = async () => {
             if (!currentUser || !currentUser.id) return;
@@ -171,20 +165,13 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
             try {
                 const response = await fetch(`http://uniwiz.test/get_recommended_jobs.php?student_id=${currentUser.id}`);
                 const data = await response.json();
-                if (response.ok) {
-                    setRecommendedJobs(data);
-                } else {
-                    throw new Error(data.message || 'Failed to fetch recommended jobs.');
-                }
-            } catch (err) {
-                setErrorJobs(err.message);
-            } finally {
-                setIsLoadingJobs(false);
-            }
+                if (response.ok) setRecommendedJobs(data);
+                else throw new Error(data.message || 'Failed to fetch recommended jobs.');
+            } catch (err) { setErrorJobs(err.message); } 
+            finally { setIsLoadingJobs(false); }
         };
         fetchRecommendedJobs();
     }, [currentUser]);
-
 
     const handleViewCompanyProfile = (publisherId) => {
         if (setPage && setPublisherIdForProfile) {
@@ -198,9 +185,16 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         setPage('applied-jobs');
     };
 
+    // --- Icons and Colors for StatCards ---
     const ApplicationsSentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
     const AcceptedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const ProfileViewsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
+
+    const statCardColors = {
+        sent: { bg: 'bg-accent-blue-light', text: 'text-accent-blue-dark' },
+        accepted: { bg: 'bg-accent-teal-light', text: 'text-accent-teal-dark' },
+        views: { bg: 'bg-accent-pink-light', text: 'text-accent-pink-dark' },
+    };
 
     return (
         <div className="p-6 md:p-8 bg-gray-50 min-h-screen text-gray-800">
@@ -215,12 +209,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
                 {isLoadingStats ? (
-                    <>
-                        <StatCardSkeleton delay={0} />
-                        <StatCardSkeleton delay={1} />
-                        <StatCardSkeleton delay={2} />
-                        <StatCardSkeleton delay={3} />
-                    </>
+                    <><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div></>
                 ) : errorStats ? (
                     <div className="lg:col-span-4 text-center text-red-500 py-8 bg-white rounded-xl shadow-sm border border-gray-100">Error loading stats: {errorStats}</div>
                 ) : (
@@ -231,23 +220,26 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                             icon={<ApplicationsSentIcon />} 
                             delay={0}
                             description="View all applications"
-                            onLinkClick={() => handleStatLinkClick('All')} 
+                            onLinkClick={() => handleStatLinkClick('All')}
+                            color={statCardColors.sent} // Pass color prop
                         />
                         <StatCard 
                             title="Applications Accepted" 
                             value={stats?.applications_accepted ?? 0} 
                             icon={<AcceptedIcon />} 
                             delay={1}
-                            description="View accepted applications"
-                            onLinkClick={() => handleStatLinkClick('Accepted')} 
+                            description="View accepted"
+                            onLinkClick={() => handleStatLinkClick('Accepted')}
+                            color={statCardColors.accepted} // Pass color prop
                         />
                         <StatCard 
                             title="Profile Views" 
                             value={stats?.profile_views ?? 0} 
                             icon={<ProfileViewsIcon />} 
                             delay={2}
-                            description="View applications by status"
+                            description="View who viewed"
                             onLinkClick={() => handleStatLinkClick('Viewed')} 
+                            color={statCardColors.views} // Pass color prop
                         />
                         <ProfileCompletionCard percentage={stats?.profile_completion_percentage ?? 0} setPage={setPage} />
                     </>
@@ -262,11 +254,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                 </button>
             </div>
 
-            {isLoadingJobs ? (
-                <LoadingSpinner />
-            ) : errorJobs ? (
-                 <div className="text-center text-red-500 py-16 bg-white rounded-xl shadow-sm border border-gray-100">{errorJobs}</div>
-            ) : (
+            {isLoadingJobs ? <LoadingSpinner /> : errorJobs ? <div className="text-center text-red-500 py-16 bg-white rounded-xl shadow-sm border border-gray-100">{errorJobs}</div> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {recommendedJobs.length > 0 ? recommendedJobs.map(job => (
                         <JobCard
@@ -276,7 +264,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                             handleApply={handleApply}
                             handleViewCompanyProfile={handleViewCompanyProfile}
                             handleViewJobDetails={handleViewJobDetails}
-                            applyingStatus={applyingStatus} // Pass applyingStatus here
+                            applyingStatus={applyingStatus}
                         />
                     )) : (
                         <div className="col-span-3 bg-white rounded-xl shadow-sm p-6 border border-gray-100 text-center">
