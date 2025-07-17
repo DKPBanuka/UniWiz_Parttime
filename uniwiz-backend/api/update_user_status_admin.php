@@ -1,8 +1,9 @@
 <?php
-// FILE: uniwiz-backend/api/update_user_status_admin.php (NEW FILE)
+// FILE: uniwiz-backend/api/update_user_status_admin.php (FIXED - Admin Notifications for User Verification)
 // =====================================================================
 // This endpoint allows an admin to update a user's status (active/blocked)
 // and verification status (is_verified).
+// FIXED: Now sends a notification to the user when their verification status changes.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -52,12 +53,32 @@ try {
         exit();
     }
 
+    // Start transaction for atomicity
+    $db->beginTransaction();
+
+    // Fetch current user status before update for notification logic
+    $stmt_current_user = $db->prepare("SELECT is_verified, status, first_name, last_name, company_name FROM users WHERE id = :target_user_id");
+    $stmt_current_user->bindParam(':target_user_id', $target_user_id, PDO::PARAM_INT);
+    $stmt_current_user->execute();
+    $current_user_data = $stmt_current_user->fetch(PDO::FETCH_ASSOC);
+
+    if (!$current_user_data) {
+        $db->rollBack();
+        http_response_code(404);
+        echo json_encode(["message" => "User not found."]);
+        exit();
+    }
+
+    $old_is_verified = (int)$current_user_data['is_verified'];
+    $old_status = $current_user_data['status'];
+
     // Construct the update query dynamically based on provided fields
     $update_fields = [];
     $params = [':target_user_id' => $target_user_id];
 
     if ($new_status !== null) {
         if (!in_array($new_status, ['active', 'blocked'])) {
+            $db->rollBack();
             http_response_code(400);
             echo json_encode(["message" => "Invalid status provided. Must be 'active' or 'blocked'."]);
             exit();
@@ -68,6 +89,7 @@ try {
 
     if ($new_is_verified !== null) {
         if (!in_array($new_is_verified, [0, 1])) {
+            $db->rollBack();
             http_response_code(400);
             echo json_encode(["message" => "Invalid verification status provided. Must be 0 or 1."]);
             exit();
@@ -77,6 +99,7 @@ try {
     }
 
     if (empty($update_fields)) {
+        $db->rollBack();
         http_response_code(400);
         echo json_encode(["message" => "No valid fields provided for update."]);
         exit();
@@ -92,9 +115,50 @@ try {
 
     if ($stmt->execute()) {
         if ($stmt->rowCount() > 0) {
+            // --- NEW: Create notification for the target user if status or verification changes ---
+            $notification_message = "";
+            $notification_type = "account_update"; // Default type
+            $notification_link = "/settings"; // Default link
+
+            if ($new_status !== null && $new_status !== $old_status) {
+                if ($new_status === 'blocked') {
+                    $notification_message = "Your account has been blocked by the administrator.";
+                    $notification_type = "account_blocked";
+                    $notification_link = "/login"; // Redirect to login as they can't access app
+                } else if ($new_status === 'active') {
+                    $notification_message = "Your account has been unblocked by the administrator.";
+                    $notification_type = "account_unblocked";
+                }
+            }
+
+            if ($new_is_verified !== null && $new_is_verified !== $old_is_verified) {
+                if ($new_is_verified === 1) {
+                    $notification_message = "Your account has been verified by the administrator!";
+                    $notification_type = "account_verified";
+                    $notification_link = "/profile";
+                } else if ($new_is_verified === 0) {
+                    $notification_message = "Your account verification status has been revoked.";
+                    $notification_type = "account_unverified";
+                    $notification_link = "/profile";
+                }
+            }
+            
+            // Only create notification if a relevant message was generated
+            if (!empty($notification_message)) {
+                $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, :type, :message, :link)";
+                $stmt_notif = $db->prepare($query_notif);
+                $stmt_notif->bindParam(':user_id', $target_user_id, PDO::PARAM_INT);
+                $stmt_notif->bindParam(':type', $notification_type);
+                $stmt_notif->bindParam(':message', $notification_message);
+                $stmt_notif->bindParam(':link', $notification_link);
+                $stmt_notif->execute();
+            }
+
+            $db->commit(); // Commit the transaction
             http_response_code(200);
             echo json_encode(["message" => "User updated successfully."]);
         } else {
+            $db->rollBack(); // Rollback if no rows were affected
             http_response_code(404);
             echo json_encode(["message" => "User not found or no changes made."]);
         }
@@ -103,6 +167,9 @@ try {
     }
 
 } catch (Exception $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
     http_response_code(500);
     echo json_encode(["message" => "A server error occurred: " . $e->getMessage()]);
 }

@@ -1,9 +1,13 @@
-// FILE: src/components/JobDetailsModal.js (FIXED & ENHANCED)
+// FILE: src/components/JobDetailsModal.js (UPDATED - Visitor Mode Compatibility & API_BASE_URL Fix)
 // ===================================================================================
 // This component now fetches the application status directly from the API
 // ensuring the correct state is always displayed.
 
 import React, { useState, useEffect, useCallback } from 'react';
+
+// --- Constants ---
+// FIXED: Define API_BASE_URL within this component
+const API_BASE_URL = 'http://uniwiz.test';
 
 // --- Reusable Components ---
 
@@ -46,7 +50,6 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
     const [error, setError] = useState(null);
 
     const fetchJobDetails = useCallback(async () => {
-        // FIX: Use job.job_id if available, otherwise fall back to job.id
         const jobIdToFetch = job?.job_id || job?.id; 
         if (!jobIdToFetch) {
             setError("No job selected.");
@@ -55,8 +58,8 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
         }
         setIsLoading(true);
         try {
-            // **UPDATED**: Construct URL with student_id if available
-            let apiUrl = `http://uniwiz.test/get_job_details.php?job_id=${jobIdToFetch}`;
+            // Construct URL with student_id if available (only for logged-in students)
+            let apiUrl = `${API_BASE_URL}/get_job_details.php?job_id=${jobIdToFetch}`;
             if (currentUser && currentUser.role === 'student') {
                 apiUrl += `&student_id=${currentUser.id}`;
             }
@@ -72,7 +75,7 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
         } finally {
             setIsLoading(false);
         }
-    }, [job, currentUser]); // **UPDATED**: Added currentUser to dependency array
+    }, [job, currentUser]); // Added currentUser to dependency array
 
     useEffect(() => {
         if (isOpen) {
@@ -82,7 +85,7 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
 
     if (!isOpen) return null;
 
-    // **FIX**: Derive applicationStatus directly from the fetched jobDetails state
+    // Derive applicationStatus directly from the fetched jobDetails state
     const applicationStatus = jobDetails?.application_status;
     const skills = jobDetails?.skills_required ? jobDetails.skills_required.split(',').map(s => s.trim()) : [];
 
@@ -102,12 +105,11 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                         {/* Header with Status Badge */}
                         <div className="flex justify-between items-start">
                              <div>
-                                {/* FIX: Use job.job_title if available, otherwise job.title */}
                                 <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.job_title || jobDetails.title}</h1>
                                 <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
                             </div>
                             {/* This now correctly uses the status from the fetched details */}
-                            {applicationStatus && (
+                            {currentUser && applicationStatus && ( // Only show status badge if user is logged in
                                 <div className="flex-shrink-0 ml-4">
                                     <StatusBadge status={applicationStatus} />
                                 </div>
@@ -159,8 +161,8 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                         
                         {/* Action Buttons */}
                         <div className="flex justify-end pt-4 border-t mt-4">
-                            {/* This logic now correctly uses the fetched status */}
-                            {!applicationStatus && currentUser?.role === 'student' && (
+                            {/* Only show Apply Now if currentUser is a student AND no application status exists */}
+                            {currentUser && currentUser.role === 'student' && !applicationStatus && (
                                 <button 
                                     onClick={() => {
                                         onClose(); // Close this modal
@@ -169,6 +171,19 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
                                     className="bg-primary-main text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-colors"
                                 >
                                     Apply Now
+                                </button>
+                            )}
+                            {/* NEW: For visitors, show a "Sign Up to Apply" button */}
+                            {!currentUser && (
+                                <button 
+                                    onClick={() => { 
+                                        onClose(); // Close this modal
+                                        // handleApply will redirect to login if currentUser is null
+                                        handleApply(jobDetails); 
+                                    }} 
+                                    className="bg-gray-700 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-800 transition-colors"
+                                >
+                                    Sign Up to Apply
                                 </button>
                             )}
                         </div>

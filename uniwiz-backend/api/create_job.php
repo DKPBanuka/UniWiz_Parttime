@@ -1,6 +1,6 @@
 <?php
-// FILE: uniwiz-backend/api/create_job.php (ENHANCED with more fields)
-// =================================================================
+// FILE: uniwiz-backend/api/create_job.php (CONFIRMED - Admin Notifications for New Job Posts)
+// ========================================================================
 
 // --- Headers, DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -27,9 +27,34 @@ if ( $data === null || !isset($data->publisher_id) || !isset($data->title) || !i
     exit();
 }
 
+// --- NEW: Function to create a notification for all admins (copied from auth.php for reusability) ---
+function createAdminNotification($db, $type, $message, $link) {
+    // Fetch all admin user IDs
+    $stmt_admins = $db->prepare("SELECT id FROM users WHERE role = 'admin'");
+    $stmt_admins->execute();
+    $admin_ids = $stmt_admins->fetchAll(PDO::FETCH_COLUMN, 0);
+
+    if (empty($admin_ids)) {
+        // No admins found to notify, just return
+        return;
+    }
+
+    // Prepare and execute insert for each admin
+    $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, :type, :message, :link)";
+    $stmt_notif = $db->prepare($query_notif);
+
+    foreach ($admin_ids as $admin_id) {
+        $stmt_notif->bindParam(':user_id', $admin_id, PDO::PARAM_INT);
+        $stmt_notif->bindParam(':type', $type);
+        $stmt_notif->bindParam(':message', $message);
+        $stmt_notif->bindParam(':link', $link);
+        $stmt_notif->execute();
+    }
+}
+
+
 // --- Main Create Job Logic ---
 try {
-    // **CHANGE**: Added new fields to the query
     $query = "
         INSERT INTO jobs 
         (publisher_id, category_id, title, description, skills_required, job_type, payment_range, start_date, end_date, status, work_mode, location, application_deadline, vacancies, working_hours, experience_level) 
@@ -51,7 +76,7 @@ try {
     $end_date = isset($data->end_date) && !empty($data->end_date) ? htmlspecialchars(strip_tags($data->end_date)) : null;
     $status = htmlspecialchars(strip_tags($data->status));
     if ($status !== 'active' && $status !== 'draft') {
-        $status = 'draft';
+        $status = 'draft'; // Default to draft if invalid status is provided
     }
 
     // Sanitize new fields
@@ -85,6 +110,12 @@ try {
 
 
     if ($stmt->execute()) {
+        // --- NEW: Create notification for admins if job is a draft (pending approval) ---
+        if ($status === 'draft') {
+            $notification_message = "New job posted: \"" . $title . "\" is pending approval.";
+            createAdminNotification($db, 'new_job_pending_approval', $notification_message, '/job-management?filter=draft');
+        }
+
         http_response_code(201);
         echo json_encode(["message" => "Job post saved successfully."]);
     } else {

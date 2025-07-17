@@ -1,13 +1,6 @@
-// FILE: src/App.js (FIXED - Missing useState declarations for notifications and popupNotification)
+// FILE: src/App.js (UPDATED - Visitor Mode Implementation)
 // =======================================================================================
-// This version integrates the new Admin Dashboard, Job Management, and User Management pages.
-// FIXED: Now correctly passes initial filter parameters to management pages.
-// FIXED: Corrected the call to the renderPage function.
-// FIXED: Corrected state variable declarations and usage for appliedJobs and jobToApply.
-// UPDATED: Ensures is_verified status is available in currentUser.
-// UPDATED: Added logic to check user status (active/blocked) and logout if blocked.
-// FIXED: Corrected declaration of shownPopupIds to be a state variable.
-// FIXED: Re-added useState declarations for notifications and popupNotification.
+// This version implements a "Visitor Mode" allowing non-logged-in users to browse jobs.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -22,7 +15,7 @@ import TopNavbar from './components/TopNavbar';
 import ManageJobs from './components/ManageJobs';
 import CreateJob from './components/CreateJob';
 import AllApplicants from './components/AllApplicants';
-import FindJobsPage from './components/FindJobsPage';
+import FindJobsPage from './components/FindJobsPage'; // This will be the public page
 import AppliedJobsPage from './components/AppliedJobsPage';
 import ProfilePage from './components/ProfilePage';
 import CompanyProfilePage from './components/CompanyProfilePage';
@@ -68,7 +61,9 @@ const NotificationPopup = ({ message, type, onClose }) => {
 function App() {
   // --- State Management ---
   const [currentUser, setCurrentUser] = useState(null);
-  const [page, setPageInternal] = useState('loading');
+  // UPDATED: Initial page for visitors can be 'find-jobs' or 'login' depending on design
+  // Let's start at 'find-jobs' as the public landing page.
+  const [page, setPageInternal] = useState('loading'); 
   const [currentPageFilter, setCurrentPageFilter] = useState(null);
   
   // ID states for viewing specific detail pages
@@ -93,7 +88,6 @@ function App() {
   const [appliedJobsPageFilter, setAppliedJobsPageFilter] = useState('All');
 
   // Notification States
-  // FIXED: Correctly declare notifications and popupNotification as state variables
   const [notifications, setNotifications] = useState([]); 
   const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
   const [shownPopupIds, setShownPopupIds] = useState(new Set()); 
@@ -129,7 +123,11 @@ function App() {
 
   // --- Effect for Polling Notifications ---
   useEffect(() => {
-    if (!currentUser) return;
+    // Only fetch notifications if a user is logged in
+    if (!currentUser) {
+        setNotifications([]); // Clear notifications if logged out
+        return;
+    }
 
     const fetchNotifications = async () => {
         try {
@@ -158,7 +156,7 @@ function App() {
     const interval = setInterval(fetchNotifications, 30000); 
 
     return () => clearInterval(interval);
-  }, [currentUser, showPopupNotification, shownPopupIds, setNotifications]); // Added setNotifications to dependencies
+  }, [currentUser, showPopupNotification, shownPopupIds, setNotifications]);
 
 
   // --- Initial Load Effect (from localStorage) ---
@@ -167,65 +165,44 @@ function App() {
         const loggedInUser = localStorage.getItem("user");
         if (loggedInUser) {
             const user = JSON.parse(loggedInUser);
-            // Re-fetch full user profile to ensure latest status and verification
             try {
-                // We use the auth.php login endpoint to get the most up-to-date user object,
-                // including status and is_verified. A dummy password is used as we only need the user data.
-                const response = await fetch(`${API_BASE_URL}/auth.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'login', email: user.email, password: 'DUMMY_PASSWORD' }), 
-                });
+                const response = await fetch(`${API_BASE_URL}/get_user_profile_by_id.php?user_id=${user.id}`);
                 const result = await response.json();
+                
                 if (response.ok && result.user) {
-                    // Check if the user is blocked before setting currentUser
                     if (result.user.status === 'blocked') {
                         showPopupNotification("Your account has been blocked by the administrator.", 'error');
                         setCurrentUser(null);
                         localStorage.removeItem('user');
-                        setPage('login');
-                        return; // Stop further execution
+                        setPage('login'); // Redirect to login if blocked
+                        return;
                     }
                     setCurrentUser(result.user);
-                    localStorage.setItem('user', JSON.stringify(result.user)); // Update localStorage
+                    localStorage.setItem('user', JSON.stringify(result.user));
                     if (result.user.role === 'student') {
                         await fetchAppliedJobs(result.user.id);
                     }
                     if (!result.user.first_name || (result.user.role === 'publisher' && !result.user.company_name)) {
                         setPage('profile-setup');
                     } else {
-                        setPage('home');
+                        setPage('home'); // Logged in, go to home dashboard
                     }
                 } else {
-                    // If re-fetch fails, fall back to stored user or login page
-                    console.warn("Failed to re-fetch user data on init, using stored data or redirecting to login.");
-                    // Check status of the *locally stored* user before proceeding
-                    if (user.status === 'blocked') {
-                        showPopupNotification("Your account has been blocked by the administrator.", 'error');
-                        setCurrentUser(null);
-                        localStorage.removeItem('user');
-                        setPage('login');
-                        return;
-                    }
-                    setCurrentUser(user);
-                    if (user.role === 'student') {
-                        await fetchAppliedJobs(user.id);
-                    }
-                    if (!user.first_name || (user.role === 'publisher' && !user.company_name)) {
-                        setPage('profile-setup');
-                    } else {
-                        setPage('home');
-                    }
+                    console.warn("Failed to re-fetch user data by ID, redirecting to public view.");
+                    showPopupNotification(result.message || "Session expired or user not found. Please log in.", 'error');
+                    setCurrentUser(null);
+                    localStorage.removeItem('user');
+                    setPage('find-jobs-public'); // Redirect to public Find Jobs
                 }
             } catch (err) {
                 console.error("Error during user re-initialization:", err);
-                // If API call fails, assume user is not logged in or session expired
+                showPopupNotification("Could not re-establish session. Please log in again.", 'error');
                 setCurrentUser(null);
                 localStorage.removeItem('user');
-                setPage('login');
+                setPage('find-jobs-public'); // Redirect to public Find Jobs on error
             }
         } else {
-            setPage('login'); 
+            setPage('find-jobs-public'); // No user in localStorage, go to public Find Jobs
         }
     };
     initializeUser();
@@ -233,7 +210,6 @@ function App() {
 
   // --- Auth & Profile Handlers ---
   const handleLoginSuccess = useCallback(async (userData) => {
-    // Check if the user is blocked immediately after login success
     if (userData.status === 'blocked') {
         showPopupNotification("Your account has been blocked by the administrator.", 'error');
         setCurrentUser(null);
@@ -261,8 +237,8 @@ function App() {
     setAppliedJobs(new Set()); 
     setNotifications([]);
     setShownPopupIds(new Set()); 
-    setPage('login'); 
-  }, [setPage, setNotifications, setShownPopupIds]); // Added setNotifications, setShownPopupIds to dependencies
+    setPage('find-jobs-public'); // Redirect to public Find Jobs after logout
+  }, [setPage, setNotifications, setShownPopupIds]);
 
   const handleProfileUpdate = useCallback((updatedUserData) => {
     setCurrentUser(updatedUserData);
@@ -279,7 +255,6 @@ function App() {
   const handleViewCompanyProfile = (pubId) => { setPublisherIdForProfile(pubId); setPage('company-profile'); };
   const handleViewApplicants = (filter = 'All') => { setApplicantsPageFilter(filter); setPage('applicants'); };
   const handleViewJobDetailsPage = (jobId) => { setSelectedJobIdForDetailsPage(jobId); setPage('view-job-details'); };
-  // Modified handleViewJobDetails to accept job object instead of just job.id
   const handleViewJobDetails = (job) => { setSelectedJobForDetails(job); setIsJobDetailsModalOpen(true); };
   const handleViewApplicantDetails = (applicationId) => {
       setApplicationIdToView(applicationId);
@@ -313,15 +288,21 @@ function App() {
             setPage('applicants');
         } else if (pageTarget === 'applied-jobs') {
             setPage('applied-jobs');
+        } else if (pageTarget === 'user-management') { // For admin notifications
+            setPage('user-management', { filter: 'unverified' }); // Example: direct to unverified users
+        } else if (pageTarget === 'job-management') { // For admin notifications
+            setPage('job-management', { filter: 'draft' }); // Example: direct to pending jobs
+        } else if (pageTarget === 'login') { // For blocked users
+            handleLogout(); // Force logout if account is blocked
         }
     }
-  }, [currentUser, showPopupNotification, setPage, setNotifications]); // Added setNotifications to dependencies
+  }, [currentUser, showPopupNotification, setPage, setNotifications, handleLogout]);
 
   // --- Application Submission Handler ---
   const handleOpenApplyModal = useCallback((job) => {
     if (!currentUser) {
       showPopupNotification("Please log in to apply for jobs.", 'info');
-      setPage('login'); 
+      setPage('login'); // Redirect to login if not logged in
       return;
     }
     setJobToApply(job); 
@@ -396,21 +377,43 @@ function App() {
   };
 
   const renderPage = () => {
-    // If currentUser is null, and page is not 'login', redirect to login.
-    // This handles cases where user might be blocked or deleted after initial load.
-    if (!currentUser && page !== 'login') {
-        return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-    }
-
     switch (page) {
         case 'loading':
             return <div className="flex items-center justify-center min-h-screen"><p>Loading UniWiz...</p></div>;
         case 'login':
             return <LoginPage onLoginSuccess={handleLoginSuccess} />;
         case 'profile-setup':
-            return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} />;
+            return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} onBackClick={() => setPage('login')} />;
+        // NEW: Public Find Jobs page
+        case 'find-jobs-public':
+            return (
+                <div className="flex flex-col h-screen bg-gray-50">
+                    {/* Public Top Navbar (simplified for visitors) */}
+                    <header className="bg-white shadow-sm p-4 flex justify-between items-center z-20">
+                        <div className="flex items-center space-x-3">
+                            <img src="/logo.png" alt="UniWiz Logo" className="h-10" />
+                            <h1 className="text-xl font-bold text-primary-dark">UniWiz</h1>
+                        </div>
+                        <div>
+                            <button onClick={() => setPage('login')} className="bg-primary-main text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+                                Log In / Sign Up
+                            </button>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                        {/* Pass null for currentUser as no one is logged in */}
+                        <FindJobsPage currentUser={null} handleApply={handleOpenApplyModal} appliedJobs={new Set()} applyingStatus={{}} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} />
+                    </main>
+                </div>
+            );
         default:
             // If currentUser is valid, proceed to render the appropriate dashboard/page
+            // If currentUser is null here, it means they were redirected from initializeUser or handleLogout
+            // and should already be on 'find-jobs-public' or 'login'.
+            if (!currentUser) {
+                // Fallback to login if somehow a restricted page is accessed without currentUser
+                return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+            }
             return (
                 <div className={`flex h-screen bg-gray-50`}>
                     {currentUser.role === 'publisher' ? (
@@ -421,6 +424,7 @@ function App() {
                         <AdminSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
                     )}
                     <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Pass notifications only if currentUser exists */}
                         <TopNavbar user={currentUser} setPage={setPage} notifications={notifications} onNotificationClick={handleNotificationClick} />
                         <main className="flex-1 overflow-x-hidden overflow-y-auto">
                             {renderLoggedInPageContent()}

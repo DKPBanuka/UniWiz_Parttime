@@ -49,7 +49,8 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-                <h2 className="text-3xl font-bold text-dark-blue-text mb-6">Log In to Your Account</h2> {/* Changed text color */}
+                {/* UPDATED: Changed text color class to primary-dark */}
+                <h2 className="text-3xl font-bold text-primary-dark mb-6">Log In to Your Account</h2>
 
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
@@ -64,7 +65,9 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
                     
                     <div className="flex items-center justify-center">
-                        <button type="submit" disabled={isLoading} className="bg-app-blue hover:bg-dark-blue-text text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 disabled:bg-gray-400"> {/* Changed bg and hover bg */}
+                        <button type="submit" disabled={isLoading} 
+                            // UPDATED: Changed background and hover background colors to primary-main and primary-dark
+                            className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 disabled:bg-gray-400">
                             {isLoading ? 'Logging In...' : 'Log In'}
                         </button>
                     </div>

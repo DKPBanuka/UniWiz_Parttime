@@ -1,7 +1,11 @@
-// FILE: src/components/FindJobsPage.js (FIXED - applyingStatus prop to JobCard)
+// FILE: src/components/FindJobsPage.js (UPDATED - Visitor Mode Compatibility & API_BASE_URL Fix)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
+
+// --- Constants ---
+// FIXED: Define API_BASE_URL within this component
+const API_BASE_URL = 'http://uniwiz.test';
 
 // --- Reusable Components ---
 
@@ -23,9 +27,10 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-// FIXED: JobCard now correctly receives and uses applyingStatus
+// JobCard now correctly receives and uses applyingStatus
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
     // Determine the displayed status: use applyingStatus first if available, then job.application_status
+    // For visitors, currentApplicationStatus will always be undefined.
     const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
     const categoryName = job.category_name || job.category;
     const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
@@ -54,7 +59,8 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                 </div>
                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div>
-                        {currentApplicationStatus && ( // Use currentApplicationStatus here
+                        {/* Only show status badge if a user is logged in and there's an application status */}
+                        {currentUser && currentApplicationStatus && ( 
                             <StatusBadge status={currentApplicationStatus} />
                         )}
                     </div>
@@ -63,14 +69,27 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                             onClick={() => handleViewJobDetails(job)}
                             className="font-medium py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition duration-300 text-sm"
                         >
-                            View
+                            View Details
                         </button>
-                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && ( // Use currentApplicationStatus here
+                        {/* Only show Apply Now if currentUser is a student AND no application status exists */}
+                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && ( 
                             <button 
                                 onClick={() => handleApply(job)} 
                                 className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm"
                             >
                                 Apply Now
+                            </button>
+                        )}
+                        {/* NEW: For visitors, show a "Sign Up to Apply" button */}
+                        {!currentUser && (
+                            <button 
+                                onClick={() => { 
+                                    // handleApply will redirect to login if currentUser is null
+                                    handleApply(job); 
+                                }} 
+                                className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-gray-700 text-white hover:bg-gray-800 text-sm"
+                            >
+                                Sign Up to Apply
                             </button>
                         )}
                     </div>
@@ -83,7 +102,6 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
 // FIXED: FindJobsPage now accepts applyingStatus as a prop
 function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, applyingStatus }) {
     const [allJobs, setAllJobs] = useState([]);
-    const [recommendedJobs, setRecommendedJobs] = useState([]); // This state is not used in this component, but kept for consistency
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [jobTypeFilter, setJobTypeFilter] = useState('');
@@ -97,7 +115,9 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         setIsLoading(true);
         setError(null);
         try {
-            const jobsResponse = await fetch(`http://uniwiz.test/jobs.php?student_id=${currentUser.id}`);
+            // For visitors, we don't pass student_id, so it fetches all active jobs
+            const studentIdParam = currentUser ? `student_id=${currentUser.id}` : '';
+            const jobsResponse = await fetch(`${API_BASE_URL}/jobs.php?${studentIdParam}`);
             if (!jobsResponse.ok) throw new Error('Failed to fetch jobs.');
             const jobsData = await jobsResponse.json();
             setAllJobs(jobsData);
@@ -107,12 +127,12 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser.id]);
+    }, [currentUser]); // Dependency on currentUser to re-fetch if login state changes
 
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://uniwiz.test/get_categories.php');
+                const response = await fetch(`${API_BASE_URL}/get_categories.php`); // Use API_BASE_URL here
                 const data = await response.json();
                 if (response.ok) setCategories(data);
             } catch (err) {
@@ -197,11 +217,11 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
                             <JobCard 
                                 key={job.id} 
                                 job={job} 
-                                currentUser={currentUser} 
+                                currentUser={currentUser} // Pass currentUser to JobCard
                                 handleApply={handleApply} 
                                 handleViewCompanyProfile={handleViewCompanyProfile}
                                 handleViewJobDetails={handleViewJobDetails}
-                                applyingStatus={applyingStatus} // Pass applyingStatus here
+                                applyingStatus={applyingStatus} 
                             />
                         )) : (
                             <div className="col-span-3 text-center text-gray-500 py-16 bg-white rounded-xl shadow-sm border border-gray-200">
