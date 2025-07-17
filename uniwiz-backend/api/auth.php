@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/auth.php (FIXED with Admin Self-Healing Login)
+// FILE: uniwiz-backend/api/auth.php (UPDATED - Ensure status is included in login response)
 // ======================================================================
 
 // --- Headers ---
@@ -43,7 +43,7 @@ if ($data === null || !isset($data->action)) {
 function getFullUserProfile($db, $user_id) {
     $query = "
         SELECT 
-            u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
+            u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url, u.is_verified, u.status,
             sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
             pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url
         FROM users u
@@ -142,7 +142,7 @@ if ($data->action === 'register') {
         exit();
     }
     try {
-        $query = "SELECT id, email, password, role FROM users WHERE email = :email";
+        $query = "SELECT id, email, password, role, status FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $data->email);
         $stmt->execute();
@@ -150,6 +150,13 @@ if ($data->action === 'register') {
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             
+            // Check if account is blocked BEFORE password verification
+            if ($row['status'] === 'blocked') {
+                http_response_code(403); // Forbidden
+                echo json_encode(array("message" => "Your account has been blocked by the administrator."));
+                exit();
+            }
+
             if (password_verify($data->password, $row['password'])) {
                 // Successful login
                 $full_user_profile = getFullUserProfile($db, $row['id']);

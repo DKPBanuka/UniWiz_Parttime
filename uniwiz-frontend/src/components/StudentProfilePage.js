@@ -1,4 +1,4 @@
-// FILE: src/components/StudentProfilePage.js (Modern Light Blue Design)
+// FILE: src/components/StudentProfilePage.js (UPDATED - Verified Badge)
 // =====================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -97,6 +97,19 @@ function StudentProfilePage({ studentId, onBackClick }) {
                     <div className="text-center md:text-left">
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{student.first_name} {student.last_name}</h1>
                         <p className="text-gray-600 mt-1">{student.field_of_study || 'Student'}</p>
+                        {/* NEW: Verified Badge */}
+                        {student.is_verified ? (
+                            <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Verified Account
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800 mt-2">
+                                Unverified Account
+                            </span>
+                        )}
                     </div>
                 </div>
 

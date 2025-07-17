@@ -1,16 +1,9 @@
-// FILE: src/components/admin/UserManagement.js (ADVANCED with User Actions & Details)
+// FILE: src/components/admin/UserManagement.js (FIXED - Initial Filter Logic)
 // =======================================================
 // This page allows administrators to view, search, manage, block/unblock,
 // and verify/unverify users, delete users, and now also view full user profiles.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-
-// Reusable Loading Spinner
-const LoadingSpinner = () => (
-    <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
-    </div>
-);
 
 // Reusable Notification Component (Toast)
 const Notification = ({ message, type, onClose }) => {
@@ -26,6 +19,13 @@ const Notification = ({ message, type, onClose }) => {
         </div>
     );
 };
+
+// Reusable Loading Spinner
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
+    </div>
+);
 
 // Reusable Confirmation Modal
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', confirmColor = 'red', isLoading = false }) => {
@@ -133,16 +133,20 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
 };
 
 
-function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setPublisherIdForProfile }) { // Added setPage, setStudentIdForProfile, setPublisherIdForProfile
+function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setPublisherIdForProfile, initialFilter }) { // NEW: Added initialFilter prop
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [roleFilter, setRoleFilter] = useState('All'); // 'All', 'student', 'publisher', 'admin'
-    const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest' - NEW: Added sortOrder state
+    
+    // Initial state based on initialFilter prop
+    const [roleFilter, setRoleFilter] = useState('All');
+    const [verificationStatusFilter, setVerificationStatusFilter] = useState('All');
+    const [accountStatusFilter, setAccountStatusFilter] = useState('All');
+
+    const [sortOrder, setSortOrder] = useState('newest'); 
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
 
-    // State for confirmation modal (FIXED: Declared using useState)
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [modalConfig, setModalConfig] = useState({});
 
@@ -150,15 +154,54 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
         setNotification({ message, type, key: Date.now() });
     };
 
+    // FIXED: Apply initialFilter when component mounts or initialFilter changes
+    useEffect(() => {
+        if (initialFilter) {
+            if (initialFilter.filter === 'unverified') {
+                setVerificationStatusFilter('unverified');
+                setRoleFilter('All'); // Reset other filters for clarity
+                setAccountStatusFilter('All');
+            } else if (initialFilter.filter === 'blocked') {
+                setAccountStatusFilter('blocked');
+                setRoleFilter('All'); // Reset other filters for clarity
+                setVerificationStatusFilter('All');
+            } else {
+                // If a general role filter is passed (e.g., from AdminDashboard)
+                setRoleFilter(initialFilter.filter);
+                setVerificationStatusFilter('All');
+                setAccountStatusFilter('All');
+            }
+        }
+    }, [initialFilter]);
+
+
     const fetchAllUsers = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const params = new URLSearchParams({
-                search: searchTerm,
-                role: roleFilter,
-                sort_order: sortOrder, // NEW: Pass sort_order to API
-            });
+            const params = new URLSearchParams();
+            params.append('search', searchTerm);
+            params.append('sort_order', sortOrder);
+
+            // Add role filter if not 'All'
+            if (roleFilter !== 'All') {
+                params.append('role', roleFilter);
+            }
+
+            // Add verification status filter if not 'All'
+            if (verificationStatusFilter === 'verified') {
+                params.append('is_verified', 1);
+            } else if (verificationStatusFilter === 'unverified') {
+                params.append('is_verified', 0);
+            }
+
+            // Add account status filter if not 'All'
+            if (accountStatusFilter === 'active') {
+                params.append('status', 'active');
+            } else if (accountStatusFilter === 'blocked') {
+                params.append('status', 'blocked');
+            }
+
             const response = await fetch(`http://uniwiz.test/get_all_users_admin.php?${params.toString()}`);
             const data = await response.json();
             if (response.ok) {
@@ -172,7 +215,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
         } finally {
             setIsLoading(false);
         }
-    }, [searchTerm, roleFilter, sortOrder]); // NEW: Added sortOrder to dependencies
+    }, [searchTerm, roleFilter, verificationStatusFilter, accountStatusFilter, sortOrder]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -233,7 +276,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 actionMessage = `Are you sure you want to permanently delete this user? This action cannot be undone.`;
                 confirmBtnText = "Delete User";
                 confirmBtnColor = "red";
-                apiUrl = 'http://uniwiz.test/delete_user_admin.php'; // New API endpoint for deletion
+                apiUrl = 'http://uniwiz.test/delete_user_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id };
                 break;
             default:
@@ -289,9 +332,26 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
         }
     };
 
+    // Options for the new dropdown filters
+    const roleOptions = [
+        { value: 'All', label: 'All Roles' },
+        { value: 'student', label: 'Students' },
+        { value: 'publisher', label: 'Publishers' },
+        { value: 'admin', label: 'Admins' },
+    ];
 
-    const roleTabs = ['All', 'student', 'publisher', 'admin'];
-    // Sort options for user list
+    const verificationOptions = [
+        { value: 'All', label: 'All Verification Statuses' },
+        { value: 'verified', label: 'Verified' },
+        { value: 'unverified', label: 'Unverified' },
+    ];
+
+    const accountStatusOptions = [
+        { value: 'All', label: 'All Account Statuses' },
+        { value: 'active', label: 'Active' },
+        { value: 'blocked', label: 'Blocked' },
+    ];
+
     const sortOptions = [
         { value: 'newest', label: 'Newest First' },
         { value: 'oldest', label: 'Oldest First' },
@@ -329,24 +389,45 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="shadow-sm border rounded-lg py-2 px-4 w-full md:w-80"
                     />
-                    <div className="bg-white p-1 rounded-lg flex space-x-1 shadow-sm border border-gray-200">
-                        {roleTabs.map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setRoleFilter(tab)}
-                                className={`px-3 py-1.5 rounded-md font-semibold text-sm transition-colors capitalize ${
-                                    roleFilter === tab ? 'bg-primary-main text-white shadow' : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                            >
-                                {tab}
-                            </button>
+                    
+                    {/* NEW: Dropdown for Role Filter */}
+                    <select 
+                        value={roleFilter} 
+                        onChange={(e) => setRoleFilter(e.target.value)} 
+                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
+                    >
+                        {roleOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
-                    </div>
-                    {/* Sort dropdown for user list */}
+                    </select>
+
+                    {/* NEW: Dropdown for Verification Status Filter */}
+                    <select 
+                        value={verificationStatusFilter} 
+                        onChange={(e) => setVerificationStatusFilter(e.target.value)} 
+                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
+                    >
+                        {verificationOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                    </select>
+
+                    {/* NEW: Dropdown for Account Status Filter */}
+                    <select 
+                        value={accountStatusFilter} 
+                        onChange={(e) => setAccountStatusFilter(e.target.value)} 
+                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
+                    >
+                        {accountStatusOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                    </select>
+
+                    {/* Sort dropdown (existing) */}
                     <select 
                         value={sortOrder} 
                         onChange={(e) => setSortOrder(e.target.value)} 
-                        className="shadow-sm border rounded-lg py-2 px-4 bg-white"
+                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
                     >
                         {sortOptions.map(option => (
                             <option key={option.value} value={option.value}>{option.label}</option>

@@ -1,7 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_student_profile.php (NEW FILE)
+// FILE: uniwiz-backend/api/get_student_profile.php (UPDATED for is_verified)
 // =====================================================================
-// This file fetches all public details for a specific student.
+// This file fetches all public details for a specific student, including their verification status.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -38,6 +38,7 @@ try {
             u.first_name,
             u.last_name,
             u.profile_image_url,
+            u.is_verified,
             sp.university_name,
             sp.field_of_study,
             sp.year_of_study,

@@ -1,7 +1,8 @@
-// FILE: src/components/CompanyProfilePage.js (ENHANCED with Edit Review & UI Fixes)
+// FILE: src/components/CompanyProfilePage.js (UPDATED - Verified Badge)
 // =======================================================================================
-// This version allows a student to edit their existing review, displays the
-// rating more clearly, and removes the direct "Apply" button from the active jobs list.
+// This version now correctly displays the application status for a job in the
+// Active Jobs card on the Company Profile Page, replacing the "Apply Now" button
+// if the student has already applied.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import CreateReviewModal from './CreateReviewModal';
@@ -58,9 +59,86 @@ const ReviewCard = ({ review }) => (
     </div>
 );
 
+// StatusBadge component definition (copied from other files, now local to this file)
+const StatusBadge = ({ status }) => {
+    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
+    const statusClasses = {
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        default: "bg-gray-100 text-gray-800"
+    };
+    return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
+};
+
+
+// JobCard component (copied from FindJobsPage/StudentDashboard for consistency)
+// FIXED: Now correctly displays application status from `applyingStatus` or `job.application_status`
+const JobCard = ({ job, currentUser, handleApply, handleViewJobDetails, applyingStatus }) => {
+    // Determine the displayed status: use applyingStatus first if available, then job.application_status
+    // Ensure applyingStatus is an object, default to empty object if null/undefined
+    const safeApplyingStatus = applyingStatus || {}; 
+    const currentApplicationStatus = safeApplyingStatus[job.id] || job.application_status;
+    const categoryName = job.category_name || job.category;
+    const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-200 hover:border-blue-300 hover:shadow-md">
+            <div className="p-6 flex flex-col h-full">
+                <div className="flex-grow">
+                    <span className="inline-block bg-blue-50 text-blue-600 text-sm font-semibold px-3 py-1 rounded-full mb-3">
+                        {categoryName}
+                    </span>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">{job.title}</h3>
+                    <p className="text-gray-600 mb-4">
+                        Posted by: 
+                        <button 
+                            onClick={() => { /* No direct company profile link from here, as we are already on company profile */ }} 
+                            className="font-semibold text-gray-600 ml-1 cursor-default" // Not clickable here
+                        >
+                            {displayName}
+                        </button>
+                    </p>
+                    <div className="space-y-2 text-gray-700">
+                        <p><strong>Type:</strong> {job.job_type}</p>
+                        <p><strong>Payment:</strong> {job.payment_range}</p>
+                    </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div>
+                        {/* FIXED: Display StatusBadge if there's an application status */}
+                        {currentApplicationStatus && (
+                            <StatusBadge status={currentApplicationStatus} />
+                        )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button 
+                            onClick={() => handleViewJobDetails(job)}
+                            className="font-medium py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition duration-300 text-sm"
+                        >
+                            View
+                        </button>
+                        {/* FIXED: Only show Apply Now if currentUser is a student AND no application status exists */}
+                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && (
+                            <button 
+                                onClick={() => handleApply(job)} 
+                                className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm"
+                            >
+                                Apply Now
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- Main Component ---
 
-function CompanyProfilePage({ publisherId, currentUser, handleViewJobDetails, showNotification }) {
+function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJobDetails, showNotification, appliedJobs, applyingStatus }) { // Added appliedJobs and applyingStatus
     const [company, setCompany] = useState(null);
     const [jobs, setJobs] = useState([]);
     const [reviews, setReviews] = useState([]);
@@ -88,6 +166,19 @@ function CompanyProfilePage({ publisherId, currentUser, handleViewJobDetails, sh
             setReviews(allReviews);
             
             if (currentUser && currentUser.id) {
+                // Fetch student's application status for each job
+                const jobsWithApplicationStatus = await Promise.all(
+                    data.jobs.map(async (job) => {
+                        const appStatusResponse = await fetch(`http://uniwiz.test/get_job_details.php?job_id=${job.id}&student_id=${currentUser.id}`);
+                        const appStatusData = await appStatusResponse.json();
+                        return {
+                            ...job,
+                            application_status: appStatusData.application_status // Add application_status from job details
+                        };
+                    })
+                );
+                setJobs(jobsWithApplicationStatus); // Update jobs state with application status
+                
                 const foundReview = allReviews.find(r => r.student_id === currentUser.id);
                 setUserReview(foundReview || null);
             }
@@ -137,6 +228,19 @@ function CompanyProfilePage({ publisherId, currentUser, handleViewJobDetails, sh
                             <h1 className="text-4xl font-bold text-primary-dark mb-1">{company.company_name || `${company.first_name} ${company.last_name}`}</h1>
                             <p className="text-gray-600 text-lg font-medium mb-2">{company.industry || 'Industry not specified'}</p>
                             <StarRating rating={company.average_rating} reviewCount={company.review_count} size="w-6 h-6" showText={true} />
+                            {/* NEW: Verified Badge for Publisher */}
+                            {company.is_verified ? (
+                                <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Verified Company
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800 mt-2">
+                                    Unverified Company
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -154,12 +258,14 @@ function CompanyProfilePage({ publisherId, currentUser, handleViewJobDetails, sh
                             <InfoCard title="Active Jobs" icon={JobsIcon}>
                                 <div className="space-y-4">
                                     {jobs.length > 0 ? jobs.map((job) => (
-                                        <div key={job.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-center hover:bg-gray-100 transition-colors border">
-                                            <button onClick={() => handleViewJobDetails(job)} className="text-left flex-grow">
-                                                <h4 className="font-bold text-primary-dark hover:underline">{job.title}</h4>
-                                                <p className="text-sm text-gray-500">{job.category} - {job.job_type}</p>
-                                            </button>
-                                        </div>
+                                        <JobCard // Reusing JobCard component
+                                            key={job.id}
+                                            job={job}
+                                            currentUser={currentUser}
+                                            handleApply={handleApply}
+                                            handleViewJobDetails={handleViewJobDetails}
+                                            applyingStatus={applyingStatus} // Pass applyingStatus here
+                                        />
                                     )) : (
                                         <p className="text-center text-gray-500 py-8">No active jobs currently posted.</p> 
                                     )}

@@ -1,7 +1,7 @@
 <?php
-// FILE: uniwiz-backend/api/get_company_profile.php (ENHANCED)
+// FILE: uniwiz-backend/api/get_company_profile.php (UPDATED for is_verified)
 // ===========================================================
-// This file now fetches rating details and all reviews along with other profile info.
+// This file now fetches rating details and all reviews along with other profile info, including publisher's verification status.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -36,6 +36,7 @@ try {
     $query_company = "
         SELECT 
             u.id, u.first_name, u.last_name, u.email, u.company_name, u.profile_image_url,
+            u.is_verified,
             pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, 
             pp.facebook_url, pp.linkedin_url, pp.instagram_url,
             (SELECT AVG(rating) FROM company_reviews WHERE publisher_id = u.id) as average_rating,

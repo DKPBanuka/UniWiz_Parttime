@@ -1,8 +1,8 @@
 <?php
-// FILE: uniwiz-backend/api/get_student_application_details.php (NEW FILE)
+// FILE: uniwiz-backend/api/get_student_application_details.php (UPDATED for job_status)
 // =======================================================================
 // This file fetches all details for a student's job applications,
-// including job title, publisher, date applied, and application status.
+// including job title, publisher, date applied, application status, and job status.
 
 // --- Headers ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -45,9 +45,10 @@ try {
         SELECT
             ja.job_id,
             j.title AS job_title,
+            j.status AS job_status, -- NEW: Added job_status
             u.first_name AS publisher_name,
             ja.applied_at,
-            ja.status
+            ja.status AS application_status -- Renamed to avoid conflict with job status
         FROM
             job_applications ja
         JOIN
@@ -72,7 +73,6 @@ try {
     // Fetch all applications as an associative array
     $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Set HTTP response code to 200 (OK)
     http_response_code(200);
     // Return applications as JSON
     echo json_encode($applications);

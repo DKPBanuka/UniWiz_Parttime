@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/delete_user_admin.php (NEW FILE)
+// FILE: uniwiz-backend/api/delete_user_admin.php (No changes needed for this feature)
 // =========================================================
 // This endpoint allows an admin to delete a user from the system.
 

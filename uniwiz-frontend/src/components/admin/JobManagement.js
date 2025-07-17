@@ -1,4 +1,4 @@
-// FILE: src/components/admin/JobManagement.js (UPDATED with Advanced Job Actions & Filtering)
+// FILE: src/components/admin/JobManagement.js (FIXED - Initial Filter Logic)
 // =======================================================
 // This page allows administrators to view, filter, and manage job postings,
 // including approving, rejecting, closing, reopening, and deleting jobs.
@@ -119,7 +119,7 @@ const ActionsDropdown = ({ job, onAction, onViewDetails }) => {
 };
 
 
-function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage }) { // Added setPage, setSelectedJobIdForDetailsPage
+function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage, initialFilter }) { // NEW: Added initialFilter prop
     const [jobs, setJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -131,6 +131,14 @@ function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage }) { // A
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
     };
+
+    // FIXED: Apply initialFilter when component mounts or initialFilter changes
+    useEffect(() => {
+        if (initialFilter && initialFilter.filter) {
+            setStatusFilter(initialFilter.filter);
+        }
+    }, [initialFilter]);
+
 
     const fetchAllJobs = useCallback(async () => {
         setIsLoading(true);
@@ -154,7 +162,7 @@ function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage }) { // A
         } finally {
             setIsLoading(false);
         }
-    }, [searchTerm, statusFilter, sortOrder]); // Added sortOrder to dependencies
+    }, [searchTerm, statusFilter, sortOrder]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {

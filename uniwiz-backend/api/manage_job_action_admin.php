@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/manage_job_action_admin.php (NEW FILE)
+// FILE: uniwiz-backend/api/manage_job_action_admin.php (No changes needed for this feature)
 // ===============================================================
 // This file handles admin-specific actions on jobs, such as deleting a job.
 

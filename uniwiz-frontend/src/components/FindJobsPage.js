@@ -1,4 +1,4 @@
-// FILE: src/components/FindJobsPage.js (Modern Light Blue Design)
+// FILE: src/components/FindJobsPage.js (FIXED - applyingStatus prop to JobCard)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -23,8 +23,10 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails }) => {
-    const applicationStatus = job.application_status;
+// FIXED: JobCard now correctly receives and uses applyingStatus
+const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
+    // Determine the displayed status: use applyingStatus first if available, then job.application_status
+    const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
     const categoryName = job.category_name || job.category;
     const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
 
@@ -52,8 +54,8 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                 </div>
                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div>
-                        {applicationStatus && (
-                            <StatusBadge status={applicationStatus} />
+                        {currentApplicationStatus && ( // Use currentApplicationStatus here
+                            <StatusBadge status={currentApplicationStatus} />
                         )}
                     </div>
                     <div className="flex items-center space-x-2">
@@ -63,7 +65,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         >
                             View
                         </button>
-                        {currentUser && currentUser.role === 'student' && !applicationStatus && (
+                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && ( // Use currentApplicationStatus here
                             <button 
                                 onClick={() => handleApply(job)} 
                                 className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm"
@@ -78,9 +80,10 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
     );
 };
 
-function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails }) {
+// FIXED: FindJobsPage now accepts applyingStatus as a prop
+function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, applyingStatus }) {
     const [allJobs, setAllJobs] = useState([]);
-    const [recommendedJobs, setRecommendedJobs] = useState([]);
+    const [recommendedJobs, setRecommendedJobs] = useState([]); // This state is not used in this component, but kept for consistency
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [jobTypeFilter, setJobTypeFilter] = useState('');
@@ -198,6 +201,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
                                 handleApply={handleApply} 
                                 handleViewCompanyProfile={handleViewCompanyProfile}
                                 handleViewJobDetails={handleViewJobDetails}
+                                applyingStatus={applyingStatus} // Pass applyingStatus here
                             />
                         )) : (
                             <div className="col-span-3 text-center text-gray-500 py-16 bg-white rounded-xl shadow-sm border border-gray-200">

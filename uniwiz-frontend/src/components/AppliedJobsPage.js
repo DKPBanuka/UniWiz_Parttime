@@ -1,4 +1,4 @@
-// FILE: src/components/AppliedJobsPage.js (Modern Light Blue Design)
+// FILE: src/components/AppliedJobsPage.js (UPDATED - Job Status Display)
 // ===================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -17,6 +17,9 @@ const StatusBadge = ({ status }) => {
         viewed: "bg-blue-100 text-blue-800",
         accepted: "bg-green-100 text-green-800",
         rejected: "bg-red-100 text-red-800",
+        // New statuses for job posts
+        closed: "bg-gray-200 text-gray-700", // For closed jobs
+        deleted: "bg-red-100 text-red-800", // For deleted jobs
         default: "bg-gray-100 text-gray-800",
     };
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
@@ -29,7 +32,8 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(initialFilter || 'All');
 
-    const tabs = ['All', 'Pending', 'Viewed', 'Accepted', 'Rejected'];
+    // FIXED: Added 'Closed' and 'Deleted' tabs for job statuses
+    const tabs = ['All', 'Pending', 'Viewed', 'Accepted', 'Rejected', 'Closed', 'Deleted'];
 
     const fetchApplicationDetails = useCallback(async () => {
         if (!user || !user.id) {
@@ -60,8 +64,19 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
     const filterApplications = useCallback((applicationsToFilter, tab) => {
         if (tab === 'All') {
             setFilteredApplications(applicationsToFilter);
-        } else {
-            setFilteredApplications(applicationsToFilter.filter(app => app.status.toLowerCase() === tab.toLowerCase()));
+        } else if (tab === 'Closed') { // Filter by job_status for 'Closed'
+            setFilteredApplications(applicationsToFilter.filter(app => app.job_status === 'closed'));
+        } else if (tab === 'Deleted') { // Filter by job_status for 'Deleted' (assuming 'deleted' is a job_status)
+            // Note: 'deleted' is not a formal job status in the DB enum, but if a job is deleted,
+            // it won't appear in get_job_details.php. For this filter, we'll assume a 'deleted'
+            // status is implied if job_status is not 'active', 'draft', or 'closed'.
+            // A more robust solution would be to check if the job_id still exists in the DB.
+            setFilteredApplications(applicationsToFilter.filter(app => 
+                app.job_status !== 'active' && app.job_status !== 'draft' && app.job_status !== 'closed'
+            ));
+        }
+        else { // Filter by application_status for other tabs
+            setFilteredApplications(applicationsToFilter.filter(app => app.application_status.toLowerCase() === tab.toLowerCase()));
         }
     }, []);
 
@@ -125,15 +140,16 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
                                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Job Title</th>
                                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Company</th>
                                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Date Applied</th>
-                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Application Status</th> {/* Renamed for clarity */}
+                                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Job Status</th> {/* NEW: Job Status Column */}
                                     <th className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
                                 ) : error ? (
-                                    <tr><td colSpan="5" className="text-center py-8 bg-red-50 text-red-600">{error}</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 bg-red-50 text-red-600">{error}</td></tr>
                                 ) : filteredApplications.length > 0 ? (
                                     filteredApplications.map(app => (
                                         <tr key={app.job_id} className="hover:bg-blue-50 transition-colors duration-150">
@@ -147,20 +163,33 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
                                                 })}
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
-                                                <StatusBadge status={app.status} />
+                                                <StatusBadge status={app.application_status} />
+                                            </td>
+                                            {/* NEW: Job Status Column */}
+                                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
+                                                {app.job_status === 'active' && <StatusBadge status="active" />}
+                                                {app.job_status === 'closed' && <StatusBadge status="closed" />}
+                                                {app.job_status === 'draft' && <StatusBadge status="pending" />} {/* Treat draft as pending for student view */}
+                                                {/* If job_status is not active, closed, or draft, assume it's deleted */}
+                                                {!['active', 'closed', 'draft'].includes(app.job_status) && <StatusBadge status="deleted" />}
                                             </td>
                                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button 
-                                                    onClick={() => handleViewJobDetails(app)}
-                                                    className="text-blue-500 hover:text-blue-600 hover:underline transition-colors duration-200"
-                                                >
-                                                    View
-                                                </button>
+                                                {/* Enable/Disable View button based on job_status */}
+                                                {app.job_status === 'active' ? (
+                                                    <button 
+                                                        onClick={() => handleViewJobDetails(app)}
+                                                        className="text-blue-500 hover:text-blue-600 hover:underline transition-colors duration-200"
+                                                    >
+                                                        View
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-gray-400 cursor-not-allowed">View</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="5" className="px-6 py-8 text-center text-gray-500 bg-gray-50">No applications found for this status.</td></tr>
+                                    <tr><td colSpan="6" className="px-6 py-8 text-center text-gray-500 bg-gray-50">No applications found for this status.</td></tr>
                                 )}
                             </tbody>
                         </table>

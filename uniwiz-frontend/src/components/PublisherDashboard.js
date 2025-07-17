@@ -1,7 +1,7 @@
-// FILE: src/components/PublisherDashboard.js (Modern UI/UX Update)
+// FILE: src/components/PublisherDashboard.js (UPDATED with Job Overview Vacancy & Accepted Counts)
 // =================================================================================
-// This version updates the "Recent Applicants" view button to open the details modal
-// directly by passing the application_id.
+// This version now displays the publisher's average rating on the dashboard,
+// and includes vacancy and accepted counts in the Job Overview section.
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +42,24 @@ const StatCard = ({ title, value, icon, onClick, description }) => (
     </motion.div>
 );
 
+// **NEW**: StarRating component (copied from CompanyProfilePage for consistency)
+const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false }) => {
+    const totalStars = 5;
+    const numericRating = parseFloat(rating) || 0;
+    const fullStars = Math.floor(numericRating);
+    const emptyStars = totalStars - fullStars;
+
+    return (
+        <div className="flex items-center">
+            {[...Array(fullStars)].map((_, i) => <svg key={`full_${i}`} className={`${size} text-yellow-400`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+            {[...Array(emptyStars)].map((_, i) => <svg key={`empty_${i}`} className={`${size} text-gray-300`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+            {showText && reviewCount > 0 && <span className="ml-2 text-sm font-bold text-gray-700">{numericRating.toFixed(1)} out of 5</span>}
+            {reviewCount > 0 && !showText && <span className="ml-2 text-sm text-gray-600">({reviewCount} reviews)</span>}
+        </div>
+    );
+};
+
+
 // **UPDATED**: ApplicantRow now calls onViewProfile with application_id
 const ApplicantRow = ({ applicant, onViewProfile }) => (
     <motion.div 
@@ -71,6 +89,7 @@ const ApplicantRow = ({ applicant, onViewProfile }) => (
     </motion.div>
 );
 
+// UPDATED: JobOverviewRow now displays vacancies and accepted counts
 const JobOverviewRow = ({ job, onViewJob }) => {
     const statusClasses = {
         active: "bg-green-100 text-green-800",
@@ -85,7 +104,16 @@ const JobOverviewRow = ({ job, onViewJob }) => {
         >
             <div>
                 <p className="font-semibold text-gray-800">{job.title}</p>
-                <p className="text-xs text-gray-500">{job.application_count} Applicant{job.application_count !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-gray-500">
+                    {job.application_count} Applicant{job.application_count !== 1 ? 's' : ''}
+                    {job.vacancies && job.accepted_count !== undefined && ( // Display vacancies if available
+                        <span className="ml-2">
+                            (<span className={job.accepted_count >= job.vacancies ? 'text-red-500' : 'text-green-600'}>
+                                {job.accepted_count}
+                            </span> / {job.vacancies} accepted)
+                        </span>
+                    )}
+                </p>
             </div>
             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${statusClasses[job.status] || 'bg-gray-100'}`}>
                 {job.status}
@@ -97,8 +125,7 @@ const JobOverviewRow = ({ job, onViewJob }) => {
 const ReviewCard = ({ review }) => {
     const Star = ({ filled }) => (
         <svg className={`w-4 h-4 ${filled ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
     );
 
     return (
@@ -174,6 +201,8 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const UsersIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
     const ClockIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const PlusCircleIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const StarFilledIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>;
+
 
     return (
         <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
@@ -267,6 +296,29 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                                 ))
                             ) : <p className="text-gray-500 text-center py-8 col-span-3">No reviews have been submitted yet.</p>}
                         </div>
+                    )}
+                </motion.div>
+
+                {/* Average Rating Display (NEW SECTION) */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center justify-center">
+                        <span className="mr-2 text-yellow-500">{StarFilledIcon}</span>
+                        Your Overall Rating
+                    </h3>
+                    {isLoading ? (
+                        <div className="h-8 w-1/2 bg-gray-200 rounded mx-auto animate-pulse"></div>
+                    ) : (
+                        <>
+                            <p className="text-5xl font-bold text-primary-dark">
+                                {stats?.average_rating ? stats.average_rating.toFixed(1) : 'N/A'}
+                            </p>
+                            <p className="text-lg text-gray-600 mt-2">
+                                out of 5 ({stats?.total_review_count ?? 0} reviews)
+                            </p>
+                            <div className="flex justify-center mt-4">
+                                <StarRating rating={stats?.average_rating ?? 0} size="h-6 w-6" />
+                            </div>
+                        </>
                     )}
                 </motion.div>
             </div>

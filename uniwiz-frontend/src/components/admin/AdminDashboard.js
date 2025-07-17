@@ -1,4 +1,4 @@
-// FILE: src/components/admin/AdminDashboard.js (UPDATED with Real Data & Unverified Users)
+// FILE: src/components/admin/AdminDashboard.js (FIXED - Filter Passing to setPage)
 // =======================================================
 // Main dashboard/landing page for the Administrator.
 
@@ -101,10 +101,10 @@ function AdminDashboard({ setPage }) { // Added setPage prop for navigation
                     <div className="lg:col-span-3 text-center text-red-500 py-8 bg-white rounded-xl shadow-md">Error: {error}</div>
                 ) : (
                     <>
-                        <StatCard title="Total Users" value={stats.totalUsers} icon="👥" colorClass="#4F46E5" description="Manage all users" onClick={() => setPage('user-management', { filter: 'All' })} />
-                        <StatCard title="Total Jobs Posted" value={stats.totalJobs} icon="💼" colorClass="#10B981" description="Manage all jobs" onClick={() => setPage('job-management', { filter: 'All' })} />
-                        <StatCard title="Jobs Pending Approval" value={stats.jobsPendingApproval} icon="⏳" colorClass="#F59E0B" description="Review pending jobs" onClick={() => setPage('job-management', { filter: 'draft' })} />
-                        <StatCard title="Unverified Users" value={stats.unverifiedUsers} icon="🚫" colorClass="#EF4444" description="Review unverified accounts" onClick={() => setPage('user-management', { filter: 'unverified' })} /> {/* NEW CARD */}
+                        <StatCard title="Total Users" value={stats.totalUsers} icon="則" colorClass="#4F46E5" description="Manage all users" onClick={() => setPage('user-management', { filter: 'All' })} />
+                        <StatCard title="Total Jobs Posted" value={stats.totalJobs} icon="直" colorClass="#10B981" description="Manage all jobs" onClick={() => setPage('job-management', { filter: 'All' })} />
+                        <StatCard title="Jobs Pending Approval" value={stats.jobsPendingApproval} icon="竢ｳ" colorClass="#F59E0B" description="Review pending jobs" onClick={() => setPage('job-management', { filter: 'draft' })} />
+                        <StatCard title="Unverified Users" value={stats.unverifiedUsers} icon="圻" colorClass="#EF4444" description="Review unverified accounts" onClick={() => setPage('user-management', { filter: 'unverified' })} /> {/* NEW CARD */}
                     </>
                 )}
             </div>
