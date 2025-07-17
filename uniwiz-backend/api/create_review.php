@@ -1,10 +1,9 @@
 <?php
 // FILE: uniwiz-backend/api/create_review.php (FIXED & ENHANCED)
 // =====================================================================
-// This file handles submitting a company review from a student
-// and creates a notification for the publisher.
+// This file now handles both creating and updating a company review.
+// It prevents duplicate reviews by updating the existing one.
 
-// FIX: Changed to allow requests from any origin, which is helpful for local development.
 header("Access-Control-Allow-Origin: *"); 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -68,47 +67,59 @@ try {
     $stmt_check->execute();
 
     if ($stmt_check->rowCount() > 0) {
-        http_response_code(409); // Conflict
-        echo json_encode(["message" => "You have already submitted a review for this publisher."]);
-        $db->rollBack();
-        exit();
-    }
+        // **UPDATE LOGIC**: If review exists, update it.
+        $existing_review = $stmt_check->fetch(PDO::FETCH_ASSOC);
+        $review_id = $existing_review['id'];
 
-    // 2. Insert the new review
-    $query_insert = "INSERT INTO company_reviews (publisher_id, student_id, rating, review_text) VALUES (:publisher_id, :student_id, :rating, :review_text)";
-    $stmt_insert = $db->prepare($query_insert);
-    $stmt_insert->bindParam(':publisher_id', $publisher_id);
-    $stmt_insert->bindParam(':student_id', $student_id);
-    $stmt_insert->bindParam(':rating', $rating);
-    $stmt_insert->bindParam(':review_text', $review_text);
-
-    if ($stmt_insert->execute()) {
-        // 3. Create a notification for the publisher
-        $query_student = "SELECT first_name, last_name FROM users WHERE id = :student_id";
-        $stmt_student = $db->prepare($query_student);
-        $stmt_student->bindParam(':student_id', $student_id);
-        $stmt_student->execute();
-        $student_info = $stmt_student->fetch(PDO::FETCH_ASSOC);
-        $student_name = $student_info ? $student_info['first_name'] . ' ' . $student_info['last_name'] : 'A student';
-
-        $notification_message = "$student_name has left a $rating-star review for your company.";
+        $query_update = "UPDATE company_reviews SET rating = :rating, review_text = :review_text, created_at = CURRENT_TIMESTAMP WHERE id = :review_id";
+        $stmt_update = $db->prepare($query_update);
+        $stmt_update->bindParam(':rating', $rating);
+        $stmt_update->bindParam(':review_text', $review_text);
+        $stmt_update->bindParam(':review_id', $review_id);
         
-        // The link will navigate the publisher to the page showing all their applicants.
-        $notification_link = "/applicants";
-
-        $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, 'new_review', :message, :link)";
-        $stmt_notif = $db->prepare($query_notif);
-        $stmt_notif->bindParam(':user_id', $publisher_id);
-        $stmt_notif->bindParam(':message', $notification_message);
-        $stmt_notif->bindParam(':link', $notification_link);
-        $stmt_notif->execute();
-        
-        $db->commit();
-        http_response_code(201);
-        echo json_encode(["message" => "Review submitted successfully."]);
+        if ($stmt_update->execute()) {
+            $db->commit();
+            http_response_code(200); // OK for update
+            echo json_encode(["message" => "Your review has been updated successfully."]);
+        } else {
+            throw new Exception("Failed to update review.");
+        }
 
     } else {
-        throw new Exception("Failed to submit review.");
+        // **INSERT LOGIC**: If no review exists, insert a new one.
+        $query_insert = "INSERT INTO company_reviews (publisher_id, student_id, rating, review_text) VALUES (:publisher_id, :student_id, :rating, :review_text)";
+        $stmt_insert = $db->prepare($query_insert);
+        $stmt_insert->bindParam(':publisher_id', $publisher_id);
+        $stmt_insert->bindParam(':student_id', $student_id);
+        $stmt_insert->bindParam(':rating', $rating);
+        $stmt_insert->bindParam(':review_text', $review_text);
+
+        if ($stmt_insert->execute()) {
+            // Create a notification for the publisher on the FIRST review only.
+            $query_student = "SELECT first_name, last_name FROM users WHERE id = :student_id";
+            $stmt_student = $db->prepare($query_student);
+            $stmt_student->bindParam(':student_id', $student_id);
+            $stmt_student->execute();
+            $student_info = $stmt_student->fetch(PDO::FETCH_ASSOC);
+            $student_name = $student_info ? $student_info['first_name'] . ' ' . $student_info['last_name'] : 'A student';
+
+            $notification_message = "$student_name has left a $rating-star review for your company.";
+            $notification_link = "/applicants"; // Or a link to a dedicated reviews page
+
+            $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, 'new_review', :message, :link)";
+            $stmt_notif = $db->prepare($query_notif);
+            $stmt_notif->bindParam(':user_id', $publisher_id);
+            $stmt_notif->bindParam(':message', $notification_message);
+            $stmt_notif->bindParam(':link', $notification_link);
+            $stmt_notif->execute();
+            
+            $db->commit();
+            http_response_code(201); // Created
+            echo json_encode(["message" => "Review submitted successfully."]);
+
+        } else {
+            throw new Exception("Failed to submit review.");
+        }
     }
 
 } catch (Exception $e) {

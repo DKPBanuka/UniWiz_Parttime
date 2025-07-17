@@ -1,10 +1,10 @@
-// FILE: src/components/CompanyProfilePage.js (FIXED & ENHANCED)
+// FILE: src/components/CompanyProfilePage.js (ENHANCED with Edit Review & UI Fixes)
 // =======================================================================================
-// This version adjusts card heights to fit their content and removes the direct "Apply" button
-// from the active jobs list, encouraging users to view details first.
+// This version allows a student to edit their existing review, displays the
+// rating more clearly, and removes the direct "Apply" button from the active jobs list.
 
 import React, { useState, useEffect, useCallback } from 'react';
-import CreateReviewModal from './CreateReviewModal'; // Import the review modal
+import CreateReviewModal from './CreateReviewModal';
 
 // --- Reusable Components ---
 
@@ -24,7 +24,7 @@ const InfoCard = ({ icon, title, children, className = '' }) => (
     </div>
 );
 
-const StarRating = ({ rating, reviewCount, size = 'w-5 h-5' }) => {
+const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false }) => {
     const totalStars = 5;
     const numericRating = parseFloat(rating) || 0;
     const fullStars = Math.floor(numericRating);
@@ -34,7 +34,8 @@ const StarRating = ({ rating, reviewCount, size = 'w-5 h-5' }) => {
         <div className="flex items-center">
             {[...Array(fullStars)].map((_, i) => <svg key={`full_${i}`} className={`${size} text-yellow-400`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
             {[...Array(emptyStars)].map((_, i) => <svg key={`empty_${i}`} className={`${size} text-gray-300`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
-            {reviewCount > 0 && <span className="ml-2 text-sm text-gray-600">({reviewCount} reviews)</span>}
+            {showText && reviewCount > 0 && <span className="ml-2 text-sm font-bold text-gray-700">{numericRating.toFixed(1)} out of 5</span>}
+            {reviewCount > 0 && !showText && <span className="ml-2 text-sm text-gray-600">({reviewCount} reviews)</span>}
         </div>
     );
 };
@@ -59,13 +60,14 @@ const ReviewCard = ({ review }) => (
 
 // --- Main Component ---
 
-function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs, applyingStatus, showNotification, handleViewJobDetails }) {
+function CompanyProfilePage({ publisherId, currentUser, handleViewJobDetails, showNotification }) {
     const [company, setCompany] = useState(null);
     const [jobs, setJobs] = useState([]);
     const [reviews, setReviews] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [userReview, setUserReview] = useState(null);
 
     const fetchCompanyData = useCallback(async () => {
         if (!publisherId) {
@@ -82,13 +84,20 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
             }
             setCompany(data.details);
             setJobs(Array.isArray(data.jobs) ? data.jobs : []);
-            setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+            const allReviews = Array.isArray(data.reviews) ? data.reviews : [];
+            setReviews(allReviews);
+            
+            if (currentUser && currentUser.id) {
+                const foundReview = allReviews.find(r => r.student_id === currentUser.id);
+                setUserReview(foundReview || null);
+            }
+
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
-    }, [publisherId]);
+    }, [publisherId, currentUser]);
 
     useEffect(() => {
         fetchCompanyData();
@@ -98,7 +107,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
         if(showNotification) {
             showNotification(message, 'success');
         }
-        fetchCompanyData(); // Refresh data to show the new review
+        fetchCompanyData();
     };
 
     if (isLoading) return <LoadingSpinner />;
@@ -127,7 +136,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
                         <div>
                             <h1 className="text-4xl font-bold text-primary-dark mb-1">{company.company_name || `${company.first_name} ${company.last_name}`}</h1>
                             <p className="text-gray-600 text-lg font-medium mb-2">{company.industry || 'Industry not specified'}</p>
-                            <StarRating rating={company.average_rating} reviewCount={company.review_count} size="w-6 h-6" />
+                            <StarRating rating={company.average_rating} reviewCount={company.review_count} size="w-6 h-6" showText={true} />
                         </div>
                     </div>
 
@@ -144,17 +153,14 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
                             
                             <InfoCard title="Active Jobs" icon={JobsIcon}>
                                 <div className="space-y-4">
-                                    {jobs.length > 0 ? jobs.map((job) => {
-                                        return (
-                                            <div key={job.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-center hover:bg-gray-100 transition-colors border">
-                                                <button onClick={() => handleViewJobDetails(job)} className="text-left flex-grow">
-                                                    <h4 className="font-bold text-primary-dark hover:underline">{job.title}</h4>
-                                                    <p className="text-sm text-gray-500">{job.category} - {job.job_type}</p>
-                                                </button>
-                                                {/* REMOVED APPLY BUTTON */}
-                                            </div>
-                                        );
-                                    }) : (
+                                    {jobs.length > 0 ? jobs.map((job) => (
+                                        <div key={job.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-center hover:bg-gray-100 transition-colors border">
+                                            <button onClick={() => handleViewJobDetails(job)} className="text-left flex-grow">
+                                                <h4 className="font-bold text-primary-dark hover:underline">{job.title}</h4>
+                                                <p className="text-sm text-gray-500">{job.category} - {job.job_type}</p>
+                                            </button>
+                                        </div>
+                                    )) : (
                                         <p className="text-center text-gray-500 py-8">No active jobs currently posted.</p> 
                                     )}
                                 </div>
@@ -198,7 +204,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
                                             onClick={() => setIsReviewModalOpen(true)}
                                             className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
                                         >
-                                            Leave a Review
+                                            {userReview ? 'Edit Your Review' : 'Leave a Review'}
                                         </button>
                                     </div>
                                 )}
@@ -224,6 +230,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
                 studentId={currentUser?.id}
                 companyName={company?.company_name || company?.first_name}
                 onSubmitSuccess={handleReviewSubmitSuccess}
+                existingReview={userReview}
             />
         </>
     );

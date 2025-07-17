@@ -1,8 +1,8 @@
-// FILE: src/components/CreateReviewModal.js (FIXED: API Fetch URL)
+// FILE: src/components/CreateReviewModal.js (ENHANCED for Editing)
 // =====================================================================
-// This version corrects the API endpoint URL to ensure reviews can be submitted successfully.
+// This version can now be used for both creating and editing a review.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Reusable Star component for rating
 const Star = ({ selected = false, onSelect = f => f }) => (
@@ -16,11 +16,26 @@ const Star = ({ selected = false, onSelect = f => f }) => (
     </svg>
 );
 
-function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyName, onSubmitSuccess }) {
+// **UPDATED**: Component now accepts an 'existingReview' prop
+function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyName, onSubmitSuccess, existingReview }) {
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // **NEW**: useEffect to pre-fill the form when editing
+    useEffect(() => {
+        if (isOpen) {
+            if (existingReview) {
+                setRating(existingReview.rating || 0);
+                setReviewText(existingReview.review_text || '');
+            } else {
+                // Reset form for new review
+                setRating(0);
+                setReviewText('');
+            }
+        }
+    }, [isOpen, existingReview]);
 
     if (!isOpen) return null;
 
@@ -38,7 +53,6 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         setError(null);
 
         try {
-            // FIX: Corrected the API URL to match the project's standard 'uniwiz.test' domain.
             const response = await fetch('http://uniwiz.test/create_review.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -56,9 +70,6 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
             }
 
             onSubmitSuccess(result.message);
-            // Reset state and close modal on success
-            setRating(0);
-            setReviewText('');
             onClose();
 
         } catch (err) {
@@ -68,10 +79,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         }
     };
     
-    // Function to handle closing the modal, which also resets its internal state
     const handleClose = () => {
-        setRating(0);
-        setReviewText('');
         setError(null);
         setIsLoading(false);
         onClose();
@@ -81,7 +89,10 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg relative">
                 <button onClick={handleClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-                <h2 className="text-2xl font-bold text-primary-dark mb-2">Write a review for {companyName}</h2>
+                {/* **UPDATED**: Modal title changes based on whether it's a new review or an edit */}
+                <h2 className="text-2xl font-bold text-primary-dark mb-2">
+                    {existingReview ? `Edit your review for ${companyName}` : `Write a review for ${companyName}`}
+                </h2>
                 <p className="text-gray-600 mb-6">Share your experience to help other students.</p>
 
                 <div className="space-y-4">

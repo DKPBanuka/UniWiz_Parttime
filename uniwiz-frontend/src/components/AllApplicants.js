@@ -1,8 +1,7 @@
-// FILE: src/components/AllApplicants.js (ENHANCED with new Profile Modal & Direct Linking)
+// FILE: src/components/AllApplicants.js (REVERTED TO SIMPLER, GENERAL-PURPOSE VIEW)
 // ==================================================================================
-// This version replaces the navigation to a separate profile page with a detailed
-// popup modal, improving the publisher's workflow. It now displays all available
-// student details in the modal and can be opened directly via a prop.
+// This component is now solely for viewing ALL applicants from ALL jobs.
+// The job-specific view has been moved into the ManageJobs component.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -43,17 +42,15 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
     const modalRef = useRef();
 
-    // Automatically mark as 'viewed' when modal opens
     useEffect(() => {
         if (applicant && applicant.status === 'pending') {
-            onStatusChange(applicant.application_id, 'viewed', false); // Don't show popup
+            onStatusChange(applicant.application_id, 'viewed', false); 
             setCurrentStatus('viewed');
         } else if (applicant) {
             setCurrentStatus(applicant.status);
         }
     }, [applicant, onStatusChange]);
 
-    // Close modal on escape key press
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') {
@@ -70,7 +67,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     if (!applicant) return null;
 
     const handleStatusButtonClick = (newStatus) => {
-        onStatusChange(applicant.application_id, newStatus, true); // Show popup
+        onStatusChange(applicant.application_id, newStatus, true); 
         setCurrentStatus(newStatus);
     };
     
@@ -159,7 +156,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
 const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
     
     const handleActionClick = (e, status) => {
-        e.stopPropagation(); // Prevent modal from opening
+        e.stopPropagation(); 
         onStatusChange(applicant.application_id, status, true);
     };
 
@@ -197,9 +194,9 @@ const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
     );
 };
 
+
 // --- Main AllApplicants Component ---
-// **UPDATED**: Added initialApplicationId and onModalClose props
-function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, initialApplicationId, onModalClose }) {
+function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicationId, onModalClose }) {
     const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -210,7 +207,6 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedApplicant, setSelectedApplicant] = useState(null);
     
-    // Ref to ensure modal is only opened once per navigation
     const modalOpenedRef = useRef(false);
 
     const showNotification = (message, type = 'success') => {
@@ -227,6 +223,7 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
                 search: searchTerm,
                 status: statusFilter,
             });
+
             const url = `http://uniwiz.test/get_all_publisher_applications.php?${params.toString()}`;
             const response = await fetch(url);
             const data = await response.json();
@@ -240,26 +237,24 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
         }
     }, [user, searchTerm, statusFilter]);
 
-    // **NEW**: Effect to open the modal automatically if an ID is passed
     useEffect(() => {
         if (initialApplicationId && allApplicants.length > 0 && !modalOpenedRef.current) {
             const applicantToShow = allApplicants.find(app => app.application_id === initialApplicationId);
             if (applicantToShow) {
                 setSelectedApplicant(applicantToShow);
                 setIsModalOpen(true);
-                modalOpenedRef.current = true; // Mark as opened
+                modalOpenedRef.current = true; 
             }
         }
     }, [initialApplicationId, allApplicants]);
     
-    // **NEW**: Handler to close the modal and reset the state in App.js
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedApplicant(null);
         if (onModalClose) {
             onModalClose();
         }
-        modalOpenedRef.current = false; // Reset ref for next time
+        modalOpenedRef.current = false; 
     };
 
     const handleViewDetails = (applicant) => {
@@ -267,13 +262,25 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
         setIsModalOpen(true);
     };
     
-    const handleModalStatusChange = (applicationId, newStatus, showNotif) => {
-        onStatusChange(applicationId, newStatus, showNotif);
-        setAllApplicants(prev => 
-            prev.map(app => 
-                app.application_id === applicationId ? { ...app, status: newStatus } : app
-            )
-        );
+    const handleStatusChange = async (applicationId, newStatus, showNotif) => {
+        try {
+            const response = await fetch(`http://uniwiz.test/update_application_status.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ application_id: applicationId, status: newStatus }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            if (showNotif) showNotification(result.message, 'success');
+            // Update local state to reflect the change immediately
+            setAllApplicants(prev => 
+                prev.map(app => 
+                    app.application_id === applicationId ? { ...app, status: newStatus } : app
+                )
+            );
+        } catch (err) {
+            if (showNotif) showNotification(`Error: ${err.message}`, 'error');
+        }
     };
 
     useEffect(() => {
@@ -308,7 +315,7 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
                 <ApplicantDetailModal 
                     applicant={selectedApplicant} 
                     onClose={handleCloseModal}
-                    onStatusChange={handleModalStatusChange}
+                    onStatusChange={handleStatusChange}
                 />
             )}
 
@@ -350,7 +357,7 @@ function AllApplicants({ user, onStatusChange, initialFilter, setInitialFilter, 
                             <ApplicantCard 
                                 key={app.application_id} 
                                 applicant={app} 
-                                onStatusChange={onStatusChange}
+                                onStatusChange={handleStatusChange}
                                 onViewDetails={handleViewDetails}
                             />
                         ))}
