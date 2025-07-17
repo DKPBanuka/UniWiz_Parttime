@@ -1,6 +1,7 @@
-// FILE: src/components/CompanyProfilePage.js (FIXED: Dynamic Card Height)
+// FILE: src/components/CompanyProfilePage.js (FIXED & ENHANCED)
 // =======================================================================================
-// This version adjusts card heights to fit their content, removing unnecessary white space.
+// This version adjusts card heights to fit their content and removes the direct "Apply" button
+// from the active jobs list, encouraging users to view details first.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import CreateReviewModal from './CreateReviewModal'; // Import the review modal
@@ -13,7 +14,6 @@ const LoadingSpinner = () => (
     </div>
 );
 
-// FIX: Removed 'h-full' to allow card height to be dynamic based on content.
 const InfoCard = ({ icon, title, children, className = '' }) => (
     <div className={`bg-white p-6 rounded-xl shadow-md border border-gray-100 ${className}`}>
         <div className="flex items-center mb-4">
@@ -145,17 +145,13 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, appliedJobs
                             <InfoCard title="Active Jobs" icon={JobsIcon}>
                                 <div className="space-y-4">
                                     {jobs.length > 0 ? jobs.map((job) => {
-                                        const hasApplied = appliedJobs && appliedJobs.has(job.id);
-                                        const isApplying = applyingStatus && applyingStatus[job.id] === 'applying';
                                         return (
                                             <div key={job.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-center hover:bg-gray-100 transition-colors border">
                                                 <button onClick={() => handleViewJobDetails(job)} className="text-left flex-grow">
                                                     <h4 className="font-bold text-primary-dark hover:underline">{job.title}</h4>
                                                     <p className="text-sm text-gray-500">{job.category} - {job.job_type}</p>
                                                 </button>
-                                                <button onClick={() => handleApply(job)} disabled={hasApplied || isApplying} className={`font-bold py-2 px-4 rounded-lg transition duration-300 text-sm ml-4 ${hasApplied ? 'bg-green-100 text-green-800 cursor-not-allowed' : isApplying ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-primary-main text-white hover:bg-primary-dark'}`}>
-                                                    {hasApplied ? 'Applied' : isApplying ? 'Applying...' : 'Apply'}
-                                                </button>
+                                                {/* REMOVED APPLY BUTTON */}
                                             </div>
                                         );
                                     }) : (

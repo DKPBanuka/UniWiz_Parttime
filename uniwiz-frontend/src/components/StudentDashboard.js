@@ -1,27 +1,35 @@
-// FILE: src/components/StudentDashboard.js (Updated with Recommended Jobs)
+// FILE: src/components/StudentDashboard.js (Updated with Clickable Card Links and Status Badges)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
 
 // --- Reusable Components ---
 
-const StatCard = ({ title, value, icon, delay = 0 }) => (
+const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description }) => (
   <div
-    className="stat-card bg-white p-6 rounded-xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
+    className="stat-card bg-white p-6 rounded-xl shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
     style={{ animationDelay: `${delay * 100}ms` }}
   >
-    <div>
-      <p className="text-sm font-medium text-gray-600">{title}</p>
-      <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+    <div className="flex items-center justify-between">
+        <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+        </div>
+        <div className="bg-primary-lighter p-3 rounded-full text-primary-dark">
+            {icon}
+        </div>
     </div>
-    <div className="bg-primary-lighter p-3 rounded-full text-primary-dark">
-      {icon}
-    </div>
+    <button onClick={onLinkClick} className="text-left text-sm text-primary-main font-semibold mt-4 hover:underline flex items-center group">
+        {description}
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+    </button>
   </div>
 );
 
 const ProfileCompletionCard = ({ percentage, setPage }) => (
-    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100">
+    <div onClick={() => setPage('profile')} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100 cursor-pointer">
         <p className="text-sm font-medium text-gray-600">Profile Completion</p>
         <div className="flex items-center mt-2">
             <p className="text-3xl font-bold text-gray-800 mr-3">{percentage}%</p>
@@ -29,7 +37,7 @@ const ProfileCompletionCard = ({ percentage, setPage }) => (
                 <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
             </div>
         </div>
-        <button onClick={() => setPage('profile')} className="text-sm font-semibold text-primary-main hover:underline mt-4">
+        <button className="text-sm font-semibold text-primary-main hover:underline mt-4">
             {percentage < 100 ? 'Complete your profile to stand out!' : 'Your profile is looking great!'}
         </button>
     </div>
@@ -56,9 +64,21 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const JobCard = ({ job, currentUser, handleApply, appliedJobs, applyingStatus, handleViewCompanyProfile, handleViewJobDetails }) => {
-    const hasApplied = appliedJobs && appliedJobs.has(job.id);
-    const isApplying = applyingStatus && applyingStatus[job.id] === 'applying';
+const StatusBadge = ({ status }) => {
+    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
+    const statusClasses = {
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        applied: "bg-primary-lighter text-primary-dark",
+        default: "bg-gray-100 text-gray-800"
+    };
+    return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
+};
+
+const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails }) => {
+    const applicationStatus = job.application_status;
     const categoryName = job.category_name || job.category;
     return (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 border border-gray-100">
@@ -67,9 +87,9 @@ const JobCard = ({ job, currentUser, handleApply, appliedJobs, applyingStatus, h
                     <span className="inline-block bg-primary-light text-primary-dark text-sm font-semibold px-3 py-1 rounded-full mb-3">{categoryName}</span>
                     <h3 className="text-2xl font-bold text-primary-dark mb-2">{job.title}</h3>
                     <p className="text-gray-600 mb-4">
-                        Posted by: 
-                        <button 
-                            onClick={() => handleViewCompanyProfile(job.publisher_id)} 
+                        Posted by:
+                        <button
+                            onClick={() => handleViewCompanyProfile(job.publisher_id)}
                             className="font-semibold text-primary-main hover:text-primary-dark ml-1"
                         >
                             {job.company_name || job.publisher_name}
@@ -77,25 +97,31 @@ const JobCard = ({ job, currentUser, handleApply, appliedJobs, applyingStatus, h
                     </p>
                     <div className="space-y-2 text-gray-700">
                         <p><strong>Type:</strong> {job.job_type}</p>
-                        <p><strong>Payment:</strong> {job.payment_range}</p>
+                        <p><strong>Payment (Wage):</strong> {job.payment_range}</p>
                     </div>
                 </div>
-                <div className="mt-6 pt-4 border-t flex justify-end items-center space-x-3">
-                    <button 
-                        onClick={() => handleViewJobDetails(job)}
-                        className="font-bold py-2 px-5 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-300"
-                    >
-                        View
-                    </button>
-                    {currentUser && currentUser.role === 'student' && (
-                        <button 
-                            onClick={() => handleApply(job)} 
-                            disabled={hasApplied || isApplying} 
-                            className={`font-bold py-2 px-5 rounded-lg transition duration-300 ${hasApplied ? 'bg-green-500 text-white cursor-not-allowed' : isApplying ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-primary-main text-white hover:bg-primary-dark'}`}
+                <div className="mt-6 pt-4 border-t flex justify-between items-center">
+                    <div>
+                        {applicationStatus && (
+                            <StatusBadge status={applicationStatus} />
+                        )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={() => handleViewJobDetails(job)}
+                            className="font-bold py-2 px-5 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-300 text-sm"
                         >
-                            {hasApplied ? 'Applied' : isApplying ? 'Applying...' : 'Apply Now'}
+                            View
                         </button>
-                    )}
+                        {currentUser && currentUser.role === 'student' && !applicationStatus && (
+                            <button
+                                onClick={() => handleApply(job)}
+                                className={'bg-primary-main text-white hover:bg-primary-dark font-bold py-2 px-5 rounded-lg transition duration-300 text-sm'}
+                            >
+                                Apply Now
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -103,7 +129,7 @@ const JobCard = ({ job, currentUser, handleApply, appliedJobs, applyingStatus, h
 };
 
 
-function StudentDashboard({ currentUser, handleApply, appliedJobs, applyingStatus, setPage, setPublisherIdForProfile, handleViewJobDetails }) {
+function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, setAppliedJobsPageFilter }) {
     const [stats, setStats] = useState(null);
     const [isLoadingStats, setIsLoadingStats] = useState(true);
     const [errorStats, setErrorStats] = useState(null);
@@ -163,6 +189,11 @@ function StudentDashboard({ currentUser, handleApply, appliedJobs, applyingStatu
             setPage('company-profile');
         }
     };
+    
+    const handleStatLinkClick = (filter) => {
+        setAppliedJobsPageFilter(filter);
+        setPage('applied-jobs');
+    };
 
     const ApplicationsSentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
     const AcceptedIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
@@ -191,9 +222,30 @@ function StudentDashboard({ currentUser, handleApply, appliedJobs, applyingStatu
                     <div className="lg:col-span-4 text-center text-red-500 py-8">Error loading stats: {errorStats}</div>
                 ) : (
                     <>
-                        <StatCard title="Applications Sent" value={stats?.applications_sent ?? 0} icon={<ApplicationsSentIcon />} delay={0} />
-                        <StatCard title="Applications Accepted" value={stats?.applications_accepted ?? 0} icon={<AcceptedIcon />} delay={1} />
-                        <StatCard title="Profile Views" value={stats?.profile_views ?? 0} icon={<ProfileViewsIcon />} delay={2} />
+                        <StatCard 
+                            title="Applications Sent" 
+                            value={stats?.applications_sent ?? 0} 
+                            icon={<ApplicationsSentIcon />} 
+                            delay={0}
+                            description="View all applications"
+                            onLinkClick={() => handleStatLinkClick('All')} 
+                        />
+                        <StatCard 
+                            title="Applications Accepted" 
+                            value={stats?.applications_accepted ?? 0} 
+                            icon={<AcceptedIcon />} 
+                            delay={1}
+                            description="View accepted applications"
+                            onLinkClick={() => handleStatLinkClick('Accepted')} 
+                        />
+                        <StatCard 
+                            title="Profile Views" 
+                            value={stats?.profile_views ?? 0} 
+                            icon={<ProfileViewsIcon />} 
+                            delay={2}
+                            description="View applications by status"
+                            onLinkClick={() => handleStatLinkClick('Viewed')} 
+                        />
                         <ProfileCompletionCard percentage={stats?.profile_completion_percentage ?? 0} setPage={setPage} />
                     </>
                 )}
@@ -214,13 +266,11 @@ function StudentDashboard({ currentUser, handleApply, appliedJobs, applyingStatu
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {recommendedJobs.length > 0 ? recommendedJobs.map(job => (
-                        <JobCard 
-                            key={`rec-${job.id}`} 
-                            job={job} 
-                            currentUser={currentUser} 
-                            handleApply={handleApply} 
-                            appliedJobs={appliedJobs} 
-                            applyingStatus={applyingStatus} 
+                        <JobCard
+                            key={`rec-${job.id}`}
+                            job={job}
+                            currentUser={currentUser}
+                            handleApply={handleApply}
                             handleViewCompanyProfile={handleViewCompanyProfile}
                             handleViewJobDetails={handleViewJobDetails}
                         />

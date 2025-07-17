@@ -1,7 +1,7 @@
-// FILE: src/components/JobDetailsModal.js (ENHANCED with Application Status Display)
+// FILE: src/components/JobDetailsModal.js (FIXED & ENHANCED)
 // ===================================================================================
-// This component now displays the application status in the top-right corner
-// and hides the "Apply Now" button if the student has already applied.
+// This component now fetches the application status directly from the API
+// ensuring the correct state is always displayed.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -26,7 +26,6 @@ const SkillBadge = ({ skill }) => (
     </span>
 );
 
-// Reusable StatusBadge component to show application status
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -40,13 +39,11 @@ const StatusBadge = ({ status }) => {
 };
 
 
-function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
+// **UPDATED**: Added currentUser prop to pass the student's ID to the API
+function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply }) {
     const [jobDetails, setJobDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // The application status is passed directly in the 'job' prop from the parent component.
-    const applicationStatus = job?.application_status;
 
     const fetchJobDetails = useCallback(async () => {
         if (!job || !job.id) {
@@ -56,20 +53,24 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
         }
         setIsLoading(true);
         try {
-            // We fetch full details to ensure all data is up-to-date
-            const response = await fetch(`http://uniwiz.test/get_job_details.php?job_id=${job.id}`);
+            // **UPDATED**: Construct URL with student_id if available
+            let apiUrl = `http://uniwiz.test/get_job_details.php?job_id=${job.id}`;
+            if (currentUser && currentUser.role === 'student') {
+                apiUrl += `&student_id=${currentUser.id}`;
+            }
+            
+            const response = await fetch(apiUrl);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "Failed to fetch job details.");
             }
-            // Combine the initial job object (which includes the status) with the full details
-            setJobDetails({ ...job, ...data });
+            setJobDetails(data);
         } catch (err) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
-    }, [job]);
+    }, [job, currentUser]); // **UPDATED**: Added currentUser to dependency array
 
     useEffect(() => {
         if (isOpen) {
@@ -79,6 +80,8 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
 
     if (!isOpen) return null;
 
+    // **FIX**: Derive applicationStatus directly from the fetched jobDetails state
+    const applicationStatus = jobDetails?.application_status;
     const skills = jobDetails?.skills_required ? jobDetails.skills_required.split(',').map(s => s.trim()) : [];
 
     return (
@@ -100,7 +103,7 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
                                 <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.title}</h1>
                                 <p className="text-lg text-gray-600 mt-1">{jobDetails.company_name || 'A Reputed Company'}</p>
                             </div>
-                            {/* **NEW**: Display status badge in the top right */}
+                            {/* This now correctly uses the status from the fetched details */}
                             {applicationStatus && (
                                 <div className="flex-shrink-0 ml-4">
                                     <StatusBadge status={applicationStatus} />
@@ -153,12 +156,12 @@ function JobDetailsModal({ job, isOpen, onClose, handleApply }) {
                         
                         {/* Action Buttons */}
                         <div className="flex justify-end pt-4 border-t mt-4">
-                            {/* **CHANGE**: Only show Apply Now button if student has NOT applied */}
-                            {!applicationStatus && (
+                            {/* This logic now correctly uses the fetched status */}
+                            {!applicationStatus && currentUser?.role === 'student' && (
                                 <button 
                                     onClick={() => {
                                         onClose(); // Close this modal
-                                        handleApply(job); // Open the apply modal
+                                        handleApply(jobDetails); // Open the apply modal
                                     }} 
                                     className="bg-primary-main text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-colors"
                                 >

@@ -1,8 +1,8 @@
 <?php
-// FILE: uniwiz-backend/api/get_recommended_jobs.php (FIXED)
+// FILE: uniwiz-backend/api/get_recommended_jobs.php (FIXED & ENHANCED with Application Status)
 // =================================================================
 // This file recommends jobs to a student based on their profile.
-// It now correctly includes the company name.
+// It now correctly includes the company name and the student's application status for each job.
 
 // --- Headers & DB Connection ---
 header("Access-Control-Allow-Origin: http://localhost:3000");
@@ -40,19 +40,22 @@ try {
     $student_skills = $student_profile ? array_map('trim', explode(',', $student_profile['skills'])) : [];
     $student_categories = $student_profile ? array_map('trim', explode(',', $student_profile['preferred_categories'])) : [];
 
-    // 2. Get all active jobs with company details
-    // FIX: Joined with users table to get publisher and company name
+    // 2. Get all active jobs with company details and application status
+    // **CHANGE**: Joined with job_applications to get the status for the current student
     $stmt_jobs = $db->prepare("
         SELECT 
             j.*, 
             jc.name as category_name,
             u.first_name as publisher_name,
-            u.company_name
+            u.company_name,
+            ja.status as application_status
         FROM jobs j 
         JOIN job_categories jc ON j.category_id = jc.id
         LEFT JOIN users u ON j.publisher_id = u.id
+        LEFT JOIN job_applications ja ON j.id = ja.job_id AND ja.student_id = :student_id
         WHERE j.status = 'active'
     ");
+    $stmt_jobs->bindParam(':student_id', $student_id, PDO::PARAM_INT);
     $stmt_jobs->execute();
     $all_jobs = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
 

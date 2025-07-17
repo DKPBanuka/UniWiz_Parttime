@@ -1,5 +1,5 @@
 <?php
-// FILE: uniwiz-backend/api/auth.php (Updated to handle user roles and auto-login with student profile data)
+// FILE: uniwiz-backend/api/auth.php (FIXED to load all publisher profile data on login)
 // ======================================================================
 
 // --- Headers ---
@@ -39,6 +39,25 @@ if ($data === null || !isset($data->action)) {
     exit();
 }
 
+// --- Function to fetch full user profile ---
+function getFullUserProfile($db, $user_id) {
+    $query = "
+        SELECT 
+            u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
+            sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
+            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url
+        FROM users u
+        LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        LEFT JOIN publisher_profiles pp ON u.id = pp.user_id
+        WHERE u.id = :id
+    ";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+
 // --- ACTION ROUTER ---
 if ($data->action === 'register') {
 
@@ -59,7 +78,6 @@ if ($data->action === 'register') {
             http_response_code(400); 
             echo json_encode(array("message" => "This email is already registered."));
         } else {
-            // Handle first_name, last_name, company_name based on role for initial user creation
             $firstName = isset($data->first_name) ? htmlspecialchars(strip_tags($data->first_name)) : '';
             $lastName = isset($data->last_name) ? htmlspecialchars(strip_tags($data->last_name)) : '';
             $companyName = isset($data->company_name) ? htmlspecialchars(strip_tags($data->company_name)) : '';
@@ -81,34 +99,24 @@ if ($data->action === 'register') {
             $stmt->bindParam(':password', $password_hash);
             $stmt->bindParam(':first_name', $firstName);
             $stmt->bindParam(':last_name', $lastName);
-            $stmt->bindParam(':company_name', $companyName); // Bind company_name
+            $stmt->bindParam(':company_name', $companyName);
             $stmt->bindParam(':role', $role);
 
             if ($stmt->execute()) {
                 $new_user_id = $db->lastInsertId();
 
-                // NEW: If student, create an empty entry in student_profiles
                 if ($role === 'student') {
                     $stmt_student_profile = $db->prepare("INSERT INTO student_profiles (user_id) VALUES (:user_id)");
                     $stmt_student_profile->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
                     $stmt_student_profile->execute();
+                } elseif ($role === 'publisher') {
+                    // Create an empty publisher profile
+                    $stmt_publisher_profile = $db->prepare("INSERT INTO publisher_profiles (user_id) VALUES (:user_id)");
+                    $stmt_publisher_profile->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
+                    $stmt_publisher_profile->execute();
                 }
-                // NEW: If publisher, create an empty entry in publisher_profiles (if you move company_name there later)
-                // For now, company_name is in 'users' table.
 
-                // Fetch the new user's data with joined profile data to send back to the frontend
-                $query_fetch = "
-                    SELECT 
-                        u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
-                        sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url
-                    FROM users u
-                    LEFT JOIN student_profiles sp ON u.id = sp.user_id
-                    WHERE u.id = :id
-                ";
-                $stmt_fetch = $db->prepare($query_fetch);
-                $stmt_fetch->bindParam(':id', $new_user_id, PDO::PARAM_INT);
-                $stmt_fetch->execute();
-                $new_user = $stmt_fetch->fetch(PDO::FETCH_ASSOC);
+                $new_user = getFullUserProfile($db, $new_user_id);
 
                 http_response_code(201);
                 echo json_encode(array(
@@ -135,18 +143,22 @@ if ($data->action === 'register') {
         exit();
     }
     try {
-        // Fetch user data with joined student profile data
+        // **FIX**: The query now joins with both student_profiles and publisher_profiles
+        // to get all data regardless of the role.
         $query = "
             SELECT 
                 u.id, u.email, u.password, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
-                sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url
+                sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
+                pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url
             FROM users u
             LEFT JOIN student_profiles sp ON u.id = sp.user_id
+            LEFT JOIN publisher_profiles pp ON u.id = pp.user_id
             WHERE u.email = :email
         ";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $data->email);
         $stmt->execute();
+        
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (password_verify($data->password, $row['password'])) {

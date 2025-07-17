@@ -4,6 +4,7 @@
 // resolving all "failed to fetch" errors. It also includes enhanced logic
 // to prevent duplicate notification popups and links the dashboard/notifications
 // directly to the applicant details modal.
+// FIX: Improved loading state management and passing currentUser to JobDetailsModal.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -64,7 +65,7 @@ function App() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [publisherIdForProfile, setPublisherIdForProfile] = useState(null);
   const [studentIdForProfile, setStudentIdForProfile] = useState(null);
-  const [applicationIdToView, setApplicationIdToView] = useState(null); // **NEW**: For opening applicant modal
+  const [applicationIdToView, setApplicationIdToView] = useState(null);
 
   // Modal states
   const [isApplyModalOpen, setApplyModalOpen] = useState(false);
@@ -78,12 +79,13 @@ function App() {
 
   // UI State
   const [isSidebarLocked, setIsSidebarLocked] = useState(true);
-  const [applicantsPageFilter, setApplicantsPageFilter] = useState('All'); // Filter for AllApplicants page
+  const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
+  const [appliedJobsPageFilter, setAppliedJobsPageFilter] = useState('All');
 
   // Notification States
   const [notifications, setNotifications] = useState([]);
   const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
-  const [shownPopupIds, setShownPopupIds] = useState(new Set()); // Prevents duplicate popups
+  const [shownPopupIds, setShownPopupIds] = useState(new Set());
 
   // --- Utility Functions ---
   const showPopupNotification = useCallback((message, type = 'info') => {
@@ -161,8 +163,7 @@ function App() {
         }
     };
     initializeUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAppliedJobs]);
 
   // --- Auth & Profile Handlers ---
   const handleLoginSuccess = useCallback(async (userData) => {
@@ -206,8 +207,7 @@ function App() {
   const handleViewApplicants = (filter = 'All') => { setApplicantsPageFilter(filter); setPage('applicants'); };
   const handleViewJobDetailsPage = (jobId) => { setSelectedJobId(jobId); setPage('view-job-details'); };
   const handleViewJobDetailsModal = (job) => { setSelectedJobForDetails(job); setIsJobDetailsModalOpen(true); };
-
-  // **NEW**: Handler to navigate to applicants page and set the ID for the modal
+  
   const handleViewApplicantDetails = (applicationId) => {
       setApplicationIdToView(applicationId);
       setPage('applicants');
@@ -227,9 +227,9 @@ function App() {
             showPopupNotification('Could not update notification status.', 'error');
         }
     }
-    // **UPDATED**: Navigate based on link, specifically for applicant view
+    
     if (notification.link) {
-        const linkParts = notification.link.split('/'); // e.g., ['', 'applicants', 'view', '123']
+        const linkParts = notification.link.split('/');
         const pageTarget = linkParts[1];
         const action = linkParts[2];
         const id = linkParts[3];
@@ -285,7 +285,7 @@ function App() {
       const commonPages = {
         'notifications': <NotificationsPage user={currentUser} notifications={notifications} onNotificationClick={handleNotificationClick} />,
         'profile': <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />,
-        'settings': <SettingsPage />,
+        'settings': <SettingsPage user={currentUser} onLogout={handleLogout} />,
       };
       if (commonPages[page]) return commonPages[page];
 
@@ -296,22 +296,26 @@ function App() {
               case 'manage-jobs': return <ManageJobs user={currentUser} onViewApplicationsClick={handleViewApplications} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
               case 'view-applications': return <ViewApplications jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} onViewStudentProfile={handleViewStudentProfile} />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobId} onBackClick={() => setPage('manage-jobs')} />;
-              case 'applicants': return <AllApplicants user={currentUser} onViewStudentProfile={handleViewStudentProfile} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} />;
+              case 'applicants': return <AllApplicants user={currentUser} onStatusChange={()=>{}} onViewStudentProfile={handleViewStudentProfile} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
           }
       } else { // Student Role
           switch (page) {
-              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
-              case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
-              case 'applied-jobs': return <AppliedJobsPage user={currentUser} />;
-              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetailsModal} />;
-              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
+              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
+              case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetailsModal} />;
+              case 'applied-jobs': return <AppliedJobsPage user={currentUser} initialFilter={appliedJobsPageFilter} setInitialFilter={setAppliedJobsPageFilter} />;
+              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetailsModal} />;
+              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetailsModal} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
           }
       }
   };
 
   const renderPage = () => {
+    if (page !== 'login' && page !== 'loading' && !currentUser) {
+        return <div className="flex items-center justify-center min-h-screen"><p>Initializing session...</p></div>;
+    }
+
     switch (page) {
         case 'loading':
             return <div className="flex items-center justify-center min-h-screen"><p>Loading UniWiz...</p></div>;
@@ -320,7 +324,6 @@ function App() {
         case 'profile-setup':
             return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} />;
         default:
-            if (!currentUser) return <LoginPage onLoginSuccess={handleLoginSuccess} />;
             return (
                 <div className={`flex h-screen bg-gray-50`}>
                     {currentUser.role === 'publisher' ? (
@@ -355,6 +358,7 @@ function App() {
         isOpen={isJobDetailsModalOpen} 
         onClose={() => setIsJobDetailsModalOpen(false)} 
         job={selectedJobForDetails}
+        currentUser={currentUser}
         handleApply={handleOpenApplyModal}
       />
     </>

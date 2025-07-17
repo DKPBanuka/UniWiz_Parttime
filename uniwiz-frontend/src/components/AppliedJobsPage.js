@@ -1,11 +1,12 @@
-// FILE: src/components/AppliedJobsPage.js (Updated for My Applications UI - Light Theme)
+// FILE: src/components/AppliedJobsPage.js (Updated for My Applications UI - Light Theme & Filtering)
 // ===================================================
 // This component displays the list of jobs a student has applied for,
-// with status filtering tabs, now in a light theme.
+// with status filtering tabs, now in a light theme. It can now receive an initial
+// filter from its parent to set the active tab on load.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
-// Reusable Loading spinner component (from PublisherDashboard.js)
+// Reusable Loading spinner component
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-8">
     <div className="loading-spinner">
@@ -21,8 +22,8 @@ const LoadingSpinner = () => (
         display: block;
         width: 100%;
         height: 100%;
-        border: 3px solid #B5A8D5; /* primary-lighter */
-        border-top-color: #4D55CC; /* primary-main */
+        border: 3px solid #E0E7FF; /* primary-lighter */
+        border-top-color: #4F46E5; /* primary-main */
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -33,29 +34,28 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Status Badge Component (from ManageJobs.js, adapted for application status)
+// Status Badge Component
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
-        applied: "bg-primary-lighter text-primary-dark", // Light theme applied
-        pending: "bg-yellow-100 text-yellow-800", // Light theme yellow
-        viewed: "bg-primary-light text-primary-dark", // Example for "Viewed" status, using light primary
-        accepted: "bg-green-100 text-green-800", // Light theme green
-        rejected: "bg-red-100 text-red-800", // Light theme red
-        default: "bg-gray-100 text-gray-800", // Default light gray
+        applied: "bg-primary-lighter text-primary-dark",
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        default: "bg-gray-100 text-gray-800",
     };
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
 
-function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch full details
-    const [allApplications, setAllApplications] = useState([]); // All applications fetched
-    const [filteredApplications, setFilteredApplications] = useState([]); // Applications after tab filtering
+function AppliedJobsPage({ user, initialFilter, setInitialFilter }) {
+    const [allApplications, setAllApplications] = useState([]);
+    const [filteredApplications, setFilteredApplications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('All'); // State for active tab
+    const [activeTab, setActiveTab] = useState(initialFilter || 'All');
 
-    // Tab options
     const tabs = ['All', 'Pending', 'Viewed', 'Accepted', 'Rejected'];
 
     // Fetch all application details for the student
@@ -74,8 +74,6 @@ function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch ful
 
             if (response.ok) {
                 setAllApplications(data);
-                // Initially, filter based on the default activeTab ('All')
-                filterApplications(data, 'All');
             } else {
                 throw new Error(data.message || 'Failed to fetch your applications.');
             }
@@ -85,7 +83,7 @@ function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch ful
         } finally {
             setIsLoading(false);
         }
-    }, [user]); // Depend on user
+    }, [user]);
 
     // Function to filter applications based on the active tab
     const filterApplications = useCallback((applicationsToFilter, tab) => {
@@ -101,29 +99,46 @@ function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch ful
         fetchApplicationDetails();
     }, [fetchApplicationDetails]);
 
-    // Effect to re-filter applications when activeTab changes
+    // Effect to re-filter applications when activeTab or allApplications change
     useEffect(() => {
         filterApplications(allApplications, activeTab);
-    }, [activeTab, allApplications, filterApplications]); // Add filterApplications to dependencies
+    }, [activeTab, allApplications, filterApplications]);
+
+    // When the component is unmounted, reset the filter in App.js to 'All'
+    useEffect(() => {
+        return () => {
+            if (setInitialFilter) {
+                setInitialFilter('All');
+            }
+        };
+    }, [setInitialFilter]);
+    
+    // Handler for changing tabs
+    const handleTabClick = (tab) => {
+        setActiveTab(tab);
+        // Also update the state in App.js so it's remembered if we navigate away and back
+        if (setInitialFilter) {
+            setInitialFilter(tab);
+        }
+    };
 
     if (!user) {
-        return <LoadingSpinner />; // Or a message indicating user not logged in
+        return <LoadingSpinner />;
     }
 
     return (
-        <div className="p-8 bg-bg-student-dashboard min-h-screen text-gray-800"> {/* Light background */}
+        <div className="p-8 bg-bg-student-dashboard min-h-screen text-gray-800">
             <div className="flex justify-between items-center mb-8">
-                <h2 className="text-4xl font-bold text-primary-dark">My Applications</h2> {/* Light text color */}
+                <h2 className="text-4xl font-bold text-primary-dark">My Applications</h2>
             </div>
 
-            {/* Tabs for filtering applications */}
-            <div className="bg-white p-2 rounded-lg flex space-x-2 mb-8 shadow-md border border-gray-100"> {/* Light tab container */}
+            <div className="bg-white p-2 rounded-lg flex space-x-2 mb-8 shadow-md border border-gray-100">
                 {tabs.map(tab => (
                     <button
                         key={tab}
-                        onClick={() => setActiveTab(tab)}
+                        onClick={() => handleTabClick(tab)}
                         className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors ${
-                            activeTab === tab ? 'bg-primary-main text-white' : 'text-gray-600 hover:bg-gray-100'
+                            activeTab === tab ? 'bg-primary-main text-white shadow' : 'text-gray-600 hover:bg-gray-100'
                         }`}
                     >
                         {tab}
@@ -131,10 +146,10 @@ function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch ful
                 ))}
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100"> {/* Light table container */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200"> {/* Light table dividers */}
-                        <thead className="bg-gray-50"> {/* Light table header background */}
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
@@ -143,24 +158,22 @@ function AppliedJobsPage({ user }) { // Removed appliedJobs prop as we fetch ful
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200"> {/* Light table body */}
+                        <tbody className="bg-white divide-y divide-gray-200">
                             {isLoading ? (
                                 <tr><td colSpan="5" className="text-center py-8 text-gray-500"><LoadingSpinner /></td></tr>
                             ) : error ? (
                                 <tr><td colSpan="5" className="text-center py-8 text-red-500">{error}</td></tr>
                             ) : filteredApplications.length > 0 ? (
                                 filteredApplications.map(app => (
-                                    <tr key={app.job_id} className="hover:bg-gray-50"> {/* Light hover */}
+                                    <tr key={app.job_id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{app.job_title}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{app.publisher_name}</td> {/* Light text color */}
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(app.applied_at).toLocaleDateString()}</td> {/* Light text color */}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{app.publisher_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(app.applied_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <StatusBadge status={app.status} />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            {/* Actions for applied jobs, e.g., View Application, Withdraw Application */}
                                             <button className="text-primary-main hover:text-primary-dark mr-3">View</button>
-                                            {/* <button className="text-red-500 hover:text-red-700">Withdraw</button> */}
                                         </td>
                                     </tr>
                                 ))
