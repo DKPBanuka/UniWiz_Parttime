@@ -1,8 +1,6 @@
-// FILE: src/App.js (UPDATED FOR IN-PAGE APPLICANT VIEW)
+// FILE: src/App.js (UPDATED FOR ADMIN PAGES)
 // =======================================================================================
-// This version simplifies the navigation flow. The logic for viewing job-specific
-// applicants is now handled entirely within the ManageJobs component, removing the
-// need for App.js to manage filters or navigate to the AllApplicants page for this purpose.
+// This version integrates the new Admin Dashboard, Job Management, and User Management pages.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -27,6 +25,13 @@ import NotificationsPage from './components/NotificationsPage';
 import SettingsPage from './components/SettingsPage';
 import ApplyModal from './components/ApplyModal';
 import JobDetailsModal from './components/JobDetailsModal';
+
+// Admin components
+import AdminDashboard from './components/admin/AdminDashboard'; // NEW
+import UserManagement from './components/admin/UserManagement'; // NEW
+import JobManagementAdmin from './components/admin/JobManagement'; // Renamed to avoid conflict with publisher's ManageJobs
+import AdminSidebar from './components/admin/AdminSidebar'; // NEW: Added missing import for AdminSidebar
+
 import './output.css';
 
 // --- Constants ---
@@ -77,9 +82,10 @@ function App() {
   // UI State
   const [isSidebarLocked, setIsSidebarLocked] = useState(true);
   const [applicantsPageFilter, setApplicantsPageFilter] = useState('All');
+  const [appliedJobsPageFilter, setAppliedJobsPageFilter] = useState('All'); // For student's applied jobs
 
   // Notification States
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]); 
   const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
   const [shownPopupIds, setShownPopupIds] = useState(new Set()); 
 
@@ -286,24 +292,32 @@ function App() {
           switch (page) {
               case 'home': return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
               case 'create-job': return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
-              // **UPDATED**: ManageJobs now handles its own applicant view logic. No props needed for that.
               case 'manage-jobs': return <ManageJobs user={currentUser} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('manage-jobs')} />;
-              // **UPDATED**: AllApplicants is now for viewing ALL applicants, not filtered by job from another page.
               case 'applicants': return <AllApplicants user={currentUser} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} />;
-              // This page is no longer used in the main flow but kept for direct access if needed.
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
           }
-      } else { // Student Role
+      } else if (currentUser.role === 'student') { // Student Role
           switch (page) {
-              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} />;
+              case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
               case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetails} />;
-              case 'applied-jobs': return <AppliedJobsPage user={currentUser} handleViewJobDetails={handleViewJobDetails} />;
+              case 'applied-jobs': return <AppliedJobsPage user={currentUser} handleViewJobDetails={handleViewJobDetails} initialFilter={appliedJobsPageFilter} setInitialFilter={setAppliedJobsPageFilter} />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
-              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} />;
+              default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
+          }
+      } else if (currentUser.role === 'admin') { // Admin Role
+          switch (page) {
+              case 'home': return <AdminDashboard setPage={setPage} />;
+              case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} />;
+              case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} />; // Use the renamed component
+              case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />; // Added for admin to view student profiles
+              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />; // Added for admin to view company profiles
+              case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />; // Added for admin to view job details
+              default: return <AdminDashboard setPage={setPage} />;
           }
       }
+      return null; // Should not happen
   };
 
   const renderPage = () => {
@@ -320,8 +334,10 @@ function App() {
                 <div className={`flex h-screen bg-gray-50`}>
                     {currentUser.role === 'publisher' ? (
                         <Sidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
-                    ) : (
+                    ) : currentUser.role === 'student' ? (
                         <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
+                    ) : ( // Admin Sidebar
+                        <AdminSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
                     )}
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <TopNavbar user={currentUser} setPage={setPage} notifications={notifications} onNotificationClick={handleNotificationClick} />
