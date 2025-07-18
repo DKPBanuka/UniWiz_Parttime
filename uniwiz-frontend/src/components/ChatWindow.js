@@ -1,9 +1,9 @@
-// FILE: src/components/ChatWindow.js (UPDATED with Report Functionality)
+// FILE: src/components/ChatWindow.js (UPDATED with Scroll Fix & Initial Message Context)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE_URL = 'http://uniwiz.test';
 
-// A new modal component for reporting users
+// ReportModal component remains the same...
 const ReportModal = ({ isOpen, onClose, onSubmit, targetUser }) => {
     const [reason, setReason] = useState('');
     if (!isOpen) return null;
@@ -39,19 +39,26 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetUser }) => {
     );
 };
 
-function ChatWindow({ conversation, currentUser }) {
+function ChatWindow({ conversation, currentUser, onNewMessageSent }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isReportModalOpen, setReportModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
+    const prevMessagesCountRef = useRef(0); // Ref to store previous message count
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     const fetchMessages = useCallback(async () => {
-        setIsLoading(true);
+        if (String(conversation.conversation_id).startsWith('temp_')) {
+            setIsLoading(false);
+            setMessages([]);
+            return;
+        }
+        // Don't show loader on interval fetch
+        // setIsLoading(true); 
         try {
             const response = await fetch(`${API_BASE_URL}/get_messages.php?conversation_id=${conversation.conversation_id}&user_id=${currentUser.id}`);
             const data = await response.json();
@@ -71,7 +78,18 @@ function ChatWindow({ conversation, currentUser }) {
     }, [fetchMessages]);
 
     useEffect(() => {
-        scrollToBottom();
+        const jobTitleContext = conversation.job_title_context || (String(conversation.conversation_id).startsWith('temp_') ? conversation.job_title : null);
+        if (jobTitleContext) {
+            setNewMessage(`Regarding your job post: "${jobTitleContext}"\n`);
+        }
+    }, [conversation]);
+
+    // **SCROLL FIX**: Only scroll to bottom if new messages are added
+    useEffect(() => {
+        if (messages.length > prevMessagesCountRef.current) {
+            scrollToBottom();
+        }
+        prevMessagesCountRef.current = messages.length;
     }, [messages]);
 
     const handleSendMessage = async (e) => {
@@ -94,13 +112,19 @@ function ChatWindow({ conversation, currentUser }) {
                 body: JSON.stringify({
                     sender_id: currentUser.id,
                     receiver_id: conversation.other_user_id,
-                    job_id: conversation.job_id, // Send job_id with the message
+                    job_id: conversation.job_id,
                     message_text: newMessage
                 }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
-            fetchMessages();
+            
+            if (onNewMessageSent) {
+                onNewMessageSent();
+            } else {
+                fetchMessages();
+            }
+
         } catch (err) {
             console.error("Send message error:", err);
             setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
@@ -121,7 +145,7 @@ function ChatWindow({ conversation, currentUser }) {
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
-            alert(result.message); // Show success message
+            alert(result.message);
         } catch (err) {
             console.error("Report submission error:", err);
             alert(`Error: ${err.message}`);
@@ -146,7 +170,7 @@ function ChatWindow({ conversation, currentUser }) {
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
                     <img 
-                        src={conversation.profile_image_url ? `${API_BASE_URL}/${conversation.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${(conversation.first_name || 'U').charAt(0)}`}
+                        src={conversation.profile_image_url ? `${API_BASE_URL}/${conversation.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${(conversation.company_name || conversation.first_name || 'U').charAt(0)}`}
                         alt="profile"
                         className="h-10 w-10 rounded-full object-cover"
                     />
@@ -163,13 +187,13 @@ function ChatWindow({ conversation, currentUser }) {
             </div>
 
             <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
-                {isLoading ? (
+                {isLoading && messages.length === 0 ? (
                     <p className="text-center text-gray-500">Loading messages...</p>
                 ) : (
                     messages.map(msg => (
                         <div key={msg.id} className={`flex my-2 ${msg.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-2xl shadow-sm ${msg.sender_id === currentUser.id ? `${currentTheme.bg} text-white rounded-br-none` : 'bg-white text-gray-800 border rounded-bl-none'}`}>
-                                <p className="leading-snug">{msg.message_text}</p>
+                                <p className="leading-snug whitespace-pre-wrap">{msg.message_text}</p>
                                 <p className={`text-xs mt-1 text-right ${msg.sender_id === currentUser.id ? currentTheme.text : 'text-gray-400'}`}>
                                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
@@ -182,12 +206,18 @@ function ChatWindow({ conversation, currentUser }) {
 
             <div className="p-4 border-t bg-white">
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
-                    <input 
-                        type="text"
+                    <textarea
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type your message..."
-                        className="flex-grow p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="flex-grow p-3 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none h-12"
+                        rows="1"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage(e);
+                            }
+                        }}
                     />
                     <button type="submit" className={`${currentTheme.bg} text-white rounded-full p-3 ${currentTheme.hoverBg} transition-colors`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

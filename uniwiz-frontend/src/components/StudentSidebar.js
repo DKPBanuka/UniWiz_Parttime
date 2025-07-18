@@ -1,11 +1,11 @@
-// FILE: src/components/StudentSidebar.js (UPDATED with Messages Link)
-// ===================================================
+// FILE: src/components/StudentSidebar.js (UPDATED with Messages Link & Notification Dot)
+// ====================================================================================
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Reusable navigation link component
-const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }) => {
+const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, hasNotification = false }) => {
   const [isHovering, setIsHovering] = useState(false);
   
   return (
@@ -18,7 +18,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }
         whileHover={{ scale: isExpanded ? 1.02 : 1 }}
         whileTap={{ scale: 0.98 }}
         className={`w-full flex items-center transition-all duration-200
-          ${!isExpanded ? 'px-3 justify-center' : 'px-4'} 
+          ${!isExpanded ? 'px-3 justify-center' : 'px-4 justify-between'} 
           ${isActive
             ? 'bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-300 text-blue-600 shadow-sm py-3.5 rounded-lg' 
             : isLogout
@@ -27,17 +27,33 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }
           }
         `}
       >
-        <motion.div animate={{ rotate: isHovering && !isActive ? 5 : 0 }}>
-          {icon}
-        </motion.div>
-        {isExpanded && (
-          <motion.span 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="ml-4 font-medium"
-          >
-            {text}
-          </motion.span>
+        <div className="flex items-center">
+            <div className="relative">
+                <motion.div animate={{ rotate: isHovering && !isActive ? 5 : 0 }}>
+                    {icon}
+                </motion.div>
+                {!isExpanded && hasNotification && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                )}
+            </div>
+            {isExpanded && (
+            <motion.span 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="ml-4 font-medium"
+            >
+                {text}
+            </motion.span>
+            )}
+        </div>
+        {isExpanded && hasNotification && (
+            <span className="flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            </span>
         )}
       </motion.button>
       
@@ -58,7 +74,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false }
   );
 };
 
-function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }) {
+function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages }) {
     const [isHovered, setIsHovered] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const isExpanded = isLocked || isHovered;
@@ -126,7 +142,7 @@ function StudentSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock }
                 <NavLink text="Dashboard" icon={dashboardIcon} isActive={currentPage === 'home'} isExpanded={isExpanded} onClick={() => setPage('home')} />
                 <NavLink text="Find Jobs" icon={findJobsIcon} isActive={currentPage === 'find-jobs'} isExpanded={isExpanded} onClick={() => setPage('find-jobs')} />
                 <NavLink text="My Applications" icon={appliedJobsIcon} isActive={currentPage === 'applied-jobs'} isExpanded={isExpanded} onClick={() => setPage('applied-jobs')} />
-                <NavLink text="Messages" icon={messagesIcon} isActive={currentPage === 'messages'} isExpanded={isExpanded} onClick={() => setPage('messages')} />
+                <NavLink text="Messages" icon={messagesIcon} isActive={currentPage === 'messages'} isExpanded={isExpanded} onClick={() => setPage('messages')} hasNotification={hasUnreadMessages} />
                 <NavLink text="My Profile" icon={profileIcon} isActive={currentPage === 'profile'} isExpanded={isExpanded} onClick={() => setPage('profile')} />
                 <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isExpanded={isExpanded} onClick={() => setPage('settings')} />
             </nav>

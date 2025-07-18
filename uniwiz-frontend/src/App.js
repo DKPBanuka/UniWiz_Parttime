@@ -1,5 +1,5 @@
-// FILE: src/App.js (UPDATED for Message Button Functionality)
-import React, { useState, useEffect, useCallback } from 'react';
+// FILE: src/App.js (UPDATED for Admin Reports Notifications & Profile Linking)
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // --- Component Imports ---
 import LoginPage from './components/LoginPage';
@@ -27,6 +27,7 @@ import UserManagement from './components/admin/UserManagement';
 import JobManagementAdmin from './components/admin/JobManagement';
 import AdminSidebar from './components/admin/AdminSidebar';
 import MessagesPage from './components/MessagesPage';
+import ReportManagement from './components/admin/ReportManagement';
 
 import './output.css';
 
@@ -81,8 +82,10 @@ function App() {
   const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
   const [shownPopupIds, setShownPopupIds] = useState(new Set()); 
 
-  // NEW: State to manage initiating a new conversation
   const [conversationContext, setConversationContext] = useState(null);
+  
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasUnreadReports, setHasUnreadReports] = useState(false); // NEW: State for pending reports
 
   const showPopupNotification = useCallback((message, type = 'info') => {
       setPopupNotification({ message, type, key: Date.now() });
@@ -110,6 +113,7 @@ function App() {
     }
   }, []);
 
+  // Effect for fetching general notifications
   useEffect(() => {
     if (!currentUser) {
         setNotifications([]);
@@ -144,6 +148,46 @@ function App() {
 
     return () => clearInterval(interval);
   }, [currentUser, showPopupNotification, shownPopupIds]);
+  
+  // Effect for checking unread messages and reports
+  useEffect(() => {
+    if (!currentUser) {
+        setHasUnreadMessages(false);
+        setHasUnreadReports(false);
+        return;
+    }
+
+    const checkStatus = async () => {
+        // Check for unread messages (for students/publishers)
+        if (currentUser.role !== 'admin') {
+            try {
+                const response = await fetch(`${API_BASE_URL}/get_conversations.php?user_id=${currentUser.id}`);
+                const conversations = await response.json();
+                if (response.ok && conversations.length > 0) {
+                    const totalUnread = conversations.reduce((sum, convo) => sum + parseInt(convo.unread_count, 10), 0);
+                    setHasUnreadMessages(totalUnread > 0);
+                }
+            } catch (err) { console.error("Error checking messages:", err); }
+        }
+
+        // Check for pending reports (for admin)
+        if (currentUser.role === 'admin') {
+            try {
+                const response = await fetch(`${API_BASE_URL}/get_reports_admin.php`);
+                const reports = await response.json();
+                if (response.ok) {
+                    const hasPending = reports.some(report => report.status === 'pending');
+                    setHasUnreadReports(hasPending);
+                }
+            } catch (err) { console.error("Error checking reports:", err); }
+        }
+    };
+
+    checkStatus();
+    const statusInterval = setInterval(checkStatus, 20000); // Check every 20 seconds
+
+    return () => clearInterval(statusInterval);
+  }, [currentUser]);
 
 
   useEffect(() => {
@@ -171,7 +215,7 @@ function App() {
                     if (!result.user.first_name || (result.user.role === 'publisher' && !result.user.company_name)) {
                         setPage('profile-setup');
                     } else {
-                        setPage('home');
+                        setPage(result.user.role === 'admin' ? 'dashboard' : 'home');
                     }
                 } else {
                     showPopupNotification(result.message || "Session expired or user not found. Please log in.", 'error');
@@ -209,7 +253,7 @@ function App() {
     if (!userData.first_name || (userData.role === 'publisher' && !userData.company_name)) {
         setPage('profile-setup');
     } else {
-        setPage('home');
+        setPage(userData.role === 'admin' ? 'dashboard' : 'home');
     }
     showPopupNotification(`Welcome back, ${userData.first_name}!`, 'success');
   }, [fetchAppliedJobs, showPopupNotification]);
@@ -243,9 +287,7 @@ function App() {
       setPage('applicants');
   };
 
-  // NEW: Function to handle initiating a conversation from anywhere in the app
   const handleInitiateConversation = (targetInfo) => {
-      // targetInfo should contain details about the other user and the job
       setConversationContext(targetInfo);
       setPage('messages');
   };
@@ -284,7 +326,7 @@ function App() {
             handleLogout();
         }
     }
-  }, [currentUser, showPopupNotification, setNotifications, handleLogout]);
+  }, [currentUser, showPopupNotification, handleLogout]);
 
   const handleOpenApplyModal = useCallback((job) => {
     if (!currentUser) {
@@ -353,11 +395,13 @@ function App() {
       } else if (currentUser.role === 'admin') {
           switch (page) {
               case 'home': return <AdminDashboard setPage={setPage} />;
+              case 'dashboard': return <AdminDashboard setPage={setPage} />;
               case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageFilter} />;
               case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageFilter} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />;
+              case 'report-management': return <ReportManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} />;
               default: return <AdminDashboard setPage={setPage} />;
           }
       }
@@ -398,17 +442,14 @@ function App() {
             if (!currentUser) {
                 return <LoginPage onLoginSuccess={handleLoginSuccess} />;
             }
-            if (page === 'messages') {
-                return <MessagesPage user={currentUser} setPage={setPage} conversationContext={conversationContext} setConversationContext={setConversationContext} />;
-            }
             return (
                 <div className={`flex h-screen bg-gray-50`}>
                     {currentUser.role === 'publisher' ? (
-                        <Sidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
+                        <Sidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} hasUnreadMessages={hasUnreadMessages} />
                     ) : currentUser.role === 'student' ? (
-                        <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
+                        <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} hasUnreadMessages={hasUnreadMessages} />
                     ) : (
-                        <AdminSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} />
+                        <AdminSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} hasUnreadReports={hasUnreadReports} />
                     )}
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <TopNavbar user={currentUser} setPage={setPage} notifications={notifications} onNotificationClick={handleNotificationClick} />
@@ -440,7 +481,7 @@ function App() {
         currentUser={currentUser}
         handleApply={handleOpenApplyModal}
         handleViewCompanyProfile={handleViewCompanyProfile}
-        handleMessagePublisher={handleInitiateConversation} // Pass the new handler
+        handleMessagePublisher={handleInitiateConversation}
       />
     </>
   );
