@@ -1,6 +1,7 @@
-// FILE: src/components/admin/ReportManagement.js (NEW FILE)
+// FILE: src/components/admin/ReportManagement.js (UPDATED with Direct Profile Linking)
 // =======================================================
 // This page allows administrators to view and manage user-submitted reports.
+// User links now navigate directly to the respective profile pages.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -22,7 +23,8 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
-function ReportManagement({ user }) {
+// UPDATED: Added props to handle profile navigation
+function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherIdForProfile }) {
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -65,6 +67,22 @@ function ReportManagement({ user }) {
             alert(`Error updating status: ${err.message}`);
         }
     };
+    
+    // UPDATED: Function now navigates directly to the correct profile page based on user role.
+    const handleViewProfile = (reportedUser) => {
+        if (reportedUser.role === 'student') {
+            setStudentIdForProfile(reportedUser.id);
+            setPage('student-profile');
+        } else if (reportedUser.role === 'publisher') {
+            setPublisherIdForProfile(reportedUser.id);
+            setPage('company-profile');
+        } else {
+            // Fallback for admin or other roles - navigate to user management
+            const userName = `${reportedUser.first_name} ${reportedUser.last_name}`;
+            setPage('user-management', { filter: 'All', search: userName });
+        }
+    };
+
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
@@ -90,9 +108,19 @@ function ReportManagement({ user }) {
                             ) : reports.length > 0 ? (
                                 reports.map(report => (
                                     <tr key={report.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{report.reporter_first_name} {report.reporter_last_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.reported_first_name} {report.reported_last_name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 max-w-sm truncate">{report.reason}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {/* UPDATED: Passes the full user object with role to the handler */}
+                                            <button onClick={() => handleViewProfile({id: report.reporter_id, first_name: report.reporter_first_name, last_name: report.reporter_last_name, role: report.reporter_role})} className="text-primary-main hover:underline">
+                                                {report.reporter_first_name} {report.reporter_last_name}
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {/* UPDATED: Passes the full user object with role to the handler */}
+                                            <button onClick={() => handleViewProfile({id: report.reported_id, first_name: report.reported_first_name, last_name: report.reported_last_name, role: report.reported_role})} className="text-primary-main hover:underline">
+                                                {report.reported_first_name} {report.reported_last_name}
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 max-w-sm truncate" title={report.reason}>{report.reason}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center"><StatusBadge status={report.status} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">

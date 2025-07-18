@@ -31,10 +31,11 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
                 <motion.div animate={{ rotate: isHovering && !isActive ? 5 : 0 }}>
                     {icon}
                 </motion.div>
+                {/* Blinking dot for notifications */}
                 {!isExpanded && hasNotification && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                     </span>
                 )}
             </div>
@@ -49,9 +50,9 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
             )}
         </div>
         {isExpanded && hasNotification && (
-            <span className="flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            <span className="flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
         )}
       </motion.button>
@@ -73,7 +74,8 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
   );
 };
 
-function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages }) {
+// UPDATED: Added hasPendingReports prop
+function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages, hasPendingReports }) {
     const [isHovered, setIsHovered] = useState(false);
     const isExpanded = isLocked || isHovered;
 
@@ -133,8 +135,10 @@ function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, ha
                 <NavLink text="Dashboard" icon={dashboardIcon} isActive={currentPage === 'dashboard'} isExpanded={isExpanded} onClick={() => setPage('dashboard')} />
                 <NavLink text="User Management" icon={usersIcon} isActive={currentPage === 'user-management'} isExpanded={isExpanded} onClick={() => setPage('user-management')} />
                 <NavLink text="Job Management" icon={jobsIcon} isActive={currentPage === 'job-management'} isExpanded={isExpanded} onClick={() => setPage('job-management')} />
-                <NavLink text="Messages" icon={messagesIcon} isActive={currentPage === 'messages'} isExpanded={isExpanded} onClick={() => setPage('messages')} hasNotification={hasUnreadMessages} />
-                <NavLink text="Reports" icon={reportsIcon} isActive={currentPage === 'report-management'} isExpanded={isExpanded} onClick={() => setPage('report-management')} />
+                {/* UPDATED: Added Conversation Viewer link */}
+                <NavLink text="View Messages" icon={messagesIcon} isActive={currentPage === 'conversation-viewer'} isExpanded={isExpanded} onClick={() => setPage('conversation-viewer')} hasNotification={hasUnreadMessages} />
+                {/* UPDATED: Added hasNotification prop for reports */}
+                <NavLink text="Reports" icon={reportsIcon} isActive={currentPage === 'report-management'} isExpanded={isExpanded} onClick={() => setPage('report-management')} hasNotification={hasPendingReports} />
                 <NavLink text="Settings" icon={settingsIcon} isActive={currentPage === 'settings'} isExpanded={isExpanded} onClick={() => setPage('settings')} />
             </nav>
 

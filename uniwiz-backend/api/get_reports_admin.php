@@ -1,6 +1,6 @@
 <?php
-// FILE: uniwiz-backend/api/get_reports_admin.php (NEW FILE)
-// DESCRIPTION: Fetches all user-submitted reports for the admin panel.
+// FILE: uniwiz-backend/api/get_reports_admin.php (UPDATED to include user roles)
+// DESCRIPTION: Fetches all user-submitted reports for the admin panel, now including the roles of the reporter and the reported user.
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -21,6 +21,7 @@ if ($db === null) {
 }
 
 try {
+    // UPDATED: The query now joins the users table twice to fetch the role for both the reporter and the reported user.
     $query = "
         SELECT 
             r.id, r.reason, r.status, r.created_at,
@@ -28,9 +29,11 @@ try {
             reporter.id as reporter_id,
             reporter.first_name as reporter_first_name,
             reporter.last_name as reporter_last_name,
+            reporter.role as reporter_role, -- NEW: Added reporter's role
             reported.id as reported_id,
             reported.first_name as reported_first_name,
-            reported.last_name as reported_last_name
+            reported.last_name as reported_last_name,
+            reported.role as reported_role -- NEW: Added reported user's role
         FROM reports r
         JOIN users reporter ON r.reporter_id = reporter.id
         JOIN users reported ON r.reported_user_id = reported.id

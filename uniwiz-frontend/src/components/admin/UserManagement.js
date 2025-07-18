@@ -1,4 +1,4 @@
-// FILE: src/components/admin/UserManagement.js (FIXED - Initial Filter Logic)
+// FILE: src/components/admin/UserManagement.js (UPDATED - Compact Filters)
 // =======================================================
 // This page allows administrators to view, search, manage, block/unblock,
 // and verify/unverify users, delete users, and now also view full user profiles.
@@ -341,13 +341,13 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
     ];
 
     const verificationOptions = [
-        { value: 'All', label: 'All Verification Statuses' },
+        { value: 'All', label: 'All Verification' },
         { value: 'verified', label: 'Verified' },
         { value: 'unverified', label: 'Unverified' },
     ];
 
     const accountStatusOptions = [
-        { value: 'All', label: 'All Account Statuses' },
+        { value: 'All', label: 'All Statuses' },
         { value: 'active', label: 'Active' },
         { value: 'blocked', label: 'Blocked' },
     ];
@@ -381,59 +381,55 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
             <div className="p-8 bg-gray-50 min-h-screen">
                 <h1 className="text-4xl font-bold text-primary-dark mb-8">User Management</h1>
 
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <input 
-                        type="text"
-                        placeholder="Search by name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="shadow-sm border rounded-lg py-2 px-4 w-full md:w-80"
-                    />
-                    
-                    {/* NEW: Dropdown for Role Filter */}
-                    <select 
-                        value={roleFilter} 
-                        onChange={(e) => setRoleFilter(e.target.value)} 
-                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
-                    >
-                        {roleOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </select>
-
-                    {/* NEW: Dropdown for Verification Status Filter */}
-                    <select 
-                        value={verificationStatusFilter} 
-                        onChange={(e) => setVerificationStatusFilter(e.target.value)} 
-                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
-                    >
-                        {verificationOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </select>
-
-                    {/* NEW: Dropdown for Account Status Filter */}
-                    <select 
-                        value={accountStatusFilter} 
-                        onChange={(e) => setAccountStatusFilter(e.target.value)} 
-                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
-                    >
-                        {accountStatusOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </select>
-
-                    {/* Sort dropdown (existing) */}
-                    <select 
-                        value={sortOrder} 
-                        onChange={(e) => setSortOrder(e.target.value)} 
-                        className="shadow-sm border rounded-lg py-2 px-4 bg-white w-full md:w-auto"
-                    >
-                        {sortOptions.map(option => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                    </select>
+                {/* UPDATED: Compact filter bar in one line with horizontal scroll */}
+                <div className="mb-6 bg-white p-3 rounded-xl shadow-sm border overflow-x-auto">
+                    <div className="flex items-center gap-3 min-w-max">
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="shadow-sm border rounded-lg py-1.5 px-4 text-m w-64"
+                        />
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="shadow-sm border rounded-lg py-1.5 px-4 bg-white text-m"
+                        >
+                            {roleOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={verificationStatusFilter}
+                            onChange={(e) => setVerificationStatusFilter(e.target.value)}
+                            className="shadow-sm border rounded-lg py-1.5 px-4 bg-white text-m"
+                        >
+                            {verificationOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={accountStatusFilter}
+                            onChange={(e) => setAccountStatusFilter(e.target.value)}
+                            className="shadow-sm border rounded-lg py-1.5 px-4 bg-white text-m"
+                        >
+                            {accountStatusOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="shadow-sm border rounded-lg py-1.5 px-4 bg-white text-m"
+                        >
+                            {sortOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
+
 
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">
                     <div className="overflow-x-auto">
