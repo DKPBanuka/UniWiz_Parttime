@@ -1,7 +1,4 @@
-// FILE: src/components/admin/AllApplicants.js (ENHANCED with More Detailed Cards & Table-First View)
-// ==================================================================================
-// This component now defaults to a table view and features a much more detailed card view.
-
+// FILE: src/components/AllApplicants.js (FULLY IMPLEMENTED)
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // --- Reusable Components ---
@@ -37,7 +34,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // --- Enhanced Applicant Detail Modal with all details ---
-const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
+const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitiateConversation }) => {
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
     const modalRef = useRef();
 
@@ -51,17 +48,10 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     }, [applicant, onStatusChange]);
 
     useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
+        const handleKeyDown = (event) => { if (event.key === 'Escape') onClose(); };
         window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onClose]);
-
 
     if (!applicant) return null;
 
@@ -70,6 +60,19 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
         setCurrentStatus(newStatus);
     };
     
+    const onMessageClick = () => {
+        const targetInfo = {
+            targetUserId: applicant.student_id,
+            targetUserFirstName: applicant.first_name,
+            targetUserLastName: applicant.last_name,
+            targetUserCompanyName: '',
+            jobId: applicant.job_id,
+            jobTitle: applicant.job_title
+        };
+        handleInitiateConversation(targetInfo);
+        onClose();
+    };
+
     const canTakeAction = currentStatus === 'pending' || currentStatus === 'viewed';
     const skills = applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : [];
 
@@ -78,7 +81,6 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
             <div ref={modalRef} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-5 text-gray-400 hover:text-gray-600 text-3xl font-bold z-10">&times;</button>
                 
-                {/* Header Section */}
                 <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4 border-b pb-6 mb-6">
                     <div className="flex items-center gap-6">
                         <img 
@@ -95,16 +97,18 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-center md:items-end gap-3">
                         <StatusBadge status={currentStatus} />
-                        {canTakeAction && (
-                            <div className="flex space-x-2 mt-2">
+                        <div className="flex space-x-2 mt-2">
+                             <button onClick={onMessageClick} className="px-4 py-2 bg-primary-main text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm">Message</button>
+                            {canTakeAction && (
+                                <>
                                 <button onClick={() => handleStatusButtonClick('rejected')} className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors text-sm">Reject</button>
                                 <button onClick={() => handleStatusButtonClick('accepted')} className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors text-sm">Accept</button>
-                            </div>
-                        )}
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Body Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         <div>
@@ -150,83 +154,8 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange }) => {
     );
 };
 
-
-// --- ApplicantCard Component (ENHANCED with all details) ---
-const ApplicantCard = ({ applicant, onStatusChange, onViewDetails }) => {
-    
-    const handleActionClick = (e, status) => {
-        e.stopPropagation(); 
-        onStatusChange(applicant.application_id, status, true);
-    };
-    
-    const skills = applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : [];
-
-    return (
-        <div onClick={() => onViewDetails(applicant)} className="bg-white rounded-xl shadow-md p-5 border border-gray-100 flex flex-col space-y-4 hover:shadow-lg hover:border-primary-main transition-all duration-300 cursor-pointer relative">
-            {applicant.status === 'pending' && (
-                <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs font-bold">New</span>
-                </span>
-            )}
-
-            {/* Header section */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4 min-w-0">
-                    <img 
-                        src={applicant.profile_image_url ? `http://uniwiz.test/${applicant.profile_image_url}` : `https://placehold.co/64x64/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} 
-                        alt="profile" 
-                        className="h-16 w-16 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div className="min-w-0">
-                        <p className="font-bold text-lg text-primary-dark truncate">{applicant.first_name} {applicant.last_name}</p>
-                        <p className="text-sm text-gray-500 truncate">{applicant.email}</p>
-                    </div>
-                </div>
-                <div className="flex-shrink-0 ml-4">
-                    <StatusBadge status={applicant.status} />
-                </div>
-            </div>
-
-            {/* Job Details */}
-            <div className="text-sm text-gray-600">
-                Applied for <strong className="text-gray-800">{applicant.job_title}</strong> on <strong className="text-gray-800">{new Date(applicant.applied_at).toLocaleDateString()}</strong>
-            </div>
-
-            {/* Proposal */}
-            {applicant.proposal && (
-                <div>
-                    <h4 className="font-semibold text-gray-700 text-sm">Proposal:</h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded-md border mt-1 italic">"{applicant.proposal}"</p>
-                </div>
-            )}
-
-            {/* Skills */}
-            {skills.length > 0 && (
-                <div>
-                    <h4 className="font-semibold text-gray-700 text-sm mb-2">Skills:</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {skills.map((skill, index) => (
-                            <span key={index} className="bg-primary-lighter text-primary-dark font-medium px-2 py-1 rounded-full text-xs">{skill}</span>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Action Buttons */}
-            {(applicant.status === 'pending' || applicant.status === 'viewed') && (
-                 <div className="flex justify-end items-center space-x-2 pt-3 border-t">
-                    <button onClick={(e) => handleActionClick(e, 'rejected')} className="text-sm font-semibold text-red-600 hover:text-red-800 px-3 py-1 rounded-md hover:bg-red-50">Reject</button>
-                    <button onClick={(e) => handleActionClick(e, 'accepted')} className="text-sm font-semibold text-green-600 hover:text-green-800 px-3 py-1 rounded-md hover:bg-green-50">Accept</button>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 // --- Main AllApplicants Component ---
-function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicationId, onModalClose }) {
+function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicationId, onModalClose, handleInitiateConversation }) {
     const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -234,7 +163,6 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
     const [statusFilter, setStatusFilter] = useState(initialFilter || 'All');
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
     
-    // UPDATED: Default view mode is now 'table'
     const [viewMode, setViewMode] = useState('table'); 
     const [sortOrder, setSortOrder] = useState('newest-first');
 
@@ -306,7 +234,6 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
             const result = await response.json();
             if (!response.ok) throw new Error(result.message);
             if (showNotif) showNotification(result.message, 'success');
-            // Update local state to reflect the change immediately
             setAllApplicants(prev => 
                 prev.map(app => 
                     app.application_id === applicationId ? { ...app, status: newStatus } : app
@@ -317,7 +244,6 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         }
     };
     
-    // Debounced fetch
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchAllApplications();
@@ -325,14 +251,12 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         return () => clearTimeout(delayDebounceFn);
     }, [fetchAllApplications]);
 
-    // Cleanup filter on unmount
     useEffect(() => {
         return () => {
             if (setInitialFilter) setInitialFilter('All');
         };
     }, [setInitialFilter]);
 
-    // Memoized sorting logic
     const sortedApplicants = useMemo(() => {
         const sorted = [...allApplicants];
         switch (sortOrder) {
@@ -359,7 +283,6 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         tabs.push('today');
     }
 
-    // Render content based on view mode
     const renderContent = () => {
         if (isLoading) return <LoadingSpinner />;
         if (error) return <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>;
@@ -372,58 +295,42 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
             );
         }
 
-        if (viewMode === 'table') {
-            return (
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {sortedApplicants.map(app => (
-                                    <tr key={app.application_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetails(app)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <img className="h-10 w-10 rounded-full object-cover" src={app.profile_image_url ? `http://uniwiz.test/${app.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${app.first_name.charAt(0)}`} alt="" />
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</div>
-                                                    <div className="text-sm text-gray-500">{app.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.job_title}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.applied_at).toLocaleDateString()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <StatusBadge status={app.status} />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            );
-        }
-
-        // Card view
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-                {sortedApplicants.map(app => (
-                    <ApplicantCard 
-                        key={app.application_id} 
-                        applicant={app} 
-                        onStatusChange={handleStatusChange}
-                        onViewDetails={handleViewDetails}
-                    />
-                ))}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedApplicants.map(app => (
+                                <tr key={app.application_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetails(app)}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10">
+                                                <img className="h-10 w-10 rounded-full object-cover" src={app.profile_image_url ? `http://uniwiz.test/${app.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${app.first_name.charAt(0)}`} alt="" />
+                                            </div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</div>
+                                                <div className="text-sm text-gray-500">{app.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.job_title}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.applied_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        <StatusBadge status={app.status} />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         );
     };
@@ -443,6 +350,7 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
                     applicant={selectedApplicant} 
                     onClose={handleCloseModal}
                     onStatusChange={handleStatusChange}
+                    handleInitiateConversation={handleInitiateConversation}
                 />
             )}
 
@@ -467,14 +375,6 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
                             <option value="name-az">Name (A-Z)</option>
                             <option value="name-za">Name (Z-A)</option>
                         </select>
-                         <div className="bg-gray-200 p-1 rounded-lg flex items-center">
-                            <button onClick={() => setViewMode('card')} className={`p-1.5 rounded-md ${viewMode === 'card' ? 'bg-white shadow' : 'text-gray-500'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                            </button>
-                             <button onClick={() => setViewMode('table')} className={`p-1.5 rounded-md ${viewMode === 'table' ? 'bg-white shadow' : 'text-gray-500'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
-                            </button>
-                        </div>
                     </div>
                 </div>
 

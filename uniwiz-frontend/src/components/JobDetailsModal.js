@@ -1,34 +1,25 @@
-// FILE: src/components/JobDetailsModal.js (UPDATED - Company name is now a link)
-// ===================================================================================
-// This component now fetches the application status directly and allows clicking
-// on the company name to navigate to the company's profile page.
-
+// FILE: src/components/JobDetailsModal.js (FULLY IMPLEMENTED)
 import React, { useState, useEffect, useCallback } from 'react';
 
-// --- Constants ---
 const API_BASE_URL = 'http://uniwiz.test';
 
 // --- Reusable Components ---
-
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-main"></div>
     </div>
 );
-
 const DetailItem = ({ label, value, children }) => (
     <div>
         <p className="text-sm text-gray-500">{label}</p>
         {children ? children : <p className="font-semibold text-gray-800 capitalize">{value || 'Not specified'}</p>}
     </div>
 );
-
 const SkillBadge = ({ skill }) => (
     <span className="bg-primary-lighter text-primary-dark font-medium px-3 py-1 rounded-full text-sm capitalize">
         {skill}
     </span>
 );
-
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -41,9 +32,7 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-
-// UPDATED: Added handleViewCompanyProfile prop
-function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handleViewCompanyProfile }) {
+function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handleViewCompanyProfile, handleMessagePublisher }) {
     const [jobDetails, setJobDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -89,8 +78,22 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handl
     const handleCompanyClick = () => {
         if (handleViewCompanyProfile && jobDetails?.publisher_id) {
             handleViewCompanyProfile(jobDetails.publisher_id);
-            onClose(); // Close the modal after clicking the link
+            onClose();
         }
+    };
+
+    const onMessageClick = () => {
+        if (!handleMessagePublisher || !jobDetails) return;
+        const targetInfo = {
+            targetUserId: jobDetails.publisher_id,
+            targetUserFirstName: '', // Can be fetched if needed
+            targetUserLastName: '',
+            targetUserCompanyName: jobDetails.company_name,
+            jobId: jobDetails.id,
+            jobTitle: jobDetails.title
+        };
+        handleMessagePublisher(targetInfo);
+        onClose();
     };
 
     return (
@@ -98,18 +101,11 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handl
             <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-3xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl font-bold z-10">&times;</button>
                 
-                {isLoading ? (
-                    <LoadingSpinner />
-                ) : error ? (
-                    <div className="p-8 text-center text-red-500">Error: {error}</div>
-                ) : !jobDetails ? (
-                    <div className="p-8 text-center text-gray-500">Job details not found.</div>
-                ) : (
+                {isLoading ? <LoadingSpinner /> : error ? <div className="p-8 text-center text-red-500">Error: {error}</div> : !jobDetails ? <div className="p-8 text-center text-gray-500">Job details not found.</div> : (
                     <div className="space-y-6">
-                        <div className="flex justify-between items-start">
+                         <div className="flex justify-between items-start">
                              <div>
                                 <h1 className="text-3xl font-bold text-primary-dark">{jobDetails.job_title || jobDetails.title}</h1>
-                                {/* UPDATED: Company name is now a clickable button */}
                                 <button onClick={handleCompanyClick} className="text-lg text-blue-600 hover:text-blue-700 hover:underline text-left mt-1">
                                     {jobDetails.company_name || 'A Reputed Company'}
                                 </button>
@@ -161,7 +157,16 @@ function JobDetailsModal({ job, currentUser, isOpen, onClose, handleApply, handl
                             </div>
                         </div>
                         
-                        <div className="flex justify-end pt-4 border-t mt-4">
+                        <div className="flex justify-end items-center pt-4 border-t mt-4 space-x-2">
+                            {currentUser && currentUser.role === 'student' && (
+                                <button 
+                                    onClick={onMessageClick}
+                                    className="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors"
+                                >
+                                    Message
+                                </button>
+                            )}
+
                             {currentUser && currentUser.role === 'student' && !applicationStatus && (
                                 <button 
                                     onClick={() => {

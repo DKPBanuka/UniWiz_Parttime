@@ -1,9 +1,13 @@
 <?php
-// FILE: uniwiz-backend/api/get_conversations.php (NEW FILE)
+// FILE: uniwiz-backend/api/get_conversations.php (UPDATED)
+
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
-// ... (add other necessary headers)
+header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
 include_once '../config/database.php';
 $database = new Database();
@@ -17,9 +21,12 @@ if (!isset($_GET['user_id'])) {
 $user_id = (int)$_GET['user_id'];
 
 try {
+    // The query is updated to LEFT JOIN the jobs table to fetch the job_title
     $query = "
         SELECT 
             c.id as conversation_id,
+            c.job_id,
+            j.title as job_title,
             u.id as other_user_id,
             u.first_name,
             u.last_name,
@@ -30,7 +37,8 @@ try {
             (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND receiver_id = :user_id AND is_read = 0) as unread_count
         FROM conversations c
         JOIN users u ON u.id = IF(c.user_one_id = :user_id, c.user_two_id, c.user_one_id)
-        WHERE c.user_one_id = :user_id OR c.user_two_id = :user_id
+        LEFT JOIN jobs j ON c.job_id = j.id 
+        WHERE (c.user_one_id = :user_id OR c.user_two_id = :user_id)
         ORDER BY last_message_time DESC
     ";
     

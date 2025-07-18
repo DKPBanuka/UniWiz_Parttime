@@ -1,8 +1,4 @@
-// FILE: src/App.js (FIXED - setPage prop passed to MessagesPage)
-// =======================================================================================
-// This version fixes the "setPage is not a function" error by correctly passing
-// the setPage function to the MessagesPage component.
-
+// FILE: src/App.js (UPDATED for Message Button Functionality)
 import React, { useState, useEffect, useCallback } from 'react';
 
 // --- Component Imports ---
@@ -84,6 +80,9 @@ function App() {
   const [notifications, setNotifications] = useState([]); 
   const [popupNotification, setPopupNotification] = useState({ message: '', type: '', key: 0 });
   const [shownPopupIds, setShownPopupIds] = useState(new Set()); 
+
+  // NEW: State to manage initiating a new conversation
+  const [conversationContext, setConversationContext] = useState(null);
 
   const showPopupNotification = useCallback((message, type = 'info') => {
       setPopupNotification({ message, type, key: Date.now() });
@@ -244,10 +243,10 @@ function App() {
       setPage('applicants');
   };
 
-  const handleMessageUser = () => {
-      setPage('messages');
-  };
-  const handleMessageAdmin = () => {
+  // NEW: Function to handle initiating a conversation from anywhere in the app
+  const handleInitiateConversation = (targetInfo) => {
+      // targetInfo should contain details about the other user and the job
+      setConversationContext(targetInfo);
       setPage('messages');
   };
 
@@ -325,11 +324,11 @@ function App() {
       const commonPages = {
         'notifications': <NotificationsPage user={currentUser} notifications={notifications} onNotificationClick={handleNotificationClick} />,
         'profile': <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />,
-        'settings': <SettingsPage user={currentUser} onLogout={handleLogout} handleMessageAdmin={handleMessageAdmin} />,
+        'settings': <SettingsPage user={currentUser} onLogout={handleLogout} />,
       };
-      // FIX: Pass setPage to MessagesPage
+      
       if (page === 'messages') {
-          return <MessagesPage user={currentUser} setPage={setPage} />;
+          return <MessagesPage user={currentUser} setPage={setPage} conversationContext={conversationContext} setConversationContext={setConversationContext} />;
       }
       if (page && commonPages[page]) return commonPages[page];
 
@@ -339,7 +338,7 @@ function App() {
               case 'create-job': return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
               case 'manage-jobs': return <ManageJobs user={currentUser} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('manage-jobs')} />;
-              case 'applicants': return <AllApplicants user={currentUser} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} handleMessageStudent={handleMessageUser} />;
+              case 'applicants': return <AllApplicants user={currentUser} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} handleInitiateConversation={handleInitiateConversation} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
           }
@@ -399,9 +398,8 @@ function App() {
             if (!currentUser) {
                 return <LoginPage onLoginSuccess={handleLoginSuccess} />;
             }
-            // FIX: Pass setPage to MessagesPage when rendering it full-screen
             if (page === 'messages') {
-                return <MessagesPage user={currentUser} setPage={setPage} />;
+                return <MessagesPage user={currentUser} setPage={setPage} conversationContext={conversationContext} setConversationContext={setConversationContext} />;
             }
             return (
                 <div className={`flex h-screen bg-gray-50`}>
@@ -442,7 +440,7 @@ function App() {
         currentUser={currentUser}
         handleApply={handleOpenApplyModal}
         handleViewCompanyProfile={handleViewCompanyProfile}
-        handleMessagePublisher={handleMessageUser}
+        handleMessagePublisher={handleInitiateConversation} // Pass the new handler
       />
     </>
   );
