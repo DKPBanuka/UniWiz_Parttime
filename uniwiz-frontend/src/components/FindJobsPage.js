@@ -1,4 +1,4 @@
-// FILE: src/components/FindJobsPage.js (UPDATED with More Compact Filters UI)
+// FILE: src/components/FindJobsPage.js (UPDATED with Application Status)
 // =================================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,6 +14,21 @@ const LoadingSpinner = () => (
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
     </div>
 );
+
+// ADDED: StatusBadge component to show application status
+const StatusBadge = ({ status }) => {
+    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
+    const statusClasses = {
+        pending: "bg-yellow-100 text-yellow-800",
+        viewed: "bg-blue-100 text-blue-800",
+        accepted: "bg-green-100 text-green-800",
+        rejected: "bg-red-100 text-red-800",
+        applied: "bg-blue-50 text-blue-600", // For in-progress applications
+        default: "bg-gray-100 text-gray-800"
+    };
+    return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
+};
+
 
 const categoryColors = {
     'Graphic Design': 'bg-pink-100 text-pink-800',
@@ -32,6 +47,9 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
     const categoryName = job.category_name || job.category;
     const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
     const categoryColorClass = categoryColors[categoryName] || categoryColors.default;
+    
+    // UPDATED: Determine the current application status
+    const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
 
     const formatDate = (dateString) => {
         if (!dateString) return null;
@@ -70,10 +88,16 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         )}
                     </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end items-center">
+                {/* UPDATED: Logic to show status or Apply button */}
+                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div>
+                        {currentApplicationStatus && (
+                            <StatusBadge status={currentApplicationStatus} />
+                        )}
+                    </div>
                     <div className="flex items-center space-x-2">
                         <button onClick={() => handleViewJobDetails(job)} className="font-medium py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition duration-300 text-sm">Details</button>
-                        {currentUser && !applyingStatus[job.id] && ( 
+                        {currentUser && currentUser.role === 'student' && !currentApplicationStatus && ( 
                             <button onClick={() => handleApply(job)} className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm">Apply Now</button>
                         )}
                     </div>
@@ -83,7 +107,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
     );
 };
 
-// --- Main FindJobsPage Component ---
+// --- Main FindJobsPage Component (No changes needed below this line in this file) ---
 function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, applyingStatus }) {
     const [allJobs, setAllJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
