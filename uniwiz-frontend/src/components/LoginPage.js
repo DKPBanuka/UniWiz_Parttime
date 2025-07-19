@@ -1,4 +1,4 @@
-// FILE: src/components/LoginPage.js (Modern UI/UX Update)
+// FILE: src/components/LoginPage.js (UPDATED with Fixed Left Side & Scrollable Right Side)
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,7 +14,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
     const [isSignUpMode, setIsSignUpMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // NEW: useEffect to handle the initial state from another page
+    // useEffect to handle the initial state from another page
     useEffect(() => {
         if (initialState) {
             if (initialState.signup) {
@@ -81,8 +81,10 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
     };
 
     return (
-        <div className="min-h-screen flex bg-white">
-            {/* Left Section - Branding/Marketing */}
+        // --- UPDATED: Changed 'min-h-screen' to 'h-screen' and added 'overflow-hidden' ---
+        // This makes the entire container fixed to the screen height.
+        <div className="h-screen flex bg-white overflow-hidden">
+            {/* Left Section - Branding/Marketing (This will now be fixed) */}
             <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -116,8 +118,9 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                 </motion.div>
             </motion.div>
 
-            {/* Right Section - Login/Signup Form */}
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8 sm:p-12 lg:p-16">
+            {/* Right Section - Login/Signup Form (This will now be scrollable) */}
+            {/* --- UPDATED: Added 'overflow-y-auto' to make this div scrollable if content overflows --- */}
+            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8 sm:p-12 lg:p-16 overflow-y-auto">
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -2,6 +2,10 @@
 // FILE: uniwiz-backend/config/database.php (Temporary Debugging Version)
 // ======================================================================
 // This version is designed to show the REAL database connection error.
+// NEW: Load environment variables from .env file
+require_once __DIR__ . '/../vendor/autoload.php'; // Go up one directory to find vendor
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..'); // The .env file is in the parent directory
+$dotenv->load();
 
 class Database {
     // --- Database Credentials ---
