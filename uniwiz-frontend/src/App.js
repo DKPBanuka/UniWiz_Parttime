@@ -28,6 +28,9 @@ import JobManagementAdmin from './components/admin/JobManagement';
 import AdminSidebar from './components/admin/AdminSidebar';
 import MessagesPage from './components/MessagesPage';
 import ReportManagement from './components/admin/ReportManagement';
+import EditJob from './components/EditJob'; 
+import ViewApplicants from './components/ViewApplicants';
+import AdminSettingsPage from './components/admin/AdminSettingsPage';
 
 import './output.css';
 
@@ -293,6 +296,9 @@ function App() {
   const [studentIdForProfile, setStudentIdForProfile] = useState(null);
   const [applicationIdToView, setApplicationIdToView] = useState(null); 
 
+  const [jobToEdit, setJobToEdit] = useState(null);
+  const [jobToViewApplicants, setJobToViewApplicants] = useState(null);
+
   const [isApplyModalOpen, setApplyModalOpen] = useState(false);
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState(null);
@@ -314,6 +320,8 @@ function App() {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   // NEW: State for pending reports
   const [hasPendingReports, setHasPendingReports] = useState(false);
+
+  
 
   const showPopupNotification = useCallback((message, type = 'info') => {
       setPopupNotification({ message, type, key: Date.now() });
@@ -520,6 +528,16 @@ function App() {
       setPage('messages');
   };
 
+  const handleEditJob = (job) => {
+    setJobToEdit(job);
+    setPage('edit-job');
+  };
+
+  const handleViewApplicantsForJob = (job) => {
+    setJobToViewApplicants(job);
+    setPage('view-applicants');
+  };
+
   const handleNotificationClick = useCallback(async (notification) => {
     if (!notification.is_read) {
         try {
@@ -606,7 +624,28 @@ function App() {
           switch (page) {
               case 'home': return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
               case 'create-job': return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
-              case 'manage-jobs': return <ManageJobs user={currentUser} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} />; 
+              case 'manage-jobs': 
+                return <ManageJobs 
+                    user={currentUser} 
+                    onPostJobClick={() => setPage('create-job')} 
+                    onViewJobDetails={handleViewJobDetailsPage}
+                    // Pass the handler functions as props with the correct names
+                    onEditJob={handleEditJob}
+                    onViewApplicants={handleViewApplicantsForJob}
+                />; 
+              case 'edit-job':
+                return <EditJob 
+                    user={currentUser}
+                    jobData={jobToEdit}
+                    onJobUpdated={() => { setPage('manage-jobs'); showPopupNotification('Job updated successfully!', 'success'); }}
+                    onBackClick={() => setPage('manage-jobs')}
+                />;
+              case 'view-applicants':
+                return <ViewApplicants
+                    job={jobToViewApplicants}
+                    onBack={() => setPage('manage-jobs')}
+                    handleInitiateConversation={handleInitiateConversation}
+                />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('manage-jobs')} />;
               case 'applicants': return <AllApplicants user={currentUser} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} handleInitiateConversation={handleInitiateConversation} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
@@ -624,6 +663,7 @@ function App() {
           switch (page) {
               case 'home': return <AdminDashboard setPage={setPage} />;
               case 'dashboard': return <AdminDashboard setPage={setPage} />;
+              case 'settings':return <AdminSettingsPage />;
               case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageFilter} />;
               case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageFilter} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;

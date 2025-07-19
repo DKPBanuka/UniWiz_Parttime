@@ -73,12 +73,9 @@ function ProfilePage({ user, onProfileUpdate }) {
     // State for CV
     const [selectedCV, setSelectedCV] = useState(null);
     const cvInputRef = useRef();
-
-    const [allCategories, setAllCategories] = useState([]);
-    const commonSkills = [
-        'Web Development', 'Graphic Design', 'Content Writing', 'Social Media', 'Data Entry',
-        'Tutoring', 'Event Management', 'Customer Service', 'Video Editing', 'MS Office'
-    ];
+    
+    // *** NEW: State for suggestions fetched from the backend ***
+    const [suggestions, setSuggestions] = useState({ skills: [], categories: [] });
 
     const fetchPublisherImages = useCallback(async () => {
         if (user && user.role === 'publisher') {
@@ -112,15 +109,21 @@ function ProfilePage({ user, onProfileUpdate }) {
             fetchPublisherImages();
         }
 
+        // Fetch suggestions for students
         if (user && user.role === 'student') {
-            const fetchCategories = async () => {
+            const fetchSuggestions = async () => {
                 try {
-                    const response = await fetch('http://uniwiz.test/get_categories.php');
+                    const response = await fetch('http://uniwiz.test/get_suggestions.php');
                     const data = await response.json();
-                    if (response.ok) setAllCategories(data.map(cat => cat.name));
-                } catch (err) { console.error("Failed to fetch categories:", err); }
+                    if (response.ok) {
+                        setSuggestions({
+                            skills: data.skills || [],
+                            categories: data.categories || []
+                        });
+                    }
+                } catch (err) { console.error("Failed to fetch suggestions:", err); }
             };
-            fetchCategories();
+            fetchSuggestions();
         }
     }, [user, fetchPublisherImages]);
 
@@ -370,20 +373,12 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Skills</label>
                                             <input type="text" name="skills" value={formData.skills} placeholder="e.g., Web Development, Graphic Design" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
-                                            <Suggestions 
-                                                title="Suggestions:"
-                                                suggestions={commonSkills}
-                                                onSelect={(skill) => handleSuggestionSelect('skills', skill)}
-                                            />
+                                            {suggestions.skills.length > 0 && <Suggestions title="Add from suggestions:" suggestions={suggestions.skills} onSelect={(skill) => handleSuggestionSelect('skills', skill)} />}
                                         </div>
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Preferred Job Categories</label>
                                             <input type="text" name="preferred_categories" value={formData.preferred_categories} placeholder="e.g., Event, IT" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
-                                            <Suggestions 
-                                                title="Suggestions:"
-                                                suggestions={allCategories}
-                                                onSelect={(category) => handleSuggestionSelect('preferred_categories', category)}
-                                            />
+                                            {suggestions.categories.length > 0 && <Suggestions title="Add from suggestions:" suggestions={suggestions.categories} onSelect={(category) => handleSuggestionSelect('preferred_categories', category)} />}
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">Upload CV (PDF only, max 5MB)</label>
