@@ -290,7 +290,7 @@ function App() {
   // --- State Management ---
   const [currentUser, setCurrentUser] = useState(null);
   const [page, setPageInternal] = useState('loading'); 
-  const [currentPageFilter, setCurrentPageFilter] = useState(null);
+  const [currentPageState, setCurrentPageState] = useState(null);
   
   const [selectedJobIdForDetailsPage, setSelectedJobIdForDetailsPage] = useState(null);
   const [publisherIdForProfile, setPublisherIdForProfile] = useState(null);
@@ -319,7 +319,6 @@ function App() {
   const [conversationContext, setConversationContext] = useState(null);
   
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  // NEW: State for pending reports
   const [hasPendingReports, setHasPendingReports] = useState(false);
 
   
@@ -330,8 +329,8 @@ function App() {
   
   const toggleSidebarLock = () => setIsSidebarLocked(prev => !prev);
 
-  const setPage = useCallback((newPage, filter = null) => {
-    setCurrentPageFilter(filter);
+  const setPage = useCallback((newPage, state = null) => {
+    setCurrentPageState(state);
     setPageInternal(newPage);
   }, []);
 
@@ -471,7 +470,7 @@ function App() {
         }
     };
     initializeUser();
-  }, [fetchAppliedJobs, showPopupNotification]);
+  }, [fetchAppliedJobs, showPopupNotification, setPage]);
 
   const handleLoginSuccess = useCallback(async (userData) => {
     if (userData.status === 'blocked') {
@@ -493,7 +492,7 @@ function App() {
         setPage(userData.role === 'admin' ? 'dashboard' : 'home');
     }
     showPopupNotification(`Welcome back, ${userData.first_name}!`, 'success');
-  }, [fetchAppliedJobs, showPopupNotification]);
+  }, [fetchAppliedJobs, showPopupNotification, setPage]);
 
   const handleLogout = useCallback(() => {
     setCurrentUser(null);
@@ -502,7 +501,7 @@ function App() {
     setNotifications([]);
     setShownPopupIds(new Set()); 
     setPage('landing');
-  }, []);
+  }, [setPage]);
 
   const handleProfileUpdate = useCallback((updatedUserData) => {
     setCurrentUser(updatedUserData);
@@ -513,7 +512,7 @@ function App() {
     } else {
         showPopupNotification('Profile updated successfully!', 'success');
     }
-  }, [page, showPopupNotification]);
+  }, [page, showPopupNotification, setPage]);
   
   const handleViewCompanyProfile = (pubId) => { setPublisherIdForProfile(pubId); setPage('company-profile'); };
   const handleViewApplicants = (filter = 'All') => { setApplicantsPageFilter(filter); setPage('applicants'); };
@@ -573,7 +572,7 @@ function App() {
             handleLogout();
         }
     }
-  }, [currentUser, showPopupNotification, handleLogout]);
+  }, [currentUser, showPopupNotification, handleLogout, setPage]);
 
   const handleOpenApplyModal = useCallback((job) => {
     if (!currentUser) {
@@ -583,7 +582,7 @@ function App() {
     }
     setJobToApply(job); 
     setApplyModalOpen(true);
-  }, [currentUser, showPopupNotification]);
+  }, [currentUser, showPopupNotification, setPage]);
 
   const handleSubmitApplication = useCallback(async (proposal) => {
     if (!jobToApply || !currentUser) return; 
@@ -631,10 +630,10 @@ function App() {
               
               // Admin-specific settings page is rendered here
               case 'settings':
-                return <AdminSettingsPage />;
+                return <AdminSettingsPage user={currentUser} />;
 
-              case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageFilter} />;
-              case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageFilter} />;
+              case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageState} />;
+              case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageState} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />;
@@ -680,7 +679,7 @@ function App() {
         case 'loading':
             return <div className="flex items-center justify-center min-h-screen"><p>Loading UniWiz...</p></div>;
         case 'login':
-            return <LoginPage onLoginSuccess={handleLoginSuccess} setPage={setPage} initialState={currentPageFilter} />;
+            return <LoginPage onLoginSuccess={handleLoginSuccess} setPage={setPage} initialState={currentPageState} />;
         case 'profile-setup':
             return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} onBackClick={() => setPage('login')} />;
         case 'landing':
@@ -697,7 +696,7 @@ function App() {
                             <button onClick={() => setPage('login')} className="font-semibold text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                                 Log In
                             </button>
-                            <button onClick={() => setPage('login', { signup: true })} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <button onClick={() => setPage('login', { signup: true, role: 'student' })} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                 Sign Up
                             </button>
                         </div>

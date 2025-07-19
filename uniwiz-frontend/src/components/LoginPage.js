@@ -1,10 +1,10 @@
 // FILE: src/components/LoginPage.js (Modern UI/UX Update)
 // =============================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-function LoginPage({ onLoginSuccess, onShowSignUp }) {
+function LoginPage({ onLoginSuccess, setPage, initialState }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -13,6 +13,19 @@ function LoginPage({ onLoginSuccess, onShowSignUp }) {
     const [error, setError] = useState(null);
     const [isSignUpMode, setIsSignUpMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // NEW: useEffect to handle the initial state from another page
+    useEffect(() => {
+        if (initialState) {
+            if (initialState.signup) {
+                setIsSignUpMode(true);
+            }
+            if (initialState.role) {
+                setRole(initialState.role);
+            }
+        }
+    }, [initialState]);
+
 
     const toggleMode = () => {
         setIsSignUpMode(prev => !prev);
@@ -90,14 +103,15 @@ function LoginPage({ onLoginSuccess, onShowSignUp }) {
                         animate={{ opacity: 1, transition: { delay: 0.2 } }}
                         className="text-5xl font-bold leading-tight mb-6"
                     >
-                        Your Next Opportunity Awaits
+                        
+                        Earn While You Learn
                     </motion.h1>
                     <motion.p 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1, transition: { delay: 0.4 } }}
                         className="text-xl opacity-90 max-w-lg mx-auto"
                     >
-                        Connect with the best part-time opportunities or find the perfect candidates for your business.
+                        Connecting Sri Lankan university students with verified part-time and freelance opportunities.
                     </motion.p>
                 </motion.div>
             </motion.div>
@@ -157,7 +171,7 @@ function LoginPage({ onLoginSuccess, onShowSignUp }) {
                                 onClick={() => setRole('student')} 
                                 className={`flex items-center justify-center px-4 py-3 border rounded-lg font-semibold transition-all ${
                                     role === 'student' 
-                                        ? 'border-primary-main bg-primary-50 text-primary-dark' 
+                                        ? 'border-primary-main bg-primary-lighter/50 text-primary-dark' 
                                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                                 }`}
                             >
@@ -173,7 +187,7 @@ function LoginPage({ onLoginSuccess, onShowSignUp }) {
                                 onClick={() => setRole('publisher')} 
                                 className={`flex items-center justify-center px-4 py-3 border rounded-lg font-semibold transition-all ${
                                     role === 'publisher' 
-                                        ? 'border-primary-main bg-primary-50 text-primary-dark' 
+                                        ? 'border-primary-main bg-primary-lighter/50 text-primary-dark' 
                                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                                 }`}
                             >
