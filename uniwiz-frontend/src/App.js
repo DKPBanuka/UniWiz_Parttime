@@ -1,7 +1,7 @@
-// FILE: src/App.js (UPDATED for Admin Reports Notifications & Profile Linking)
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // --- Component Imports ---
+import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import ProfileSetup from './components/ProfileSetup';
 import StudentDashboard from './components/StudentDashboard';
@@ -92,13 +92,13 @@ const ReadOnlyChatWindow = ({ conversation, currentUser }) => {
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
                     <div className="flex -space-x-4">
-                         <img 
+                        <img 
                             src={userOne.image ? `${API_BASE_URL}/${userOne.image}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${(userOne.name || 'U').charAt(0)}`}
                             alt={userOne.name}
                             className="h-10 w-10 rounded-full object-cover border-2 border-white"
                             title={userOne.name}
                         />
-                         <img 
+                        <img 
                             src={userTwo.image ? `${API_BASE_URL}/${userTwo.image}` : `https://placehold.co/40x40/9FA8DA/1A237E?text=${(userTwo.name || 'U').charAt(0)}`}
                             alt={userTwo.name}
                             className="h-10 w-10 rounded-full object-cover border-2 border-white"
@@ -286,6 +286,7 @@ const NotificationPopup = ({ message, type, onClose }) => {
 };
 
 function App() {
+    
   // --- State Management ---
   const [currentUser, setCurrentUser] = useState(null);
   const [page, setPageInternal] = useState('loading'); 
@@ -457,16 +458,16 @@ function App() {
                     showPopupNotification(result.message || "Session expired or user not found. Please log in.", 'error');
                     setCurrentUser(null);
                     localStorage.removeItem('user');
-                    setPage('find-jobs-public');
+                    setPage('landing');
                 }
             } catch (err) {
                 showPopupNotification("Could not re-establish session. Please log in again.", 'error');
                 setCurrentUser(null);
                 localStorage.removeItem('user');
-                setPage('find-jobs-public');
+                setPage('landing');
             }
         } else {
-            setPage('find-jobs-public');
+            setPage('landing');
         }
     };
     initializeUser();
@@ -500,7 +501,7 @@ function App() {
     setAppliedJobs(new Set()); 
     setNotifications([]);
     setShownPopupIds(new Set()); 
-    setPage('find-jobs-public');
+    setPage('landing');
   }, []);
 
   const handleProfileUpdate = useCallback((updatedUserData) => {
@@ -576,8 +577,8 @@ function App() {
 
   const handleOpenApplyModal = useCallback((job) => {
     if (!currentUser) {
-      showPopupNotification("Please log in to apply for jobs.", 'info');
-      setPage('login');
+      showPopupNotification("Please log in or sign up to apply for jobs.", 'info');
+      setPage('login', { signup: true, role: 'student' });
       return;
     }
     setJobToApply(job); 
@@ -609,71 +610,66 @@ function App() {
   const renderLoggedInPageContent = () => {
       if (!currentUser) return null; 
 
+      // Common pages for students and publishers
       const commonPages = {
         'notifications': <NotificationsPage user={currentUser} notifications={notifications} onNotificationClick={handleNotificationClick} />,
         'profile': <ProfilePage user={currentUser} onProfileUpdate={handleProfileUpdate} />,
+        // Settings page for non-admin users
         'settings': <SettingsPage user={currentUser} onLogout={handleLogout} />,
       };
       
       if (page === 'messages') {
           return <MessagesPage user={currentUser} setPage={setPage} conversationContext={conversationContext} setConversationContext={setConversationContext} />;
       }
+      
+      // --- IMPORTANT: Check for Admin role FIRST ---
+      if (currentUser.role === 'admin') {
+          switch (page) {
+              case 'home':
+              case 'dashboard': 
+                return <AdminDashboard setPage={setPage} />;
+              
+              // Admin-specific settings page is rendered here
+              case 'settings':
+                return <AdminSettingsPage />;
+
+              case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageFilter} />;
+              case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageFilter} />;
+              case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;
+              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
+              case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />;
+              case 'report-management': return <ReportManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} />;
+              case 'conversation-viewer': return <ConversationViewerAdmin user={currentUser} setPage={setPage} />;
+              default: return <AdminDashboard setPage={setPage} />;
+          }
+      }
+
+      // If not admin, check for common pages
       if (page && commonPages[page]) return commonPages[page];
 
+      // Pages for Publisher
       if (currentUser.role === 'publisher') {
           switch (page) {
               case 'home': return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
               case 'create-job': return <CreateJob user={currentUser} onJobPosted={() => { setPage('manage-jobs'); showPopupNotification('Job posted successfully!', 'success'); }} />;
-              case 'manage-jobs': 
-                return <ManageJobs 
-                    user={currentUser} 
-                    onPostJobClick={() => setPage('create-job')} 
-                    onViewJobDetails={handleViewJobDetailsPage}
-                    // Pass the handler functions as props with the correct names
-                    onEditJob={handleEditJob}
-                    onViewApplicants={handleViewApplicantsForJob}
-                />; 
-              case 'edit-job':
-                return <EditJob 
-                    user={currentUser}
-                    jobData={jobToEdit}
-                    onJobUpdated={() => { setPage('manage-jobs'); showPopupNotification('Job updated successfully!', 'success'); }}
-                    onBackClick={() => setPage('manage-jobs')}
-                />;
-              case 'view-applicants':
-                return <ViewApplicants
-                    job={jobToViewApplicants}
-                    onBack={() => setPage('manage-jobs')}
-                    handleInitiateConversation={handleInitiateConversation}
-                />;
+              case 'manage-jobs': return <ManageJobs user={currentUser} onPostJobClick={() => setPage('create-job')} onViewJobDetails={handleViewJobDetailsPage} onEditJob={handleEditJob} onViewApplicants={handleViewApplicantsForJob} />; 
+              case 'edit-job': return <EditJob user={currentUser} jobData={jobToEdit} onJobUpdated={() => { setPage('manage-jobs'); showPopupNotification('Job updated successfully!', 'success'); }} onBackClick={() => setPage('manage-jobs')} />;
+              case 'view-applicants': return <ViewApplicants job={jobToViewApplicants} onBack={() => setPage('manage-jobs')} handleInitiateConversation={handleInitiateConversation} />;
               case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('manage-jobs')} />;
               case 'applicants': return <AllApplicants user={currentUser} initialFilter={applicantsPageFilter} setInitialFilter={setApplicantsPageFilter} initialApplicationId={applicationIdToView} onModalClose={() => setApplicationIdToView(null)} handleInitiateConversation={handleInitiateConversation} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('applicants')} />;
               default: return <PublisherDashboard user={currentUser} onPostJobClick={() => setPage('create-job')} onViewAllJobsClick={() => setPage('manage-jobs')} onViewApplicants={handleViewApplicants} onViewApplicantDetails={handleViewApplicantDetails} />;
           }
-      } else if (currentUser.role === 'student') {
+      } 
+      
+      // Pages for Student
+      else if (currentUser.role === 'student') {
           switch (page) {
               case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
               case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetails} />;
               case 'applied-jobs': return <AppliedJobsPage user={currentUser} handleViewJobDetails={handleViewJobDetails} initialFilter={appliedJobsPageFilter} setInitialFilter={setAppliedJobsPageFilter} />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
               default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
-          }
-      } else if (currentUser.role === 'admin') {
-          switch (page) {
-              case 'home': return <AdminDashboard setPage={setPage} />;
-              case 'dashboard': return <AdminDashboard setPage={setPage} />;
-              case 'settings':return <AdminSettingsPage />;
-              case 'user-management': return <UserManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} initialFilter={currentPageFilter} />;
-              case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageFilter} />;
-              case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;
-              case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
-              case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />;
-              // UPDATED: Added props for profile navigation
-              case 'report-management': return <ReportManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} />;
-              // NEW: Route for the conversation viewer
-              case 'conversation-viewer': return <ConversationViewerAdmin user={currentUser} setPage={setPage} />;
-              default: return <AdminDashboard setPage={setPage} />;
           }
       }
       return null;
@@ -684,14 +680,16 @@ function App() {
         case 'loading':
             return <div className="flex items-center justify-center min-h-screen"><p>Loading UniWiz...</p></div>;
         case 'login':
-            return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+            return <LoginPage onLoginSuccess={handleLoginSuccess} setPage={setPage} initialState={currentPageFilter} />;
         case 'profile-setup':
             return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} onBackClick={() => setPage('login')} />;
-        case 'find-jobs-public':
+        case 'landing':
+             return <LandingPage setPage={setPage} />;
+        case 'public-jobs':
             return (
                 <div className="flex flex-col h-screen bg-gray-50">
                     <header className="bg-white shadow-sm p-4 flex justify-between items-center z-20">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setPage('landing')}>
                             <img src="/logo.png" alt="UniWiz Logo" className="h-10" />
                             <h1 className="text-xl font-bold text-primary-dark">UniWiz</h1>
                         </div>
@@ -699,7 +697,7 @@ function App() {
                             <button onClick={() => setPage('login')} className="font-semibold text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                                 Log In
                             </button>
-                            <button onClick={() => setPage('login')} className="bg-primary-main text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+                            <button onClick={() => setPage('login', { signup: true })} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                 Sign Up
                             </button>
                         </div>
@@ -711,7 +709,7 @@ function App() {
             );
         default:
             if (!currentUser) {
-                return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+                return <LandingPage setPage={setPage} />;
             }
             return (
                 <div className={`flex h-screen bg-gray-50`}>
@@ -720,7 +718,6 @@ function App() {
                     ) : currentUser.role === 'student' ? (
                         <StudentSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} hasUnreadMessages={hasUnreadMessages} />
                     ) : (
-                        // UPDATED: Pass hasPendingReports to AdminSidebar
                         <AdminSidebar user={currentUser} currentPage={page} setPage={setPage} onLogout={handleLogout} isLocked={isSidebarLocked} toggleLock={toggleSidebarLock} hasUnreadReports={hasPendingReports} />
                     )}
                     <div className="flex-1 flex flex-col overflow-hidden">

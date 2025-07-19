@@ -1,4 +1,4 @@
-// FILE: src/components/ProfilePage.js (ENHANCED for Full Image Management)
+// FILE: src/components/ProfilePage.js (ENHANCED for Full Image Management & Suggestions)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Reusable Notification Component
@@ -51,7 +51,7 @@ function ProfilePage({ user, onProfileUpdate }) {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
-    
+
     // State for profile picture
     const [selectedProfilePicture, setSelectedProfilePicture] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
@@ -73,8 +73,8 @@ function ProfilePage({ user, onProfileUpdate }) {
     // State for CV
     const [selectedCV, setSelectedCV] = useState(null);
     const cvInputRef = useRef();
-    
-    // *** NEW: State for suggestions fetched from the backend ***
+
+    // State for suggestions from the backend
     const [suggestions, setSuggestions] = useState({ skills: [], categories: [] });
 
     const fetchPublisherImages = useCallback(async () => {
@@ -180,7 +180,7 @@ function ProfilePage({ user, onProfileUpdate }) {
     
     const handleSuggestionSelect = (fieldName, value) => {
         setFormData(prevData => {
-            const currentValues = prevData[fieldName] ? prevData[fieldName].split(',').map(s => s.trim()) : [];
+            const currentValues = prevData[fieldName] ? prevData[fieldName].split(',').map(s => s.trim()).filter(Boolean) : [];
             if (!currentValues.some(v => v.toLowerCase() === value.toLowerCase())) {
                 const newValues = [...currentValues, value];
                 return { ...prevData, [fieldName]: newValues.join(', ') };
@@ -373,12 +373,24 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Skills</label>
                                             <input type="text" name="skills" value={formData.skills} placeholder="e.g., Web Development, Graphic Design" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
-                                            {suggestions.skills.length > 0 && <Suggestions title="Add from suggestions:" suggestions={suggestions.skills} onSelect={(skill) => handleSuggestionSelect('skills', skill)} />}
+                                            {suggestions.skills.length > 0 && 
+                                                <Suggestions 
+                                                    title="Add from suggestions:"
+                                                    suggestions={suggestions.skills}
+                                                    onSelect={(skill) => handleSuggestionSelect('skills', skill)}
+                                                />
+                                            }
                                         </div>
                                         <div className="md:col-span-2 space-y-3">
                                             <label className="block text-sm font-medium text-gray-700">Preferred Job Categories</label>
                                             <input type="text" name="preferred_categories" value={formData.preferred_categories} placeholder="e.g., Event, IT" onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3" />
-                                            {suggestions.categories.length > 0 && <Suggestions title="Add from suggestions:" suggestions={suggestions.categories} onSelect={(category) => handleSuggestionSelect('preferred_categories', category)} />}
+                                            {suggestions.categories.length > 0 &&
+                                                <Suggestions 
+                                                    title="Add from suggestions:"
+                                                    suggestions={suggestions.categories}
+                                                    onSelect={(category) => handleSuggestionSelect('preferred_categories', category)}
+                                                />
+                                            }
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">Upload CV (PDF only, max 5MB)</label>
