@@ -5,6 +5,14 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
+// Sri Lanka Districts List
+const sriLankaDistricts = [
+    "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota",
+    "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale",
+    "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura",
+    "Trincomalee", "Vavuniya"
+];
+
 // --- Reusable Components (Self-contained for this component) ---
 
 const Notification = ({ message, type, onClose }) => {
@@ -286,6 +294,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionT
 const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
     const [formData, setFormData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [currentSkill, setCurrentSkill] = useState('');
 
     useEffect(() => {
         if (jobData) {
@@ -294,13 +303,37 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
                 start_date: jobData.start_date ? new Date(jobData.start_date).toISOString().split('T')[0] : '',
                 end_date: jobData.end_date ? new Date(jobData.end_date).toISOString().split('T')[0] : '',
                 application_deadline: jobData.application_deadline ? new Date(jobData.application_deadline).toISOString().split('T')[0] : '',
+                skills: jobData.skills ? Array.isArray(jobData.skills) ? jobData.skills : jobData.skills.split(',').map(s => s.trim()) : [],
             });
         }
     }, [jobData]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const removeSkill = (skillToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            skills: prev.skills.filter(skill => skill !== skillToRemove)
+        }));
+    };
+
+    const handleSkillKeyDown = (e) => {
+        if (e.key === 'Enter' && currentSkill.trim()) {
+            if (!formData.skills.includes(currentSkill.trim())) {
+                setFormData(prev => ({
+                    ...prev,
+                    skills: [...prev.skills, currentSkill.trim()]
+                }));
+            }
+            setCurrentSkill('');
+            e.preventDefault();
+        }
     };
 
     const handleSubmit = async () => {
@@ -327,14 +360,141 @@ const EditJobModal = ({ isOpen, onClose, jobData, onUpdate, categories }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-3xl">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl">
                 <h2 className="text-2xl font-bold text-primary-dark mb-6">Edit Job: <span className="font-light">{jobData.title}</span></h2>
                 <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-4 -mr-4">
-                    {/* Form content here, same as before */}
+                    {/* Core Details Section */}
+                    <div className="p-6 border rounded-xl">
+                        <h3 className="text-xl font-semibold text-primary-dark mb-4">Core Details</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-title">Job Title</label>
+                                <input id="edit-title" name="title" type="text" value={formData.title} onChange={handleChange} className="shadow-sm border rounded w-full py-3 px-4" required />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-description">Job Description</label>
+                                <textarea id="edit-description" name="description" value={formData.description} onChange={handleChange} rows="6" className="shadow-sm border rounded w-full py-3 px-4" required></textarea>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-category">Category</label>
+                                    <select id="edit-category" name="categoryId" value={formData.categoryId} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4" required>
+                                        {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-job-type">Job Type</label>
+                                    <select id="edit-job-type" name="jobType" value={formData.jobType} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                        <option value="part-time">Part-time</option>
+                                        <option value="freelance">Freelance</option>
+                                        <option value="task-based">Task-based</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Job Logistics Section */}
+                    <div className="p-6 border rounded-xl">
+                         <h3 className="text-xl font-semibold text-primary-dark mb-4">Job Logistics</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-work-mode">Work Mode</label>
+                                <select id="edit-work-mode" name="workMode" value={formData.workMode} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="on-site">On-site</option>
+                                    <option value="remote">Remote</option>
+                                    <option value="hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                            {formData.workMode !== 'remote' && (
+                                <>
+                                    <div>
+                                        <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-district">District</label>
+                                        <select id="edit-district" name="district" value={formData.district} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4" required>
+                                            <option value="">Select a District</option>
+                                            {sriLankaDistricts.sort().map(dist => <option key={dist} value={dist}>{dist}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-location">Specific Location / Address</label>
+                                        <input id="edit-location" name="location" type="text" value={formData.location} onChange={handleChange} placeholder="e.g., Town Hall, Colombo 07" className="shadow-sm border rounded w-full py-3 px-4" />
+                                    </div>
+                                </>
+                            )}
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-application-deadline">Application Deadline</label>
+                                <input id="edit-application-deadline" name="applicationDeadline" type="date" value={formData.applicationDeadline} onChange={handleChange} className="shadow-sm border rounded w-full py-3 px-4 text-gray-500" />
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-working-hours">Working Hours</label>
+                                <input id="edit-working-hours" name="workingHours" type="text" value={formData.workingHours} onChange={handleChange} placeholder="e.g., 20 hours/week" className="shadow-sm border rounded w-full py-3 px-4" />
+                            </div>
+                         </div>
+                    </div>
+                    
+                    {/* Specifics Section */}
+                    <div className="p-6 border rounded-xl">
+                        <h3 className="text-xl font-semibold text-primary-dark mb-4">Specifics</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">Payment Type</label>
+                                <select name="paymentType" value={formData.paymentType} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="range">Range</option>
+                                    <option value="fixed">Fixed</option>
+                                    <option value="negotiable">Negotiable</option>
+                                </select>
+                            </div>
+                            {formData.paymentType === 'range' && (
+                                <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                    <input type="number" name="priceMin" value={formData.priceMin} onChange={handleChange} placeholder="Min Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
+                                    <input type="number" name="priceMax" value={formData.priceMax} onChange={handleChange} placeholder="Max Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
+                                </div>
+                            )}
+                            {formData.paymentType === 'fixed' && (
+                                <div className="md:col-span-2">
+                                    <input type="number" name="fixedPrice" value={formData.fixedPrice} onChange={handleChange} placeholder="Fixed Price (Rs.)" className="shadow-sm border rounded w-full py-3 px-4" />
+                                </div>
+                            )}
+                            <div className="md:col-span-2">
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-skills">Required Skills</label>
+                                <div className="flex flex-wrap gap-2 items-center p-2 border rounded-lg">
+                                    {formData.skills.map((skill, index) => (
+                                        <div key={index} className="flex items-center bg-primary-lighter text-primary-dark px-3 py-1 rounded-full text-sm">
+                                            <span>{skill}</span>
+                                            <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-primary-dark hover:text-red-500">&times;</button>
+                                        </div>
+                                    ))}
+                                    <input id="edit-skills" type="text" value={currentSkill} onChange={(e) => setCurrentSkill(e.target.value)} onKeyDown={handleSkillKeyDown} placeholder="Type a skill and press Enter" className="flex-grow p-1 outline-none" />
+                                </div>
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-vacancies">Number of Vacancies</label>
+                                <input id="edit-vacancies" name="vacancies" type="number" min="1" value={formData.vacancies} onChange={handleChange} className="shadow-sm border rounded w-full py-3 px-4" />
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="edit-experience">Experience Level</label>
+                                <select id="edit-experience" name="experienceLevel" value={formData.experienceLevel} onChange={handleChange} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="any">Any</option>
+                                    <option value="entry-level">Entry-level</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="expert">Expert</option>
+                                </select>
+                            </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-gray-700 font-medium mb-2">Job Duration</label>
+                                <div className="flex items-center space-x-4">
+                                    <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>
+                                    {!formData.isSingleDay && <span>to</span>}
+                                    {!formData.isSingleDay && <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>}
+                                    <label><input type="checkbox" name="isSingleDay" checked={formData.isSingleDay} onChange={handleChange} className="mr-2"/> Single Day Job</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div className="mt-6 flex justify-end space-x-4">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                    <button onClick={handleSubmit} disabled={isLoading} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-400">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button onClick={handleSubmit} disabled={isLoading} className="px-4 py-2 bg-primary-main text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400">
                         {isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>

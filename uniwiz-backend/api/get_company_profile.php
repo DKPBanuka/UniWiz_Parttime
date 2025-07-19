@@ -1,7 +1,6 @@
 <?php
-// FILE: uniwiz-backend/api/get_company_profile.php (UPDATED for is_verified)
-// ===========================================================
-// This file now fetches rating details and all reviews along with other profile info, including publisher's verification status.
+// FILE: uniwiz-backend/api/get_company_profile.php (ENHANCED for Gallery Images & Full Functionality)
+// =================================================================================================
 
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
@@ -32,13 +31,13 @@ $publisher_id = (int)$_GET['publisher_id'];
 try {
     $company_data = [];
 
-    // 1. Fetch Company Details with profile and new rating info
+    // 1. Fetch Company Details (including new cover_image_url)
     $query_company = "
         SELECT 
             u.id, u.first_name, u.last_name, u.email, u.company_name, u.profile_image_url,
             u.is_verified,
             pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, 
-            pp.facebook_url, pp.linkedin_url, pp.instagram_url,
+            pp.facebook_url, pp.linkedin_url, pp.instagram_url, pp.cover_image_url,
             (SELECT AVG(rating) FROM company_reviews WHERE publisher_id = u.id) as average_rating,
             (SELECT COUNT(*) FROM company_reviews WHERE publisher_id = u.id) as review_count
         FROM 
@@ -84,7 +83,7 @@ try {
     $query_reviews = "
         SELECT 
             r.id as review_id, r.rating, r.review_text, r.created_at,
-            s.first_name, s.last_name, s.profile_image_url as student_image_url
+            s.id as student_id, s.first_name, s.last_name, s.profile_image_url as student_image_url
         FROM company_reviews r
         JOIN users s ON r.student_id = s.id
         WHERE r.publisher_id = :publisher_id
@@ -94,6 +93,14 @@ try {
     $stmt_reviews->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt_reviews->execute();
     $company_data['reviews'] = $stmt_reviews->fetchAll(PDO::FETCH_ASSOC);
+
+
+    // 4. Fetch all gallery images for the company
+    $query_images = "SELECT id, image_url FROM publisher_images WHERE publisher_id = :publisher_id ORDER BY uploaded_at DESC";
+    $stmt_images = $db->prepare($query_images);
+    $stmt_images->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
+    $stmt_images->execute();
+    $company_data['gallery_images'] = $stmt_images->fetchAll(PDO::FETCH_ASSOC);
 
 
     http_response_code(200);

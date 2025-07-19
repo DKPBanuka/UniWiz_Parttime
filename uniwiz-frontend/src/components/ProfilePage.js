@@ -1,9 +1,5 @@
-// FILE: src/components/ProfilePage.js (UPDATED with Consistent Background Color)
-// =================================================================
-// This version now uses the standard 'bg-gray-50' for the student profile page background,
-// matching the student dashboard for a consistent user experience.
-
-import React, { useState, useEffect, useRef } from 'react';
+// FILE: src/components/ProfilePage.js (ENHANCED for Full Image Management)
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Reusable Notification Component
 const Notification = ({ message, type, onClose }) => {
@@ -14,7 +10,7 @@ const Notification = ({ message, type, onClose }) => {
         return () => clearTimeout(timer);
     }, [onClose]);
 
-    const baseClasses = "fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-all";
+    const baseClasses = "fixed top-20 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-all";
     const typeClasses = {
         success: "bg-green-500",
         error: "bg-red-500",
@@ -46,37 +42,35 @@ const Suggestions = ({ title, suggestions, onSelect }) => (
     </div>
 );
 
-
 function ProfilePage({ user, onProfileUpdate }) {
     const [formData, setFormData] = useState({
-        // Common fields
-        first_name: '',
-        last_name: '',
-        // Publisher-specific fields
-        company_name: '',
-        about: '',
-        industry: '',
-        website_url: '',
-        address: '',
-        phone_number: '',
-        facebook_url: '',
-        linkedin_url: '',
-        instagram_url: '',
-        // Student-specific fields
-        university_name: '',
-        field_of_study: '',
-        year_of_study: '',
-        languages_spoken: '',
-        preferred_categories: '',
-        skills: '',
+        first_name: '', last_name: '', company_name: '', about: '', industry: '',
+        website_url: '', address: '', phone_number: '', facebook_url: '',
+        linkedin_url: '', instagram_url: '', university_name: '', field_of_study: '',
+        year_of_study: '', languages_spoken: '', preferred_categories: '', skills: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
     
+    // State for profile picture
     const [selectedProfilePicture, setSelectedProfilePicture] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
     const profilePictureInputRef = useRef();
 
+    // State for cover image
+    const [selectedCoverImage, setSelectedCoverImage] = useState(null);
+    const [coverImagePreview, setCoverImagePreview] = useState(null);
+    const [removeCoverImage, setRemoveCoverImage] = useState(false);
+    const coverImageInputRef = useRef();
+
+    // State for gallery images
+    const [existingGalleryImages, setExistingGalleryImages] = useState([]);
+    const [selectedGalleryImages, setSelectedGalleryImages] = useState([]);
+    const [galleryImagePreviews, setGalleryImagePreviews] = useState([]);
+    const [imagesToRemove, setImagesToRemove] = useState([]);
+    const galleryInputRef = useRef();
+
+    // State for CV
     const [selectedCV, setSelectedCV] = useState(null);
     const cvInputRef = useRef();
 
@@ -86,32 +80,36 @@ function ProfilePage({ user, onProfileUpdate }) {
         'Tutoring', 'Event Management', 'Customer Service', 'Video Editing', 'MS Office'
     ];
 
+    const fetchPublisherImages = useCallback(async () => {
+        if (user && user.role === 'publisher') {
+            try {
+                const response = await fetch(`http://uniwiz.test/get_company_profile.php?publisher_id=${user.id}`);
+                const data = await response.json();
+                if (response.ok && data.gallery_images) {
+                    setExistingGalleryImages(data.gallery_images);
+                }
+            } catch (err) {
+                console.error("Failed to fetch gallery images:", err);
+            }
+        }
+    }, [user]);
 
     useEffect(() => {
         if (user) {
             setFormData({
-                // Common
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                // Publisher
-                company_name: user.company_name || '',
-                about: user.about || '',
-                industry: user.industry || '',
-                website_url: user.website_url || '',
-                address: user.address || '',
-                phone_number: user.phone_number || '',
-                facebook_url: user.facebook_url || '',
-                linkedin_url: user.linkedin_url || '',
-                instagram_url: user.instagram_url || '',
-                // Student
-                university_name: user.university_name || '',
-                field_of_study: user.field_of_study || '',
-                year_of_study: user.year_of_study || '',
-                languages_spoken: user.languages_spoken || '',
-                preferred_categories: user.preferred_categories || '',
+                first_name: user.first_name || '', last_name: user.last_name || '',
+                company_name: user.company_name || '', about: user.about || '',
+                industry: user.industry || '', website_url: user.website_url || '',
+                address: user.address || '', phone_number: user.phone_number || '',
+                facebook_url: user.facebook_url || '', linkedin_url: user.linkedin_url || '',
+                instagram_url: user.instagram_url || '', university_name: user.university_name || '',
+                field_of_study: user.field_of_study || '', year_of_study: user.year_of_study || '',
+                languages_spoken: user.languages_spoken || '', preferred_categories: user.preferred_categories || '',
                 skills: user.skills || '',
             });
             setProfilePicturePreview(user.profile_image_url ? `http://uniwiz.test/${user.profile_image_url}` : null);
+            setCoverImagePreview(user.cover_image_url ? `http://uniwiz.test/${user.cover_image_url}` : null);
+            fetchPublisherImages();
         }
 
         if (user && user.role === 'student') {
@@ -119,61 +117,67 @@ function ProfilePage({ user, onProfileUpdate }) {
                 try {
                     const response = await fetch('http://uniwiz.test/get_categories.php');
                     const data = await response.json();
-                    if (response.ok) {
-                        setAllCategories(data.map(cat => cat.name));
-                    }
-                } catch (err) {
-                    console.error("Failed to fetch categories:", err);
-                }
+                    if (response.ok) setAllCategories(data.map(cat => cat.name));
+                } catch (err) { console.error("Failed to fetch categories:", err); }
             };
             fetchCategories();
         }
-    }, [user]);
+    }, [user, fetchPublisherImages]);
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const showNotification = (message, type = 'success') => {
-        setNotification({ message, type, key: Date.now() });
-    };
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const showNotification = (message, type = 'success') => setNotification({ message, type, key: Date.now() });
 
     const handleProfilePictureChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 2097152) { // 2MB
-                showNotification("File is too large. Maximum size is 2MB.", "error");
-                e.target.value = null; 
-                return;
-            }
+            if (file.size > 2097152) { showNotification("Profile picture must be under 2MB.", "error"); return; }
             setSelectedProfilePicture(file);
             setProfilePicturePreview(URL.createObjectURL(file));
+        }
+    };
+    
+    const handleCoverImageChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 4194304) { showNotification("Cover image must be under 4MB.", "error"); return; }
+            setSelectedCoverImage(file);
+            setCoverImagePreview(URL.createObjectURL(file));
+            setRemoveCoverImage(false);
+        }
+    };
+
+    const handleGalleryImagesChange = (e) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            setSelectedGalleryImages(prev => [...prev, ...files]);
+            const previews = files.map(file => URL.createObjectURL(file));
+            setGalleryImagePreviews(prev => [...prev, ...previews]);
         }
     };
 
     const handleCVChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.type !== 'application/pdf') {
-                showNotification("Invalid file type. Only PDF files are allowed.", "error");
-                e.target.value = null;
-                return;
-            }
-            if (file.size > 5242880) { // 5MB
-                showNotification("CV file is too large. Maximum size is 5MB.", "error");
-                e.target.value = null;
-                return;
-            }
+            if (file.type !== 'application/pdf') { showNotification("Only PDF files are allowed for CV.", "error"); return; }
+            if (file.size > 5242880) { showNotification("CV file must be under 5MB.", "error"); return; }
             setSelectedCV(file);
         }
+    };
+
+    const handleRemoveCoverImage = () => {
+        setCoverImagePreview(null);
+        setSelectedCoverImage(null);
+        setRemoveCoverImage(true);
+    };
+
+    const handleRemoveGalleryImage = (id) => {
+        setImagesToRemove(prev => [...prev, id]);
+        setExistingGalleryImages(prev => prev.filter(img => img.id !== id));
     };
     
     const handleSuggestionSelect = (fieldName, value) => {
         setFormData(prevData => {
-            const currentValues = prevData[fieldName] 
-                ? prevData[fieldName].split(',').map(s => s.trim()) 
-                : [];
-            
+            const currentValues = prevData[fieldName] ? prevData[fieldName].split(',').map(s => s.trim()) : [];
             if (!currentValues.some(v => v.toLowerCase() === value.toLowerCase())) {
                 const newValues = [...currentValues, value];
                 return { ...prevData, [fieldName]: newValues.join(', ') };
@@ -187,39 +191,29 @@ function ProfilePage({ user, onProfileUpdate }) {
         setIsLoading(true);
 
         const submissionData = new FormData();
-        
         submissionData.append('user_id', user.id);
-        for (const key in formData) {
-            submissionData.append(key, formData[key]);
+        for (const key in formData) { submissionData.append(key, formData[key]); }
+        if (selectedProfilePicture) submissionData.append('profile_picture', selectedProfilePicture);
+        if (user.role === 'publisher' && selectedCoverImage) submissionData.append('cover_image', selectedCoverImage);
+        if (user.role === 'publisher' && selectedGalleryImages.length > 0) {
+            selectedGalleryImages.forEach(file => submissionData.append('company_images[]', file));
         }
-
-        if (selectedProfilePicture) {
-            submissionData.append('profile_picture', selectedProfilePicture);
-        }
-        if (user.role === 'student' && selectedCV) {
-            submissionData.append('cv_file', selectedCV);
-        }
+        if (user.role === 'publisher' && removeCoverImage) submissionData.append('remove_cover_image', 'true');
+        if (user.role === 'publisher' && imagesToRemove.length > 0) submissionData.append('remove_gallery_images', JSON.stringify(imagesToRemove));
+        if (user.role === 'student' && selectedCV) submissionData.append('cv_file', selectedCV);
 
         try {
-            const response = await fetch('http://uniwiz.test/update_profile.php', {
-                method: 'POST',
-                body: submissionData,
-            });
-
+            const response = await fetch('http://uniwiz.test/update_profile.php', { method: 'POST', body: submissionData });
             const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'An unknown error occurred.');
             
-            if (!response.ok) {
-                throw new Error(result.message || 'An unknown error occurred.');
-            }
-
             onProfileUpdate(result.user);
             showNotification("Profile updated successfully!", 'success');
             
-            setSelectedProfilePicture(null);
-            setSelectedCV(null);
-            if(profilePictureInputRef.current) profilePictureInputRef.current.value = "";
-            if(cvInputRef.current) cvInputRef.current.value = "";
-
+            // Reset states
+            setSelectedProfilePicture(null); setSelectedCV(null); setSelectedCoverImage(null);
+            setSelectedGalleryImages([]); setGalleryImagePreviews([]); setImagesToRemove([]);
+            setRemoveCoverImage(false);
 
         } catch (err) {
             showNotification(err.message, 'error');
@@ -228,56 +222,30 @@ function ProfilePage({ user, onProfileUpdate }) {
         }
     };
 
-    if (!user) {
-        return <div className="p-8">Loading profile...</div>;
-    }
+    if (!user) return <div className="p-8">Loading profile...</div>;
 
-    // UPDATED: Changed the background for students to 'bg-gray-50' for consistency with their dashboard.
     return (
         <>
-            {notification.message && (
-                <Notification 
-                    key={notification.key}
-                    message={notification.message} 
-                    type={notification.type}
-                    onClose={() => setNotification({ message: '', type: '', key: 0 })}
-                />
-            )}
+            {notification.message && <Notification key={notification.key} message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '', key: 0 })} />}
             <div className={`p-8 min-h-screen text-gray-800 ${user.role === 'publisher' ? 'bg-bg-publisher-dashboard' : 'bg-gray-50'}`}>
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-8">
                         <h2 className="text-4xl font-bold text-primary-dark">My Profile</h2>
                         <p className="text-gray-600 mt-1">Manage your personal and professional information.</p>
                     </div>
-
                     <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-md">
                         <div className="flex items-center space-x-6 mb-8">
-                            <img 
-                                src={profilePicturePreview || `https://placehold.co/100x100/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} 
-                                alt="Profile" 
-                                className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-sm"
-                            />
+                            <img src={profilePicturePreview || `https://placehold.co/100x100/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} alt="Profile" className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-sm"/>
                             <div>
-                                <input 
-                                    type="file" 
-                                    ref={profilePictureInputRef} 
-                                    onChange={handleProfilePictureChange}
-                                    className="hidden"
-                                    accept="image/png, image/jpeg, image/gif"
-                                />
-                                <button 
-                                    type="button" 
-                                    onClick={() => profilePictureInputRef.current.click()}
-                                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                                >
-                                    Change Picture
+                                <input type="file" ref={profilePictureInputRef} onChange={handleProfilePictureChange} className="hidden" accept="image/*"/>
+                                <button type="button" onClick={() => profilePictureInputRef.current.click()} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                                    {user.role === 'publisher' ? 'Add Company Logo' : 'Change Picture'}
                                 </button>
                                 <p className="text-xs text-gray-500 mt-2">JPG, GIF or PNG. Max size of 2MB.</p>
                             </div>
                         </div>
-
                         <div className="space-y-6">
-                            {/* Personal Information Section */}
+                            {/* Personal Info */}
                             <div className="p-6 border rounded-xl">
                                 <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Personal Information</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -295,9 +263,9 @@ function ProfilePage({ user, onProfileUpdate }) {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Company Information Section (Publisher) */}
+                            {/* Publisher Info */}
                             {user.role === 'publisher' && (
+                                <>
                                 <div className="p-6 border rounded-xl">
                                     <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Company Information</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -340,9 +308,37 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         </div>
                                     </div>
                                 </div>
+                                <div className="p-6 border rounded-xl">
+                                    <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Company Visuals</h3>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Cover Photo</label>
+                                        {coverImagePreview && <img src={coverImagePreview} alt="Cover preview" className="mt-2 h-48 w-full object-cover rounded-lg"/>}
+                                        <input type="file" ref={coverImageInputRef} onChange={handleCoverImageChange} className="hidden" accept="image/*"/>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <button type="button" onClick={() => coverImageInputRef.current.click()} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Upload Cover Image</button>
+                                            {coverImagePreview && <button type="button" onClick={handleRemoveCoverImage} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">Remove</button>}
+                                        </div>
+                                    </div>
+                                    <div className="mt-6">
+                                        <label className="block text-sm font-medium text-gray-700">Company Gallery</label>
+                                        <div className="mt-2 grid grid-cols-3 gap-4">
+                                            {existingGalleryImages.map(image => (
+                                                <div key={image.id} className="relative group">
+                                                    <img src={`http://uniwiz.test/${image.image_url}`} alt="Gallery item" className="h-24 w-full object-cover rounded-md"/>
+                                                    <button type="button" onClick={() => handleRemoveGalleryImage(image.id)} className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                                                </div>
+                                            ))}
+                                            {galleryImagePreviews.map((src, index) => (
+                                                <img key={index} src={src} alt={`New gallery item ${index + 1}`} className="h-24 w-full object-cover rounded-md"/>
+                                            ))}
+                                        </div>
+                                        <input type="file" ref={galleryInputRef} onChange={handleGalleryImagesChange} className="hidden" accept="image/*" multiple/>
+                                        <button type="button" onClick={() => galleryInputRef.current.click()} className="mt-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Add Gallery Images</button>
+                                    </div>
+                                </div>
+                                </>
                             )}
-
-                            {/* Educational & Professional Info (Student) */}
+                            {/* Student Info */}
                             {user.role === 'student' && (
                                 <div className="p-6 border rounded-xl">
                                     <h3 className="text-xl font-semibold text-primary-dark mb-4 border-b pb-2">Educational & Professional Information</h3>
@@ -411,7 +407,6 @@ function ProfilePage({ user, onProfileUpdate }) {
                                 </div>
                             )}
                         </div>
-
                         <div className="flex justify-end pt-8">
                             <button type="submit" disabled={isLoading} className="px-6 py-3 bg-primary-main text-white font-bold rounded-lg hover:bg-primary-dark transition duration-300 disabled:bg-gray-400">
                                 {isLoading ? 'Saving...' : 'Save All Changes'}

@@ -1,15 +1,16 @@
-// FILE: src/components/CreateJob.js (UPDATED with District Selection)
+// FILE: src/components/CreateJob.js (ENHANCED with all fields)
 // ========================================================================
 
 import React, { useState, useEffect } from 'react';
 
+// Reusable InputIcon component
 const InputIcon = ({ children }) => (
     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         {children}
     </div>
 );
 
-// NEW: Array of Sri Lankan districts
+// Array of Sri Lankan districts
 const sriLankaDistricts = [
     "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
     "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala",
@@ -38,7 +39,7 @@ function CreateJob({ user, onJobPosted }) {
 
     const [workMode, setWorkMode] = useState('on-site');
     const [location, setLocation] = useState('');
-    const [district, setDistrict] = useState(''); // NEW: State for district
+    const [district, setDistrict] = useState('');
     const [applicationDeadline, setApplicationDeadline] = useState('');
     const [vacancies, setVacancies] = useState(1);
     const [workingHours, setWorkingHours] = useState('');
@@ -78,7 +79,11 @@ function CreateJob({ user, onJobPosted }) {
     };
 
     const handleSubmit = async (status) => {
-        // Validation for on-site/hybrid jobs
+        if (!title || !description || !categoryId) {
+            setError('Please fill in all required fields: Title, Description, and Category.');
+            return;
+        }
+
         if ((workMode === 'on-site' || workMode === 'hybrid') && !district) {
             setError('Please select a district for on-site or hybrid jobs.');
             return;
@@ -91,11 +96,12 @@ function CreateJob({ user, onJobPosted }) {
         let payment_range = '';
         if (paymentType === 'range') {
             payment_range = `Rs. ${Number(priceMin).toLocaleString()} - Rs. ${Number(priceMax).toLocaleString()}`;
-        } else {
+        } else if (paymentType === 'fixed') {
             payment_range = `Rs. ${Number(fixedPrice).toLocaleString()}`;
+        } else {
+            payment_range = 'Negotiable';
         }
         
-        // NEW: Combine specific location and district
         const finalLocation = (workMode === 'on-site' || workMode === 'hybrid') 
             ? `${location}, ${district}` 
             : null;
@@ -154,10 +160,35 @@ function CreateJob({ user, onJobPosted }) {
                     {/* Core Details Section */}
                     <div className="p-6 border rounded-xl">
                         <h3 className="text-xl font-semibold text-primary-dark mb-4">Core Details</h3>
-                        {/* ... other core fields ... */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="title">Job Title</label>
+                                <input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Part-time Graphic Designer" className="shadow-sm border rounded w-full py-3 px-4" required />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="description">Job Description</label>
+                                <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the responsibilities, requirements, and any other details..." rows="6" className="shadow-sm border rounded w-full py-3 px-4" required></textarea>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2" htmlFor="category">Category</label>
+                                    <select id="category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="shadow-sm bg-white border rounded w-full py-3 px-4" required>
+                                        {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2" htmlFor="job-type">Job Type</label>
+                                    <select id="job-type" value={jobType} onChange={(e) => setJobType(e.target.value)} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                        <option value="part-time">Part-time</option>
+                                        <option value="freelance">Freelance</option>
+                                        <option value="task-based">Task-based</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Job Logistics Section (UPDATED) */}
+                    {/* Job Logistics Section */}
                     <div className="p-6 border rounded-xl">
                          <h3 className="text-xl font-semibold text-primary-dark mb-4">Job Logistics</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -169,7 +200,6 @@ function CreateJob({ user, onJobPosted }) {
                                     <option value="hybrid">Hybrid</option>
                                 </select>
                             </div>
-                            {/* NEW: Conditional District and Location fields */}
                             {workMode !== 'remote' && (
                                 <>
                                     <div>
@@ -198,8 +228,62 @@ function CreateJob({ user, onJobPosted }) {
 
                     {/* Specifics Section */}
                     <div className="p-6 border rounded-xl">
-                         <h3 className="text-xl font-semibold text-primary-dark mb-4">Specifics</h3>
-                         {/* ... all other specifics fields ... */}
+                        <h3 className="text-xl font-semibold text-primary-dark mb-4">Specifics</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">Payment Type</label>
+                                <div className="flex items-center space-x-4">
+                                    <label><input type="radio" name="paymentType" value="range" checked={paymentType === 'range'} onChange={(e) => setPaymentType(e.target.value)} /> Range</label>
+                                    <label><input type="radio" name="paymentType" value="fixed" checked={paymentType === 'fixed'} onChange={(e) => setPaymentType(e.target.value)} /> Fixed</label>
+                                    <label><input type="radio" name="paymentType" value="negotiable" checked={paymentType === 'negotiable'} onChange={(e) => setPaymentType(e.target.value)} /> Negotiable</label>
+                                </div>
+                            </div>
+                            {paymentType === 'range' && (
+                                <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                    <input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
+                                    <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
+                                </div>
+                            )}
+                            {paymentType === 'fixed' && (
+                                <div className="md:col-span-2">
+                                    <input type="number" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} placeholder="Fixed Price (Rs.)" className="shadow-sm border rounded w-full py-3 px-4" />
+                                </div>
+                            )}
+                            <div className="md:col-span-2">
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="skills">Required Skills</label>
+                                <div className="flex flex-wrap gap-2 items-center p-2 border rounded-lg">
+                                    {skills.map((skill, index) => (
+                                        <div key={index} className="flex items-center bg-primary-lighter text-primary-dark px-3 py-1 rounded-full text-sm">
+                                            <span>{skill}</span>
+                                            <button type="button" onClick={() => removeSkill(skill)} className="ml-2 text-primary-dark hover:text-red-500">&times;</button>
+                                        </div>
+                                    ))}
+                                    <input id="skills" type="text" value={currentSkill} onChange={(e) => setCurrentSkill(e.target.value)} onKeyDown={handleSkillKeyDown} placeholder="Type a skill and press Enter" className="flex-grow p-1 outline-none" />
+                                </div>
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="vacancies">Number of Vacancies</label>
+                                <input id="vacancies" type="number" min="1" value={vacancies} onChange={(e) => setVacancies(e.target.value)} className="shadow-sm border rounded w-full py-3 px-4" />
+                            </div>
+                             <div>
+                                <label className="block text-gray-700 font-medium mb-2" htmlFor="experience">Experience Level</label>
+                                <select id="experience" value={experienceLevel} onChange={(e) => setExperienceLevel(e.target.value)} className="shadow-sm bg-white border rounded w-full py-3 px-4">
+                                    <option value="any">Any</option>
+                                    <option value="entry-level">Entry-level</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="expert">Expert</option>
+                                </select>
+                            </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-gray-700 font-medium mb-2">Job Duration</label>
+                                <div className="flex items-center space-x-4">
+                                    <input type="date" name="start_date" value={startDate} onChange={e => setStartDate(e.target.value)} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>
+                                    {!isSingleDay && <span>to</span>}
+                                    {!isSingleDay && <input type="date" name="end_date" value={endDate} onChange={e => setEndDate(e.target.value)} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>}
+                                    <label><input type="checkbox" checked={isSingleDay} onChange={(e) => setIsSingleDay(e.target.checked)} className="mr-2"/> Single Day Job</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {error && <p className="text-red-500 text-center mt-4">{error}</p>}
