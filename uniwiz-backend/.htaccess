@@ -1,24 +1,24 @@
-// This file helps create "clean URLs" so you can access your API
-// like /api/jobs instead of /api/jobs.php. It also handles CORS
-// which is necessary for your React frontend to communicate with this backend.
+# This file helps create "clean URLs" and handles CORS.
 
-/*
 <IfModule mod_rewrite.c>
-  RewriteEngine On
+    RewriteEngine On
 
-  # Allow cross-origin requests for API development
-  Header set Access-Control-Allow-Origin "*"
-  Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-  Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+    # Set CORS headers to allow requests from your React frontend
+    # This is more secure than using a wildcard "*"
+    Header set Access-Control-Allow-Origin "http://localhost:3000"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+    Header set Access-Control-Allow-Credentials "true"
 
-  # Handle pre-flight requests (for methods like PUT, DELETE)
-  RewriteCond %{REQUEST_METHOD} OPTIONS
-  RewriteRule ^(.*)$ $1 [R=200,L]
+    # Handle pre-flight OPTIONS requests
+    # This is crucial for CORS to work with methods like POST
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=204,L]
 
-  # Your other rewrite rules would go here
-  # For example, to route all requests to a single index.php (for a framework)
-  # RewriteCond %{REQUEST_FILENAME} !-f
-  # RewriteCond %{REQUEST_FILENAME} !-d
-  # RewriteRule ^ index.php [QSA,L]
+    # --- Add other rules below if needed ---
+    # Example: Remove .php from URLs
+    # RewriteCond %{REQUEST_FILENAME} !-d
+    # RewriteCond %{REQUEST_FILENAME}\.php -f
+    # RewriteRule ^(.*)$ $1.php
+
 </IfModule>
-*/
