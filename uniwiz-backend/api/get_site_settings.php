@@ -1,51 +1,52 @@
 <?php
-// FILE: uniwiz-backend/api/get_site_settings.php
-// DESCRIPTION: Fetches site-wide settings, such as footer links, from the database.
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
 
-header("Access-Control-Allow-Origin: *"); // Allows any domain to access this, which is fine for public data
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Max-Age: 3600");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+require_once '../config/database.php';
+require_once '../vendor/autoload.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-include_once '../config/database.php';
-$database = new Database();
-$db = $database->getConnection();
-
-if ($db === null) {
-    http_response_code(503);
-    echo json_encode(["message" => "Database connection failed."]);
-    exit();
-}
-
-// We are specifically fetching the footer links here.
-$setting_key = 'footer_links';
+$response = [
+    'success' => false,
+    'message' => 'An unknown error occurred.'
+];
 
 try {
-    $query = "SELECT setting_value FROM site_settings WHERE setting_key = :setting_key LIMIT 1";
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':setting_key', $setting_key);
+    $pdo = getPDO();
+
+    // Fetch footer settings
+    $stmt = $pdo->prepare("SELECT footer_links FROM site_settings LIMIT 1");
     $stmt->execute();
+    $siteSettings = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($row) {
-        http_response_code(200);
-        // The data is stored as a JSON string, so we echo it directly.
-        // The frontend will parse it.
-        echo $row['setting_value'];
+    if ($siteSettings) {
+        $footerLinks = json_decode($siteSettings['footer_links'], true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Handle JSON decode error - log it and perhaps return an empty array or default
+            $footerLinks = []; // Default to empty array if JSON is invalid
+        }
     } else {
-        http_response_code(404);
-        echo json_encode(["message" => "Settings key '{$setting_key}' not found."]);
+        $footerLinks = []; // Default to empty array if no settings found
     }
 
+    $response = [
+        'success' => true,
+        'footerLinks' => $footerLinks,
+        'message' => 'Site settings fetched successfully.'
+    ];
+
+} catch (PDOException $e) {
+    $response = [
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage()
+    ];
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(["message" => "A server error occurred: " . $e->getMessage()]);
+    $response = [
+        'success' => false,
+        'message' => 'Server error: ' . $e->getMessage()
+    ];
 }
+
+echo json_encode($response);
 ?>

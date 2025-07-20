@@ -2,7 +2,7 @@
 // FILE: uniwiz-backend/api/get_reports_admin.php (UPDATED to include user roles)
 // DESCRIPTION: Fetches all user-submitted reports for the admin panel, now including the roles of the reporter and the reported user.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");

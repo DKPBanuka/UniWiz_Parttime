@@ -3,7 +3,7 @@
 // DESCRIPTION: Fetches messages for a conversation without marking them as read.
 // This is specifically for the admin's read-only view.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");

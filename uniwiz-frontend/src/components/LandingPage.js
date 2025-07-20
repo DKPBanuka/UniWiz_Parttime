@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // --- Constants ---
-const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api';
+const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
 // Enhanced FeatureCard with modern styling
 const FeatureCard = ({ icon, title, text }) => (

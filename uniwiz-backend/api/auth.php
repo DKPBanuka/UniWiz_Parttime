@@ -9,7 +9,7 @@ error_reporting(E_ALL);
 
 // --- Handle Preflight (OPTIONS) Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header("Access-Control-Allow-Origin: http://localhost:3000");
+    header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
     http_response_code(204);
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Standard Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
 // --- Include Composer's autoloader for PHPMailer ---
@@ -147,7 +147,7 @@ if ($data->action === 'register') {
                     $mail->Subject = 'Verify Your Email Address for UniWiz';
                     
                     // CORRECTED PATH: Removed '/api' from the link
-                    $verification_link = 'http://uniwiz-backend.test/verify_email.php?token=' . $verification_token;
+                    $verification_link = 'http://uniwiz-backend.test/api/verify_email.php?token=' . $verification_token;
                     
                     $mail->Body    = "<h2>Welcome to UniWiz!</h2><p>Thank you for registering. Please click the link below to verify your email address:</p><p><a href='{$verification_link}' style='padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;'>Verify My Email</a></p><p>If you did not create an account, no further action is required.</p>";
                     $mail->send();

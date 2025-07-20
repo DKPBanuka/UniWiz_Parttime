@@ -83,7 +83,7 @@ function SettingsPage({ user, onLogout }) {
 
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_account_settings.php', {
+            const response = await fetch('http://uniwiz-backend.test/api/update_account_settings.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -117,7 +117,7 @@ function SettingsPage({ user, onLogout }) {
 
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_account_settings.php', {
+            const response = await fetch('http://uniwiz-backend.test/api/update_account_settings.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

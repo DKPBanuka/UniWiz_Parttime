@@ -8,11 +8,21 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once '../config/database.php';
 
 // Create a new Database object and get the connection
+// This assumes your Database class is correctly set up to return a PDO object.
 $database = new Database();
-$conn = $database->getConnection();
+$db = $database->getConnection(); 
+
+// Check if database connection was successful
+if ($db === null) { 
+    // If connection failed, return a 503 Service Unavailable status
+    http_response_code(503);
+    echo json_encode(["message" => "Database connection failed. Please try again later."]);
+    exit();
+}
 
 // SQL query to select active jobs along with company details
-// We join the 'jobs' table with the 'users' table to get the company name and profile image
+// It joins the 'jobs' table with the 'users' table to get the company name and profile image.
+// Jobs are ordered by creation date in descending order and limited to 6 results.
 $query = "
     SELECT 
         j.id, 
@@ -31,28 +41,36 @@ $query = "
         j.status = 'active'
     ORDER BY 
         j.created_at DESC
-    LIMIT 6; -- We'll fetch the 6 most recent active jobs for the landing page
+    LIMIT 6;
 ";
 
-$stmt = $conn->prepare($query);
-$stmt->execute();
-$result = $stmt->get_result();
+try {
+    // Prepare the SQL query using the PDO connection object
+    $stmt = $db->prepare($query); 
+    // Execute the prepared statement
+    $stmt->execute();
 
-$jobs = array();
+    // Fetch all results as an associative array
+    $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-if ($result->num_rows > 0) {
-    // Loop through the results and fetch each job as an associative array
-    while ($row = $result->fetch_assoc()) {
-        $jobs[] = $row;
-    }
+    // Set the HTTP response code to 200 (OK)
+    http_response_code(200);
+
+    // Encode the fetched jobs array into a JSON string and output it
+    echo json_encode($jobs);
+
+} catch (PDOException $e) {
+    // Catch PDO-specific database errors
+    http_response_code(500); // Internal Server Error
+    echo json_encode(["message" => "Database query error: " . $e->getMessage()]);
+} catch (Exception $e) {
+    // Catch any other unexpected errors
+    http_response_code(500); // Internal Server Error
+    echo json_encode(["message" => "An unexpected error occurred: " . $e->getMessage()]);
 }
 
-// Set the HTTP response code to 200 (OK)
-http_response_code(200);
+// In PDO, the connection is automatically closed when the script ends,
+// or you can explicitly set $db = null; if needed.
+// $db = null; 
 
-// Encode the jobs array into a JSON string and output it
-echo json_encode($jobs);
-
-// Close the database connection
-$conn->close();
 ?>

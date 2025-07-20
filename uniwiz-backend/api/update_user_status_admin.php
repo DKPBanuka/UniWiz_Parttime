@@ -5,7 +5,7 @@
 // and verification status (is_verified).
 // FIXED: Now sends a notification to the user when their verification status changes.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Max-Age: 3600");

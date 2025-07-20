@@ -53,7 +53,7 @@ function CreateJob({ user, onJobPosted }) {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_categories.php');
+                const response = await fetch('http://uniwiz-backend.test/api/get_categories.php');
                 const data = await response.json();
                 if (response.ok) {
                     setCategories(data);
@@ -126,7 +126,7 @@ function CreateJob({ user, onJobPosted }) {
         };
 
         try {
-            const apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/create_job.php';
+            const apiUrl = 'http://uniwiz-backend.test/api/create_job.php';
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

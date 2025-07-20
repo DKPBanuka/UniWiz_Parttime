@@ -29,7 +29,7 @@ function EditJob({ user, jobData, onJobUpdated, onBackClick }) {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_categories.php');
+                const response = await fetch('http://uniwiz-backend.test/api/get_categories.php');
                 const data = await response.json();
                 if (response.ok) setCategories(data);
             } catch (err) { console.error("Failed to fetch categories:", err); }
@@ -136,7 +136,7 @@ function EditJob({ user, jobData, onJobUpdated, onBackClick }) {
         };
 
         try {
-            const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_job.php', {
+            const response = await fetch('http://uniwiz-backend.test/api/update_job.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedJobData),

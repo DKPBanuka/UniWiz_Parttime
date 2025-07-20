@@ -4,7 +4,7 @@
 // Fetches an array of job IDs a specific user has applied to.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");

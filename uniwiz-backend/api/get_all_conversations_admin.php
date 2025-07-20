@@ -2,7 +2,7 @@
 // FILE: uniwiz-backend/api/get_all_conversations_admin.php (NEW FILE)
 // DESCRIPTION: Fetches all conversations in the system for the admin panel.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");

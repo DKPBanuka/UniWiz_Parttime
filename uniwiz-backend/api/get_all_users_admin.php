@@ -4,7 +4,7 @@
 // This endpoint provides all user data specifically for the admin panel,
 // now with improved filtering for role, verification status, and account status.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");

@@ -83,7 +83,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
                 <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4 border-b pb-6 mb-6">
                     <div className="flex items-center gap-6">
                         <img
-                            src={applicant.profile_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${applicant.profile_image_url}` : `https://placehold.co/100x100/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`}
+                            src={applicant.profile_image_url ? `http://uniwiz-backend.test/api/${applicant.profile_image_url}` : `https://placehold.co/100x100/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`}
                             alt="Profile"
                             className="h-24 w-24 rounded-full object-cover border-4 border-primary-lighter shadow-md"
                         />
@@ -139,7 +139,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
                         <div>
                             <h3 className="text-lg font-bold text-gray-800 mb-2">Resume / CV</h3>
                             {applicant.cv_url ? (
-                                <a href={`http://localhost/UniWiz_Parttime/uniwiz-backend/api/${applicant.cv_url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-primary-main text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors">
+                                <a href={`http://uniwiz-backend.test/api/${applicant.cv_url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center bg-primary-main text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors">
                                     Download CV
                                 </a>
                             ) : (
@@ -167,7 +167,7 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
 
     const handleStatusChange = async (applicationId, newStatus, showNotif = true) => {
         try {
-            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_application_status.php`, {
+            const response = await fetch(`http://uniwiz-backend.test/api/update_application_status.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ application_id: applicationId, status: newStatus }),
@@ -191,7 +191,7 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
             setIsLoading(true);
             setError(null);
             try {
-                const url = `http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_all_publisher_applications.php?job_id=${job.id}`;
+                const url = `http://uniwiz-backend.test/api/get_all_publisher_applications.php?job_id=${job.id}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Failed to fetch applicants.');
@@ -253,7 +253,7 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10">
-                                                    <img className="h-10 w-10 rounded-full object-cover" src={applicant.profile_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${applicant.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} alt="" />
+                                                    <img className="h-10 w-10 rounded-full object-cover" src={applicant.profile_image_url ? `http://uniwiz-backend.test/api/${applicant.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${applicant.first_name.charAt(0)}`} alt="" />
                                                 </div>
                                                 <div className="ml-4">
                                                     <div className="text-sm font-medium text-gray-900">{applicant.first_name} {applicant.last_name}</div>

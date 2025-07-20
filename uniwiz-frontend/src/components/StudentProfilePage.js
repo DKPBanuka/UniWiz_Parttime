@@ -42,7 +42,7 @@ function StudentProfilePage({ studentId, onBackClick }) {
         }
         setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_student_profile.php?student_id=${studentId}`);
+            const response = await fetch(`http://uniwiz-backend.test/api/get_student_profile.php?student_id=${studentId}`);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "Failed to fetch student profile.");
@@ -90,7 +90,7 @@ function StudentProfilePage({ studentId, onBackClick }) {
                 {/* Profile Header */}
                 <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 mb-8 flex flex-col md:flex-row items-center gap-6">
                     <img
-                        src={student.profile_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${student.profile_image_url}` : `https://placehold.co/128x128/E8EAF6/211C84?text=${student.first_name.charAt(0)}`}
+                        src={student.profile_image_url ? `http://uniwiz-backend.test/api/${student.profile_image_url}` : `https://placehold.co/128x128/E8EAF6/211C84?text=${student.first_name.charAt(0)}`}
                         alt="Profile"
                         className="h-28 w-28 md:h-32 md:w-32 rounded-full object-cover border-4 border-blue-100 shadow-sm"
                     />
@@ -144,7 +144,7 @@ function StudentProfilePage({ studentId, onBackClick }) {
                         <ProfileSection title="Resume / CV">
                             {student.cv_url ? (
                                 <a 
-                                    href={`http://localhost/UniWiz_Parttime/uniwiz-backend/api/${student.cv_url}`} 
+                                    href={`http://uniwiz-backend.test/api/${student.cv_url}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
                                     className="inline-flex items-center bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200"

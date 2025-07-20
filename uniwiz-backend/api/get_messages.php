@@ -1,6 +1,6 @@
 <?php
 // FILE: uniwiz-backend/api/get_messages.php (NEW FILE)
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 // ... (add other necessary headers)
 

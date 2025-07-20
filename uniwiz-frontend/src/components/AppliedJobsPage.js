@@ -45,7 +45,7 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_student_application_details.php?student_id=${user.id}`);
+            const response = await fetch(`http://uniwiz-backend.test/api/get_student_application_details.php?student_id=${user.id}`);
             const data = await response.json();
 
             if (response.ok) {
