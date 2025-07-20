@@ -22,8 +22,8 @@ header("Content-Type: application/json; charset=UTF-8");
 
 // --- Include Composer's autoloader for PHPMailer ---
 // CORRECTED PATH: No longer needs '../' as this file is in the root backend folder
-require 'vendor/autoload.php';
-include_once 'config/database.php';
+require __DIR__ . '/../vendor/autoload.php';
+include_once '../config/database.php';
 
 // --- Use PHPMailer classes ---
 use PHPMailer\PHPMailer\PHPMailer;

@@ -34,7 +34,7 @@ function ViewApplications({ jobId, onBackClick, onViewStudentProfile }) { // Add
             try {
                 // We will use the more detailed get_all_publisher_applications endpoint
                 // to get student IDs and other potential details.
-                const response = await fetch(`http://uniwiz.test/get_all_publisher_applications.php?job_id=${jobId}`);
+                const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_all_publisher_applications.php?job_id=${jobId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch applications.');
                 }

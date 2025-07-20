@@ -92,7 +92,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         setIsLoading(true);
         setError(null);
         try {
-            const url = `http://uniwiz.test/get_publisher_jobs.php?publisher_id=${user.id}&search=${searchTerm}`;
+            const url = `http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_publisher_jobs.php?publisher_id=${user.id}&search=${searchTerm}`;
             const response = await fetch(url);
             const data = await response.json();
             if (response.ok) setMyJobs(data);
@@ -124,7 +124,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
 
         const confirmAction = async () => {
             try {
-                const response = await fetch('http://uniwiz.test/manage_job_action.php', {
+                const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/manage_job_action.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ job_id: job.id, action: action }),

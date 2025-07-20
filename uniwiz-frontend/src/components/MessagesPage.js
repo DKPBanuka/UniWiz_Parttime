@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ChatWindow from './ChatWindow';
 
-const API_BASE_URL = 'http://uniwiz.test';
+const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api';
 
 // --- Reusable Conversation Item Component ---
 const ConversationItem = ({ conversation, onSelect, isActive, userRole }) => {

@@ -148,7 +148,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
             if (!currentUser || !currentUser.id) return;
             setIsLoadingStats(true);
             try {
-                const response = await fetch(`http://uniwiz.test/get_student_stats.php?student_id=${currentUser.id}`);
+                const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_student_stats.php?student_id=${currentUser.id}`);
                 const data = await response.json();
                 if (response.ok) setStats(data);
                 else throw new Error(data.message || 'Failed to fetch student stats.');
@@ -163,7 +163,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
             if (!currentUser || !currentUser.id) return;
             setIsLoadingJobs(true);
             try {
-                const response = await fetch(`http://uniwiz.test/get_recommended_jobs.php?student_id=${currentUser.id}`);
+                const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_recommended_jobs.php?student_id=${currentUser.id}`);
                 const data = await response.json();
                 if (response.ok) setRecommendedJobs(data);
                 else throw new Error(data.message || 'Failed to fetch recommended jobs.');

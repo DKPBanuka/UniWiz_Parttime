@@ -35,7 +35,7 @@ import AdminSettingsPage from './components/admin/AdminSettingsPage';
 import './output.css';
 
 // --- Constants ---
-const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend';
+const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api';
 
 // --- INLINED ConversationViewerAdmin COMPONENT TO FIX BUILD ERROR ---
 

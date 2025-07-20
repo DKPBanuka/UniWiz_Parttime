@@ -80,7 +80,7 @@ function ProfilePage({ user, onProfileUpdate }) {
     const fetchPublisherImages = useCallback(async () => {
         if (user && user.role === 'publisher') {
             try {
-                const response = await fetch(`http://uniwiz.test/get_company_profile.php?publisher_id=${user.id}`);
+                const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_company_profile.php?publisher_id=${user.id}`);
                 const data = await response.json();
                 if (response.ok && data.gallery_images) {
                     setExistingGalleryImages(data.gallery_images);
@@ -104,8 +104,8 @@ function ProfilePage({ user, onProfileUpdate }) {
                 languages_spoken: user.languages_spoken || '', preferred_categories: user.preferred_categories || '',
                 skills: user.skills || '',
             });
-            setProfilePicturePreview(user.profile_image_url ? `http://uniwiz.test/${user.profile_image_url}` : null);
-            setCoverImagePreview(user.cover_image_url ? `http://uniwiz.test/${user.cover_image_url}` : null);
+            setProfilePicturePreview(user.profile_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${user.profile_image_url}` : null);
+            setCoverImagePreview(user.cover_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${user.cover_image_url}` : null);
             fetchPublisherImages();
         }
 
@@ -113,7 +113,7 @@ function ProfilePage({ user, onProfileUpdate }) {
         if (user && user.role === 'student') {
             const fetchSuggestions = async () => {
                 try {
-                    const response = await fetch('http://uniwiz.test/get_suggestions.php');
+                    const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_suggestions.php');
                     const data = await response.json();
                     if (response.ok) {
                         setSuggestions({
@@ -206,7 +206,7 @@ function ProfilePage({ user, onProfileUpdate }) {
         if (user.role === 'student' && selectedCV) submissionData.append('cv_file', selectedCV);
 
         try {
-            const response = await fetch('http://uniwiz.test/update_profile.php', { method: 'POST', body: submissionData });
+            const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_profile.php', { method: 'POST', body: submissionData });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'An unknown error occurred.');
             
@@ -327,7 +327,7 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         <div className="mt-2 grid grid-cols-3 gap-4">
                                             {existingGalleryImages.map(image => (
                                                 <div key={image.id} className="relative group">
-                                                    <img src={`http://uniwiz.test/${image.image_url}`} alt="Gallery item" className="h-24 w-full object-cover rounded-md"/>
+                                                    <img src={`http://localhost/UniWiz_Parttime/uniwiz-backend/api/${image.image_url}`} alt="Gallery item" className="h-24 w-full object-cover rounded-md"/>
                                                     <button type="button" onClick={() => handleRemoveGalleryImage(image.id)} className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
                                                 </div>
                                             ))}
@@ -403,7 +403,7 @@ function ProfilePage({ user, onProfileUpdate }) {
                                             />
                                             {user.cv_url && !selectedCV && (
                                                 <p className="mt-2 text-sm text-gray-500">
-                                                    Current CV: <a href={`http://uniwiz.test/${user.cv_url}`} target="_blank" rel="noopener noreferrer" className="text-primary-main hover:underline">View Current CV</a>
+                                                    Current CV: <a href={`http://localhost/UniWiz_Parttime/uniwiz-backend/api/${user.cv_url}`} target="_blank" rel="noopener noreferrer" className="text-primary-main hover:underline">View Current CV</a>
                                                 </p>
                                             )}
                                             {selectedCV && (

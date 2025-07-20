@@ -50,7 +50,7 @@ function JobDetailsPage({ jobId, onBackClick }) {
         }
         setIsLoading(true);
         try {
-            const response = await fetch(`http://uniwiz.test/get_job_details.php?job_id=${jobId}`);
+            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_job_details.php?job_id=${jobId}`);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "Failed to fetch job details.");

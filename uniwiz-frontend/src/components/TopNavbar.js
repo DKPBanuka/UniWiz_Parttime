@@ -157,7 +157,7 @@ function TopNavbar({ user, setPage, notifications, onNotificationClick }) {
                 
                 <button onClick={() => setPage('profile')} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors">
                     {user.profile_image_url ? (
-                        <img src={`http://uniwiz.test/${user.profile_image_url}`} alt="Profile" className="h-10 w-10 rounded-full object-cover" />
+                        <img src={`http://localhost/UniWiz_Parttime/uniwiz-backend/api/${user.profile_image_url}`} alt="Profile" className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                         <div className={`text-white h-10 w-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 ${badgeColor}`}>
                             {user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U'}

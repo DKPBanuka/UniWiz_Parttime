@@ -202,7 +202,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 params.append('status', 'blocked');
             }
 
-            const response = await fetch(`http://uniwiz.test/get_all_users_admin.php?${params.toString()}`);
+            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_all_users_admin.php?${params.toString()}`);
             const data = await response.json();
             if (response.ok) {
                 setUsers(data);
@@ -245,7 +245,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 actionMessage = `Are you sure you want to block this user? They will not be able to log in.`;
                 confirmBtnText = "Block User";
                 confirmBtnColor = "red";
-                apiUrl = 'http://uniwiz.test/update_user_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_user_status_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id, status: statusToUpdate };
                 break;
             case 'unblock':
@@ -253,7 +253,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 actionMessage = `Are you sure you want to unblock this user? They will regain access.`;
                 confirmBtnText = "Unblock User";
                 confirmBtnColor = "green";
-                apiUrl = 'http://uniwiz.test/update_user_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_user_status_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id, status: statusToUpdate };
                 break;
             case 'verify':
@@ -261,7 +261,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 actionMessage = `Are you sure you want to verify this user?`;
                 confirmBtnText = "Verify User";
                 confirmBtnColor = "blue";
-                apiUrl = 'http://uniwiz.test/update_user_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_user_status_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id, is_verified: isVerifiedToUpdate };
                 break;
             case 'unverify':
@@ -269,14 +269,14 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                 actionMessage = `Are you sure you want to unverify this user?`;
                 confirmBtnText = "Unverify User";
                 confirmBtnColor = "red";
-                apiUrl = 'http://uniwiz.test/update_user_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_user_status_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id, is_verified: isVerifiedToUpdate };
                 break;
             case 'delete':
                 actionMessage = `Are you sure you want to permanently delete this user? This action cannot be undone.`;
                 confirmBtnText = "Delete User";
                 confirmBtnColor = "red";
-                apiUrl = 'http://uniwiz.test/delete_user_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/delete_user_admin.php';
                 payload = { target_user_id: targetUserId, admin_id: adminUser.id };
                 break;
             default:
@@ -457,7 +457,7 @@ function UserManagement({ user: adminUser, setPage, setStudentIdForProfile, setP
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-10 w-10">
                                                         <img className="h-10 w-10 rounded-full object-cover" 
-                                                            src={user.profile_image_url ? `http://uniwiz.test/${user.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} 
+                                                            src={user.profile_image_url ? `http://localhost/UniWiz_Parttime/uniwiz-backend/api/${user.profile_image_url}` : `https://placehold.co/40x40/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} 
                                                             alt={`${user.first_name}'s profile`} 
                                                         />
                                                     </div>

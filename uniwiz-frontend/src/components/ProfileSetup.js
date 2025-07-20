@@ -80,7 +80,7 @@
 
 
             try {
-                const apiUrl = 'http://uniwiz.test/update_profile.php';
+                const apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_profile.php';
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     // headers: { 'Content-Type': 'application/json' }, // REMOVED: FormData handles this

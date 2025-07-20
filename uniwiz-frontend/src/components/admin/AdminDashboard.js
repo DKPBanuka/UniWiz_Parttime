@@ -70,7 +70,7 @@ function AdminDashboard({ setPage }) {
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch('http://uniwiz.test/get_admin_stats.php');
+                const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_admin_stats.php');
                 const data = await response.json();
                 if (response.ok) {
                     setStats(data);

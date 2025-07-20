@@ -1,7 +1,7 @@
 // FILE: src/components/ChatWindow.js (UPDATED with Scroll Fix & Initial Message Context)
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const API_BASE_URL = 'http://uniwiz.test';
+const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api';
 
 // ReportModal component remains the same...
 const ReportModal = ({ isOpen, onClose, onSubmit, targetUser }) => {

@@ -149,7 +149,7 @@ function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage, initialF
                 status: statusFilter, // Send statusFilter directly
                 sort_order: sortOrder, // Send sort order
             });
-            const response = await fetch(`http://uniwiz.test/get_all_jobs_admin.php?${params.toString()}`);
+            const response = await fetch(`http://localhost/UniWiz_Parttime/uniwiz-backend/api/get_all_jobs_admin.php?${params.toString()}`);
             const data = await response.json();
             if (response.ok) {
                 setJobs(data);
@@ -185,19 +185,19 @@ function JobManagement({ user, setPage, setSelectedJobIdForDetailsPage, initialF
 
         switch (actionType) {
             case 'active': // Approve or Reopen
-                apiUrl = 'http://uniwiz.test/update_job_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_job_status_admin.php';
                 payload.status = 'active';
                 successMessage = 'Job approved/reopened successfully!';
                 errorMessage = 'Failed to approve/reopen job.';
                 break;
             case 'closed': // Reject or Close
-                apiUrl = 'http://uniwiz.test/update_job_status_admin.php';
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/update_job_status_admin.php';
                 payload.status = 'closed';
                 successMessage = 'Job rejected/closed successfully!';
                 errorMessage = 'Failed to reject/close job.';
                 break;
             case 'delete':
-                apiUrl = 'http://uniwiz.test/manage_job_action_admin.php'; 
+                apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/manage_job_action_admin.php'; 
                 payload.action = 'delete'; 
                 successMessage = 'Job deleted successfully!';
                 errorMessage = 'Failed to delete job.';

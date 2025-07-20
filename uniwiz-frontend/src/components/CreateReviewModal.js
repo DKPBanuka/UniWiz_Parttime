@@ -53,7 +53,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         setError(null);
 
         try {
-            const response = await fetch('http://uniwiz.test/create_review.php', {
+            const response = await fetch('http://localhost/UniWiz_Parttime/uniwiz-backend/api/create_review.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

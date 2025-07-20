@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // --- Constants ---
-const API_BASE_URL = 'http://uniwiz.test';
+const API_BASE_URL = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api';
 const MAX_SALARY = 40000;
 
 // --- Reusable Components ---

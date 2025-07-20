@@ -20,7 +20,7 @@ function SignUpModal({ isOpen, onClose, onRegisterSuccess }) {
         setIsLoading(true);
 
         try {
-            const apiUrl = 'http://uniwiz.test/auth.php';
+            const apiUrl = 'http://localhost/UniWiz_Parttime/uniwiz-backend/api/auth.php';
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

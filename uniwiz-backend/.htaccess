@@ -1,24 +1,10 @@
-# This file helps create "clean URLs" and handles CORS.
-
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Set CORS headers to allow requests from your React frontend
-    # This is more secure than using a wildcard "*"
+<IfModule mod_headers.c>
     Header set Access-Control-Allow-Origin "http://localhost:3000"
     Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
-    Header set Access-Control-Allow-Credentials "true"
-
-    # Handle pre-flight OPTIONS requests
-    # This is crucial for CORS to work with methods like POST
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=204,L]
-
-    # --- Add other rules below if needed ---
-    # Example: Remove .php from URLs
-    # RewriteCond %{REQUEST_FILENAME} !-d
-    # RewriteCond %{REQUEST_FILENAME}\.php -f
-    # RewriteRule ^(.*)$ $1.php
-
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
 </IfModule>
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
