@@ -155,7 +155,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 <svg className="h-5 w-5 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span>{error}</span>
+                                <span>{error.includes('verify') ? 'Please verify your email address. Check your inbox or spam folder.' : error}</span>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -203,24 +203,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                     )}
 
                     {/* Google Sign-in */}
-                    {!isSignUpMode && (
-                        <>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="w-full flex items-center justify-center px-4 py-3 border border-gray-200 rounded-lg shadow-sm text-gray-700 font-medium mb-6 hover:bg-gray-50 transition-all bg-white"
-                            >
-                                <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_64dp.png" alt="Google logo" className="h-5 w-5 mr-3" />
-                                Continue with Google
-                            </motion.button>
-
-                            <div className="flex items-center justify-between text-gray-400 mb-6">
-                                <hr className="flex-grow border-t border-gray-200" />
-                                <span className="mx-4 text-sm">OR</span>
-                                <hr className="flex-grow border-t border-gray-200" />
-                            </div>
-                        </>
-                    )}
+                    {/* Removed Google button and divider */}
 
                     {/* Forgot Password Form */}
                     {/* REMOVE all UI related to forgot password (forms, buttons, messages) */}

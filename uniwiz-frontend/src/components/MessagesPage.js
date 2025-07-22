@@ -9,6 +9,40 @@ import ChatWindow from './ChatWindow';
 
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
+// App Problem Modal for Messages Page
+const AppProblemModal = ({ isOpen, onClose, onSubmit }) => {
+    const [reason, setReason] = useState('');
+    if (!isOpen) return null;
+    const handleSubmit = () => {
+        if (!reason.trim()) {
+            alert("Please describe the app problem.");
+            return;
+        }
+        onSubmit(reason);
+        setReason('');
+        onClose();
+    };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4">Report App Problem</h2>
+                <p className="text-sm text-gray-600 mb-4">Describe the issue or bug you encountered in the app. This will be sent to the admin team.</p>
+                <textarea
+                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary-main focus:outline-none"
+                    rows="4"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g., App crashed when sending a message, UI not loading, etc."
+                ></textarea>
+                <div className="mt-4 flex justify-end space-x-2">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button onClick={handleSubmit} className="px-4 py-2 bg-primary-main text-white rounded-lg hover:bg-primary-dark">Submit</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Reusable Conversation Item Component ---
 const ConversationItem = ({ conversation, onSelect, isActive, userRole }) => {
     const activeBgColor = {
@@ -62,6 +96,27 @@ function MessagesPage({ user, setPage, conversationContext, setConversationConte
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState(''); // State for search input
+    const [isAppProblemModalOpen, setAppProblemModalOpen] = useState(false);
+
+    const handleAppProblemSubmit = async (reason) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/report_user.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reporter_id: user.id,
+                    reason: reason,
+                    type: 'app_problem',
+                }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            alert(result.message);
+        } catch (err) {
+            console.error("App problem report error:", err);
+            alert(`Error: ${err.message}`);
+        }
+    };
 
     const fetchConversations = useCallback(async () => {
         if (!user) return;
@@ -154,13 +209,22 @@ function MessagesPage({ user, setPage, conversationContext, setConversationConte
 
     return (
         <div className={`p-4 md:p-8 min-h-screen ${bgColor}`}>
+            <AppProblemModal
+                isOpen={isAppProblemModalOpen}
+                onClose={() => setAppProblemModalOpen(false)}
+                onSubmit={handleAppProblemSubmit}
+            />
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl md:text-4xl font-bold text-primary-dark">Messages</h1>
-                    <button onClick={() => setPage(user.role === 'admin' ? 'dashboard' : 'home')} className="font-semibold text-primary-main hover:underline flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Dashboard
-                    </button>
+                    {(user.role === 'student' || user.role === 'publisher') && (
+                        <button onClick={() => setAppProblemModalOpen(true)} className="font-semibold text-primary-main hover:underline flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 9.75h.008v.008H9.75V9.75zm0 4.5h.008v.008H9.75v-.008zm4.5-4.5h.008v.008h-.008V9.75zm0 4.5h.008v.008h-.008v-.008zM12 6.75v.008h.008V6.75H12zm0 10.5v.008h.008V17.25H12z" />
+                            </svg>
+                            Report App Problem
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-lg h-[calc(100vh-12rem)] md:h-[calc(100vh-14rem)] flex overflow-hidden border">

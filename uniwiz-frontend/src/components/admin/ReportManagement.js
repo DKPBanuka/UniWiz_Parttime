@@ -25,7 +25,8 @@ const StatusBadge = ({ status }) => {
 
 // UPDATED: Added props to handle profile navigation
 function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherIdForProfile }) {
-    const [reports, setReports] = useState([]);
+    const [userReports, setUserReports] = useState([]);
+    const [appProblemReports, setAppProblemReports] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -36,7 +37,8 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
             const response = await fetch(`${API_BASE_URL}/get_reports_admin.php`);
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to fetch reports.');
-            setReports(data);
+            setUserReports(data.userReports || []);
+            setAppProblemReports(data.appProblemReports || []);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -87,7 +89,8 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <h1 className="text-4xl font-bold text-primary-dark mb-8">User Reports</h1>
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* User/Conversation Reports Table */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden mb-12">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -105,17 +108,15 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                 <tr><td colSpan="6" className="text-center py-8"><LoadingSpinner /></td></tr>
                             ) : error ? (
                                 <tr><td colSpan="6" className="text-center py-8 text-red-500">{error}</td></tr>
-                            ) : reports.length > 0 ? (
-                                reports.map(report => (
+                            ) : userReports.length > 0 ? (
+                                userReports.map(report => (
                                     <tr key={report.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {/* UPDATED: Passes the full user object with role to the handler */}
                                             <button onClick={() => handleViewProfile({id: report.reporter_id, first_name: report.reporter_first_name, last_name: report.reporter_last_name, role: report.reporter_role})} className="text-primary-main hover:underline">
                                                 {report.reporter_first_name} {report.reporter_last_name}
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {/* UPDATED: Passes the full user object with role to the handler */}
                                             <button onClick={() => handleViewProfile({id: report.reported_id, first_name: report.reported_first_name, last_name: report.reported_last_name, role: report.reported_role})} className="text-primary-main hover:underline">
                                                 {report.reported_first_name} {report.reported_last_name}
                                             </button>
@@ -135,6 +136,53 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                 ))
                             ) : (
                                 <tr><td colSpan="6" className="text-center py-8 text-gray-500">No reports found.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {/* App Problem Reports Table */}
+            <h2 className="text-2xl font-bold text-primary-dark mb-4">App Problem Reports</h2>
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {isLoading ? (
+                                <tr><td colSpan="5" className="text-center py-8"><LoadingSpinner /></td></tr>
+                            ) : error ? (
+                                <tr><td colSpan="5" className="text-center py-8 text-red-500">{error}</td></tr>
+                            ) : appProblemReports.length > 0 ? (
+                                appProblemReports.map(report => (
+                                    <tr key={report.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <button onClick={() => handleViewProfile({id: report.reporter_id, first_name: report.reporter_first_name, last_name: report.reporter_last_name, role: report.reporter_role})} className="text-primary-main hover:underline">
+                                                {report.reporter_first_name} {report.reporter_last_name}
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 max-w-sm truncate" title={report.reason}>{report.reason}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.created_at).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center"><StatusBadge status={report.status} /></td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            {report.status === 'pending' && (
+                                                <>
+                                                    <button onClick={() => handleStatusUpdate(report.id, 'resolved')} className="text-green-600 hover:text-green-800">Resolve</button>
+                                                    <button onClick={() => handleStatusUpdate(report.id, 'dismissed')} className="text-gray-600 hover:text-gray-800">Dismiss</button>
+                                                </>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan="5" className="text-center py-8 text-gray-500">No app problem reports found.</td></tr>
                             )}
                         </tbody>
                     </table>

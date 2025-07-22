@@ -1,6 +1,6 @@
 // FILE: src/components/admin/AdminSidebar.js (ENHANCED with Messages & Reports)
 // ==============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Reusable navigation link component
@@ -75,9 +75,26 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
 };
 
 // UPDATED: Added hasPendingReports prop
-function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages, hasPendingReports }) {
+function AdminSidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages }) {
     const [isHovered, setIsHovered] = useState(false);
+    const [hasPendingReports, setHasPendingReports] = useState(false);
     const isExpanded = isLocked || isHovered;
+
+    useEffect(() => {
+        let interval;
+        const fetchPendingReports = async () => {
+            try {
+                const response = await fetch('http://uniwiz-backend.test/api/get_reports_admin.php?pending_count_only=1');
+                const data = await response.json();
+                setHasPendingReports((data.pending_count ?? 0) > 0);
+            } catch (err) {
+                setHasPendingReports(false);
+            }
+        };
+        fetchPendingReports();
+        interval = setInterval(fetchPendingReports, 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Icons
     const dashboardIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;

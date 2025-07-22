@@ -43,16 +43,29 @@ $db = $database->getConnection();
 
 $data = json_decode(file_get_contents("php://input"));
 
-if (!$data || !isset($data->reporter_id) || !isset($data->reported_user_id) || !isset($data->reason)) {
-    http_response_code(400);
-    echo json_encode(["message" => "Incomplete data. Reporter ID, Reported User ID, and a reason are required."]);
-    exit();
-}
+$type = isset($data->type) ? $data->type : 'user';
 
-$reporter_id = (int)$data->reporter_id;
-$reported_user_id = (int)$data->reported_user_id;
-$conversation_id = isset($data->conversation_id) ? (int)$data->conversation_id : null;
-$reason = htmlspecialchars(strip_tags($data->reason));
+if ($type === 'app_problem') {
+    if (!isset($data->reporter_id) || !isset($data->reason)) {
+        http_response_code(400);
+        echo json_encode(["message" => "Incomplete data. Reporter ID and a reason are required for app problem reports."]);
+        exit();
+    }
+    $reporter_id = (int)$data->reporter_id;
+    $reported_user_id = null;
+    $conversation_id = null;
+    $reason = htmlspecialchars(strip_tags($data->reason));
+} else {
+    if (!isset($data->reporter_id) || !isset($data->reported_user_id) || !isset($data->reason)) {
+        http_response_code(400);
+        echo json_encode(["message" => "Incomplete data. Reporter ID, Reported User ID, and a reason are required."]);
+        exit();
+    }
+    $reporter_id = (int)$data->reporter_id;
+    $reported_user_id = (int)$data->reported_user_id;
+    $conversation_id = isset($data->conversation_id) ? (int)$data->conversation_id : null;
+    $reason = htmlspecialchars(strip_tags($data->reason));
+}
 
 if (empty(trim($reason))) {
     http_response_code(400);
@@ -61,14 +74,13 @@ if (empty(trim($reason))) {
 }
 
 try {
-    $query = "INSERT INTO reports (reporter_id, reported_user_id, conversation_id, reason) 
-              VALUES (:reporter_id, :reported_user_id, :conversation_id, :reason)";
-    
+    $query = "INSERT INTO reports (type, reporter_id, reported_user_id, conversation_id, reason) 
+              VALUES (:type, :reporter_id, :reported_user_id, :conversation_id, :reason)";
     $stmt = $db->prepare($query);
-
+    $stmt->bindParam(':type', $type, PDO::PARAM_STR);
     $stmt->bindParam(':reporter_id', $reporter_id, PDO::PARAM_INT);
-    $stmt->bindParam(':reported_user_id', $reported_user_id, PDO::PARAM_INT);
-    $stmt->bindParam(':conversation_id', $conversation_id, $conversation_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+    $stmt->bindParam(':reported_user_id', $reported_user_id, $reported_user_id !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+    $stmt->bindParam(':conversation_id', $conversation_id, $conversation_id !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
     $stmt->bindParam(':reason', $reason, PDO::PARAM_STR);
 
     if ($stmt->execute()) {
@@ -77,9 +89,8 @@ try {
         $reporter_name_stmt->execute([':id' => $reporter_id]);
         $reporter = $reporter_name_stmt->fetch(PDO::FETCH_ASSOC);
         $reporter_name = $reporter ? trim($reporter['first_name'] . ' ' . $reporter['last_name']) : 'A user';
-
-        createAdminNotification($db, 'new_report', "$reporter_name has submitted a new user report.", "/report-management"); // Assuming an admin page for reports
-        
+        $notif_msg = $type === 'app_problem' ? "$reporter_name has reported an app problem." : "$reporter_name has submitted a new user report.";
+        createAdminNotification($db, 'new_report', $notif_msg, "/report-management");
         http_response_code(201);
         echo json_encode(["message" => "Report submitted successfully. An administrator will review it shortly."]);
     } else {

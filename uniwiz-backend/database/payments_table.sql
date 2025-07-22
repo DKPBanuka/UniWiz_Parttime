@@ -31,3 +31,9 @@ ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) NULL;
 ALTER TABLE jobs 
 ADD INDEX IF NOT EXISTS idx_payment_status (payment_status),
 ADD INDEX IF NOT EXISTS idx_payment_amount (payment_amount); 
+
+-- REPORTS TABLE MIGRATION FOR APP PROBLEM REPORTS
+ALTER TABLE reports 
+ADD COLUMN IF NOT EXISTS type ENUM('user', 'conversation', 'app_problem') DEFAULT 'user' AFTER id,
+MODIFY COLUMN reported_user_id INT NULL,
+MODIFY COLUMN conversation_id INT NULL; 

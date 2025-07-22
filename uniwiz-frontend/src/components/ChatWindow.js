@@ -39,11 +39,45 @@ const ReportModal = ({ isOpen, onClose, onSubmit, targetUser }) => {
     );
 };
 
-function ChatWindow({ conversation, currentUser, onNewMessageSent }) {
+const AppProblemModal = ({ isOpen, onClose, onSubmit }) => {
+    const [reason, setReason] = useState('');
+    if (!isOpen) return null;
+    const handleSubmit = () => {
+        if (!reason.trim()) {
+            alert("Please describe the app problem.");
+            return;
+        }
+        onSubmit(reason);
+        setReason('');
+        onClose();
+    };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4">Report App Problem</h2>
+                <p className="text-sm text-gray-600 mb-4">Describe the issue or bug you encountered in the app. This will be sent to the admin team.</p>
+                <textarea
+                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary-main focus:outline-none"
+                    rows="4"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g., App crashed when sending a message, UI not loading, etc."
+                ></textarea>
+                <div className="mt-4 flex justify-end space-x-2">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button onClick={handleSubmit} className="px-4 py-2 bg-primary-main text-white rounded-lg hover:bg-primary-dark">Submit</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+function ChatWindow({ conversation, currentUser, onNewMessageSent, onBackToDashboard }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isReportModalOpen, setReportModalOpen] = useState(false);
+    const [isAppProblemModalOpen, setAppProblemModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const prevMessagesCountRef = useRef(0); // Ref to store previous message count
 
@@ -152,6 +186,26 @@ function ChatWindow({ conversation, currentUser, onNewMessageSent }) {
         }
     };
 
+    const handleAppProblemSubmit = async (reason) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/report_user.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reporter_id: currentUser.id,
+                    reason: reason,
+                    type: 'app_problem',
+                }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            alert(result.message);
+        } catch (err) {
+            console.error("App problem report error:", err);
+            alert(`Error: ${err.message}`);
+        }
+    };
+
     const themeColors = {
         student: { bg: 'bg-blue-500', hoverBg: 'hover:bg-blue-600', text: 'text-blue-200' },
         publisher: { bg: 'bg-primary-main', hoverBg: 'hover:bg-primary-dark', text: 'text-primary-lighter' },
@@ -167,6 +221,12 @@ function ChatWindow({ conversation, currentUser, onNewMessageSent }) {
                 onSubmit={handleReportSubmit}
                 targetUser={conversation}
             />
+            <AppProblemModal
+                isOpen={isAppProblemModalOpen}
+                onClose={() => setAppProblemModalOpen(false)}
+                onSubmit={handleAppProblemSubmit}
+            />
+            {/* Conversation header only, no Back to Dashboard button */}
             <div className="p-4 border-b flex items-center justify-between bg-white">
                 <div className="flex items-center space-x-3">
                     <img 

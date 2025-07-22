@@ -211,6 +211,8 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showVerifyMsg, setShowVerifyMsg] = useState(false);
+    const isVerified = user && (user.is_verified === true || user.is_verified === 1);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -241,6 +243,11 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const showPostVerifyMessage = user && user.is_verified;
     return (
         <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
+            {showVerifyMsg && (
+                <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+                    Please verify your account before posting a job.
+                </div>
+            )}
             <div className="max-w-6xl mx-auto">
                 {showPostVerifyMessage && (
                     <div className="mb-8 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-800 rounded">
@@ -271,7 +278,10 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                         <p className="text-gray-500 mt-2">Here's your activity overview</p>
                     </motion.div>
                     
-                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={onPostJobClick} className="flex items-center space-x-2 bg-primary-main text-white px-5 py-2.5 rounded-lg hover:shadow-md transition-all duration-300 hover:bg-primary-dark mt-4 md:mt-0">
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => {
+                        if (!isVerified) { setShowVerifyMsg(true); setTimeout(() => setShowVerifyMsg(false), 4000); return; }
+                        onPostJobClick();
+                    }} className="flex items-center space-x-2 bg-primary-main text-white px-5 py-2.5 rounded-lg hover:shadow-md transition-all duration-300 hover:bg-primary-dark mt-4 md:mt-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
                         <span>Post New Job</span>
                     </motion.button>
