@@ -14,6 +14,13 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
     const [isSignUpMode, setIsSignUpMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Add state for floating logo animation
+    const [logoFloat, setLogoFloat] = useState(false);
+    useEffect(() => {
+        const t = setTimeout(() => setLogoFloat(true), 500);
+        return () => clearTimeout(t);
+    }, []);
+
     // useEffect to handle the initial state from another page
     useEffect(() => {
         if (initialState) {
@@ -81,68 +88,40 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
     };
 
     return (
-        // --- UPDATED: Changed 'min-h-screen' to 'h-screen' and added 'overflow-hidden' ---
-        // This makes the entire container fixed to the screen height.
-        <div className="h-screen flex bg-white overflow-hidden">
-            {/* Left Section - Branding/Marketing (This will now be fixed) */}
-            <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="hidden lg:flex flex-1 items-center justify-center bg-gradient-to-br from-primary-dark to-primary-darker p-8"
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-300 to-blue-500 animate-gradient-x overflow-auto">
+            {/* Back to Home button */}
+            <button
+                onClick={() => setPage('home')}
+                className="fixed top-6 left-6 z-50 bg-white/80 backdrop-blur-lg border border-blue-200 text-blue-700 font-bold py-2 px-5 rounded-full shadow hover:bg-blue-100 hover:scale-105 transition-all duration-300"
             >
+                <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                Home
+            </button>
+            {/* Main content */}
+            <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 lg:p-16 w-full">
+                <img 
+                    src="/logo.png" 
+                    alt="UniWiz Logo" 
+                    className="h-20 w-20 rounded-2xl shadow-2xl border-4 border-white bg-white/80 backdrop-blur-lg mb-6"
+                    style={{ marginTop: '2rem' }}
+                />
                 <motion.div 
-                    initial={{ y: -20 }}
-                    animate={{ y: 0 }}
-                    className="text-white text-center"
-                >
-                    <img 
-                        src="/logo.png" 
-                        alt="UniWiz Logo" 
-                        className="h-24 mx-auto mb-8 hover:scale-105 transition-transform duration-300" 
-                    />
-                    <motion.h1 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { delay: 0.2 } }}
-                        className="text-5xl font-bold leading-tight mb-6"
-                    >
-                        
-                        Earn While You Learn
-                    </motion.h1>
-                    <motion.p 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { delay: 0.4 } }}
-                        className="text-xl opacity-90 max-w-lg mx-auto"
-                    >
-                        Connecting Sri Lankan university students with verified part-time and freelance opportunities.
-                    </motion.p>
-                </motion.div>
-            </motion.div>
-
-            {/* Right Section - Login/Signup Form (This will now be scrollable) */}
-            {/* --- UPDATED: Added 'overflow-y-auto' to make this div scrollable if content overflows --- */}
-            <div className="flex-1 flex items-center justify-center bg-gray-50 p-8 sm:p-12 lg:p-16 overflow-y-auto">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8"
+                    className="w-full max-w-md bg-white/70 backdrop-blur-2xl border border-blue-200 rounded-3xl shadow-2xl p-10 md:p-14 animate-fade-in overflow-y-auto"
+                    style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)' }}
                 >
                     <div className="mb-8 text-center">
-                        <img 
-                            src="/logo.png" 
-                            alt="UniWiz Logo" 
-                            className="h-16 mx-auto mb-4 lg:hidden" 
-                        />
                         <motion.h2 
                             whileHover={{ scale: 1.02 }}
-                            className="text-3xl font-bold text-gray-900 mb-2"
+                            className="text-4xl font-extrabold text-blue-900 mb-2 drop-shadow-lg"
                         >
                             {isSignUpMode ? 'Join UniWiz' : 'Welcome Back'}
                         </motion.h2>
-                        <p className="text-gray-600">
+                        <p className="text-blue-700/80 text-lg font-medium">
                             {isSignUpMode ? 'Create your account to get started' : 'Sign in to continue'}
                         </p>
                     </div>
-
                     {/* Error Message */}
                     <AnimatePresence>
                         {error && (
@@ -150,7 +129,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-start"
+                                className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-start shadow"
                             >
                                 <svg className="h-5 w-5 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -159,7 +138,6 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             </motion.div>
                         )}
                     </AnimatePresence>
-
                     {/* Role Selection */}
                     {isSignUpMode && (
                         <motion.div 
@@ -168,13 +146,13 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             className="grid grid-cols-2 gap-4 mb-6"
                         >
                             <motion.button
-                                whileHover={{ scale: 1.03 }}
+                                whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.97 }}
                                 type="button"
                                 onClick={() => setRole('student')} 
-                                className={`flex items-center justify-center px-4 py-3 border rounded-lg font-semibold transition-all ${
+                                className={`flex items-center justify-center px-4 py-3 border-2 rounded-xl font-semibold transition-all text-lg shadow-sm ${
                                     role === 'student' 
-                                        ? 'border-primary-main bg-primary-lighter/50 text-primary-dark' 
+                                        ? 'border-blue-500 bg-blue-100/60 text-blue-900' 
                                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                                 }`}
                             >
@@ -184,13 +162,13 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 Student
                             </motion.button>
                             <motion.button
-                                whileHover={{ scale: 1.03 }}
+                                whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.97 }}
                                 type="button"
                                 onClick={() => setRole('publisher')} 
-                                className={`flex items-center justify-center px-4 py-3 border rounded-lg font-semibold transition-all ${
+                                className={`flex items-center justify-center px-4 py-3 border-2 rounded-xl font-semibold transition-all text-lg shadow-sm ${
                                     role === 'publisher' 
-                                        ? 'border-primary-main bg-primary-lighter/50 text-primary-dark' 
+                                        ? 'border-green-500 bg-green-100/60 text-green-900' 
                                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                                 }`}
                             >
@@ -201,19 +179,11 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             </motion.button>
                         </motion.div>
                     )}
-
-                    {/* Google Sign-in */}
-                    {/* Removed Google button and divider */}
-
-                    {/* Forgot Password Form */}
-                    {/* REMOVE all UI related to forgot password (forms, buttons, messages) */}
-
-                    {/* Submit Button */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-7">
                         {/* Full Name / Company Name (Sign Up mode) */}
                         {isSignUpMode && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="fullName" className="block text-base font-semibold text-blue-900">
                                     {role === 'publisher' ? 'Company Name' : 'Full Name'}
                                 </label>
                                 <div className="relative">
@@ -222,7 +192,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                         type="text"
                                         value={fullName}
                                         onChange={e => setFullName(e.target.value)}
-                                        className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2"
+                                        className="block w-full border-2 border-blue-200 rounded-xl shadow-sm py-3 px-4 text-blue-900 placeholder-blue-300 focus:ring-blue-400 focus:border-blue-400 focus:outline-none focus:ring-2 text-lg"
                                         placeholder={role === 'publisher' ? 'Enter company name' : 'Enter your full name'}
                                         required
                                     />
@@ -231,34 +201,34 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                         )}
                         {/* Email Input */}
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-1">
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                            <label htmlFor="email" className="block text-base font-semibold text-blue-900">Email</label>
                             <input
                                 id="email"
                                 type="email"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
-                                className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2"
+                                className="block w-full border-2 border-blue-200 rounded-xl shadow-sm py-3 px-4 text-blue-900 placeholder-blue-300 focus:ring-blue-400 focus:border-blue-400 focus:outline-none focus:ring-2 text-lg"
                                 placeholder="Enter your email"
                                 required
                             />
                         </motion.div>
                         {/* Password Input */}
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-1">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                            <label htmlFor="password" className="block text-base font-semibold text-blue-900">Password</label>
                             <div className="relative">
                                 <input
                                     id="password"
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2 pr-10"
+                                    className="block w-full border-2 border-blue-200 rounded-xl shadow-sm py-3 px-4 text-blue-900 placeholder-blue-300 focus:ring-blue-400 focus:border-blue-400 focus:outline-none focus:ring-2 pr-10 text-lg"
                                     placeholder="Enter your password"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-blue-300 hover:text-blue-600"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         {showPassword ? (
@@ -277,11 +247,11 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                         </motion.div>
                         {/* Submit Button */}
                         <motion.button
-                            whileHover={{ scale: 1.02 }}
+                            whileHover={{ scale: 1.04 }}
                             whileTap={{ scale: 0.98 }}
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-primary-main to-primary-dark hover:from-primary-dark hover:to-primary-main text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed text-lg mt-2"
                         >
                             {isLoading ? (
                                 <span className="flex items-center justify-center">
@@ -298,14 +268,14 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="mt-8 text-center text-gray-600"
+                        className="mt-8 text-center text-blue-700/80 text-lg"
                     >
                         {isSignUpMode ? (
                             <>
                                 Already have an account?{' '}
                                 <button 
                                     onClick={toggleMode} 
-                                    className="ml-1 font-semibold text-primary-main hover:text-primary-dark focus:outline-none"
+                                    className="ml-1 font-bold text-blue-700 underline hover:text-blue-900 focus:outline-none"
                                 >
                                     Sign In
                                 </button>
@@ -315,7 +285,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 Don&apos;t have an account?{' '}
                                 <button 
                                     onClick={toggleMode} 
-                                    className="ml-1 font-semibold text-primary-main hover:text-primary-dark focus:outline-none"
+                                    className="ml-1 font-bold text-blue-700 underline hover:text-blue-900 focus:outline-none"
                                 >
                                     Create Account
                                 </button>

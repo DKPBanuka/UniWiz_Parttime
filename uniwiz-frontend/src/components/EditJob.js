@@ -234,7 +234,7 @@ function EditJob({ user, jobData, onJobUpdated, onBackClick }) {
                             )}
                              <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="application_deadline">Application Deadline</label>
-                                <input id="application_deadline" name="application_deadline" type="date" value={formData.application_deadline} onChange={handleChange} className="shadow-sm border rounded w-full py-3 px-4 text-gray-500" />
+                                <input id="application_deadline" name="application_deadline" type="date" value={formData.application_deadline} onChange={handleChange} className="shadow-sm border rounded w-full py-3 px-4 text-gray-500 bg-gray-100 cursor-not-allowed" disabled />
                             </div>
                              <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="working_hours">Working Hours</label>

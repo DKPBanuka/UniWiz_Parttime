@@ -40,12 +40,18 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionT
     );
 };
 
-const ActionsDropdown = ({ job, onAction }) => {
+const ActionsDropdown = ({ job, onAction, onExtend }) => {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef(null);
+    // const isClosed = new Date() > new Date(job.application_deadline + 'T23:59:59');
+    const isClosed = true; // Show Extend for all jobs
 
     const handleMenuAction = (action) => {
-        onAction(job, action);
+        if (action === 'extend') {
+            onExtend(job);
+        } else {
+            onAction(job, action);
+        }
         setIsOpen(false);
     };
 
@@ -68,10 +74,60 @@ const ActionsDropdown = ({ job, onAction }) => {
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border z-30 p-2">
                     <button onClick={() => handleMenuAction('view')} className="w-full text-left flex items-center p-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">View Applicants</button>
                     <button onClick={() => handleMenuAction('edit')} className="w-full text-left flex items-center p-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">Edit Job</button>
+                    <button onClick={() => handleMenuAction('extend')} className="w-full text-left flex items-center p-3 text-sm text-blue-600 hover:bg-blue-50 rounded-lg">Extend Deadline</button>
                     <div className="my-1 border-t border-gray-100"></div>
                     <button onClick={() => handleMenuAction('delete')} className="w-full text-left flex items-center p-3 text-sm text-red-600 hover:bg-red-50 rounded-lg">Delete Job</button>
                 </div>
             )}
+        </div>
+    );
+};
+
+// --- Extend Modal ---
+const ExtendModal = ({ isOpen, onClose, job, onExtend }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const [newDeadline, setNewDeadline] = useState('');
+    const [price, setPrice] = useState(0);
+    useEffect(() => {
+        setNewDeadline('');
+        setPrice(0);
+    }, [job, isOpen]);
+    function getDeadlinePrice(deadline) {
+        if (!deadline) return 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const d = new Date(deadline);
+        d.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) return 50;
+        if (diffDays === 2) return 100;
+        if (diffDays >= 3 && diffDays <= 7) return 150;
+        if (diffDays > 7) return 200;
+        return 0;
+    }
+    useEffect(() => {
+        setPrice(getDeadlinePrice(newDeadline));
+    }, [newDeadline]);
+    if (!isOpen || !job) return null;
+    // Calculate min date: day after current deadline
+    let minDate = today;
+    if (job.application_deadline) {
+        const d = new Date(job.application_deadline);
+        d.setDate(d.getDate() + 1);
+        minDate = d.toISOString().split('T')[0];
+    }
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4">Extend Job Deadline</h3>
+                <div className="mb-4">Current Deadline: <b>{job.application_deadline}</b></div>
+                <input type="date" min={minDate} value={newDeadline} onChange={e => setNewDeadline(e.target.value)} className="w-full border rounded p-2 mb-4" />
+                <div className="mb-4">Extension Price: <b>Rs. {price}</b></div>
+                <div className="flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg">Cancel</button>
+                    <button onClick={() => onExtend(newDeadline, price)} disabled={!newDeadline} className="px-4 py-2 bg-primary-main text-white rounded-lg">Pay & Extend</button>
+                </div>
+            </div>
         </div>
     );
 };
@@ -86,6 +142,11 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
 
     const [modalState, setModalState] = useState({ isOpen: false, title: '', message: '', actionType: 'delete', onConfirm: () => {} });
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
+    const [showExtendModal, setShowExtendModal] = useState(false);
+    const [extendJob, setExtendJob] = useState(null);
+    const [extendPrice, setExtendPrice] = useState(0);
+    const [extendDeadline, setExtendDeadline] = useState('');
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const fetchPublisherJobs = useCallback(async () => {
         if (!user) return;
@@ -148,6 +209,43 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         });
     };
 
+    // --- Extend Logic ---
+    const handleOpenExtend = (job) => {
+        setExtendJob(job);
+        setShowExtendModal(true);
+    };
+    const handleExtend = (newDeadline, price) => {
+        setExtendDeadline(newDeadline);
+        setExtendPrice(price);
+        setShowExtendModal(false);
+        setShowPaymentModal(true);
+    };
+    const handlePaymentSuccess = async () => {
+        // Call backend to update deadline
+        try {
+            const response = await fetch('http://uniwiz-backend.test/api/extend_job_deadline.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id: extendJob.id, new_deadline: extendDeadline }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            showNotification('Job deadline extended successfully!', 'success');
+            // Update job deadline in frontend state immediately
+            setMyJobs(prevJobs => prevJobs.map(j =>
+                j.id === extendJob.id ? { ...j, application_deadline: extendDeadline, status: 'active' } : j
+            ));
+            // Optionally, you can still refresh from backend:
+            // fetchPublisherJobs();
+        } catch (err) {
+            showNotification(`Error: ${err.message}`, 'error');
+        }
+        setShowPaymentModal(false);
+        setExtendJob(null);
+        setExtendDeadline('');
+        setExtendPrice(0);
+    };
+
     const JobStatusBadge = ({ status }) => {
         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
         const statusClasses = {
@@ -171,6 +269,18 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
             {notification.message && <Notification key={notification.key} message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '', key: 0 })} />}
             <ConfirmationModal isOpen={modalState.isOpen} onClose={() => setModalState({ ...modalState, isOpen: false })} onConfirm={modalState.onConfirm} title={modalState.title} message={modalState.message} actionType={modalState.actionType}/>
+            <ExtendModal isOpen={showExtendModal} onClose={() => setShowExtendModal(false)} job={extendJob} onExtend={handleExtend} />
+            {/* Payment Modal (reuse your payment modal, pseudo-code below) */}
+            {showPaymentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl">
+                        <h3 className="text-xl font-bold mb-4">Complete Payment</h3>
+                        <div className="mb-4">Pay Rs. {extendPrice} to extend the deadline to {extendDeadline}</div>
+                        <button onClick={handlePaymentSuccess} className="bg-primary-main text-white px-6 py-2 rounded-lg">Simulate Payment Success</button>
+                        <button onClick={() => setShowPaymentModal(false)} className="ml-4 bg-gray-200 px-6 py-2 rounded-lg">Cancel</button>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <h2 className="text-4xl font-bold text-gray-800">Manage Jobs</h2>
@@ -205,22 +315,25 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
                             ) : error ? (
                                 <tr><td colSpan="6" className="text-center py-8 text-red-500">{error}</td></tr>
                             ) : sortedJobs.length > 0 ? (
-                                sortedJobs.map(job => (
-                                    <tr key={job.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            <button onClick={() => onViewJobDetails(job.id)} className="text-primary-main hover:underline">{job.title}</button>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><JobStatusBadge status={job.status} /></td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-primary-dark">{job.application_count}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold">
-                                            <span className={job.accepted_count >= job.vacancies ? 'text-red-500' : 'text-green-600'}>{job.accepted_count}</span> / {job.vacancies}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <ActionsDropdown job={job} onAction={handleJobAction} />
-                                        </td>
-                                    </tr>
-                                ))
+                                sortedJobs.map(job => {
+                                    const isClosed = new Date() > new Date(job.application_deadline + 'T23:59:59');
+                                    return (
+                                        <tr key={job.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                <button onClick={() => onViewJobDetails(job.id)} className="text-primary-main hover:underline">{job.title}</button>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm"><JobStatusBadge status={job.status} /></td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-primary-dark">{job.application_count}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold">
+                                                <span className={job.accepted_count >= job.vacancies ? 'text-red-500' : 'text-green-600'}>{job.accepted_count}</span> / {job.vacancies}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <ActionsDropdown job={job} onAction={handleJobAction} onExtend={handleOpenExtend} />
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr><td colSpan="6" className="text-center py-8 text-gray-500">No jobs found.</td></tr>
                             )}

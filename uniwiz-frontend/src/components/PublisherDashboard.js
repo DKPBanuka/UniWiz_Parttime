@@ -4,7 +4,7 @@
 // and includes vacancy and accepted counts in the Job Overview section.
 // It also features a modern, colorful UI for the stat cards.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Reusable Components ---
@@ -213,6 +213,27 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const [error, setError] = useState(null);
     const [showVerifyMsg, setShowVerifyMsg] = useState(false);
     const isVerified = user && (user.is_verified === true || user.is_verified === 1);
+    const prevIsVerifiedRef = useRef(user && (user.is_verified === true || user.is_verified === 1));
+    const [showPostVerifyMessage, setShowPostVerifyMessage] = useState(false);
+    const [showPendingAdminVerification, setShowPendingAdminVerification] = useState(false);
+
+    useEffect(() => {
+        const isVerified = user && (user.is_verified === true || user.is_verified === 1);
+        if (prevIsVerifiedRef.current === false && isVerified === true) {
+            setShowPostVerifyMessage(true);
+            const timer = setTimeout(() => setShowPostVerifyMessage(false), 60000);
+            return () => clearTimeout(timer);
+        }
+        prevIsVerifiedRef.current = isVerified;
+    }, [user]);
+
+    useEffect(() => {
+        if (user && user.role === 'publisher' && !!user.required_doc_url && !user.is_verified) {
+            setShowPendingAdminVerification(true);
+            const timer = setTimeout(() => setShowPendingAdminVerification(false), 60000);
+            return () => clearTimeout(timer);
+        }
+    }, [user]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -240,7 +261,6 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const isProfileComplete = user && user.role === 'publisher' && !!user.required_doc_url;
 
     // Show message if verified but still restricted (e.g., after first login post-verification)
-    const showPostVerifyMessage = user && user.is_verified;
     return (
         <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
             {showVerifyMsg && (
@@ -249,26 +269,21 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                 </div>
             )}
             <div className="max-w-6xl mx-auto">
-                {showPostVerifyMessage && (
-                    <div className="mb-8 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-800 rounded">
-                        <strong>Your account is now verified.</strong> Please logout and login again to access all features.
-                    </div>
-                )}
                 {/* Profile Completion Card for Publisher */}
-                {user && user.role === 'publisher' && (
+                {user && user.role === 'publisher' && !isVerified && (
                     <div className={`mb-8 p-6 rounded-xl shadow-md border-2 ${isProfileComplete ? 'border-green-400 bg-green-50' : 'border-yellow-400 bg-yellow-50'}`}>
                         <h3 className="text-xl font-bold mb-2 text-primary-dark">Profile Completion</h3>
-                        {isProfileComplete ? (
+                        {isProfileComplete && showPendingAdminVerification ? (
                             <div className="flex items-center text-green-700 font-semibold">
                                 <svg className="h-6 w-6 mr-2 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                 Your profile is complete and pending admin verification.
                             </div>
-                        ) : (
+                        ) : !isProfileComplete ? (
                             <div className="flex items-center text-yellow-800 font-semibold">
                                 <svg className="h-6 w-6 mr-2 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01" /></svg>
                                 <span>Account verification required: Please upload your <b>Business Registration Certificate (BR)</b> or <b>NIC</b> for admin review.</span>
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 )}
                 {/* Header */}

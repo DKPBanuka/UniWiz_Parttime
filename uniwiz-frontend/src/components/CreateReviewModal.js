@@ -60,7 +60,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
                     publisher_id: publisherId,
                     student_id: studentId,
                     rating: rating,
-                    review_text: reviewText,
+                    comment: reviewText,
                 }),
             });
 

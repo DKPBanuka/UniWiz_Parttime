@@ -29,7 +29,7 @@ const SkillBadge = ({ skill }) => (
     </span>
 );
 
-function StudentProfilePage({ studentId, onBackClick }) {
+function StudentProfilePage({ studentId, onBackClick, currentUser }) {
     const [student, setStudent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);

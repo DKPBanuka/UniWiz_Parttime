@@ -414,7 +414,9 @@ function App() {
                 const response = await fetch(`${API_BASE_URL}/get_reports_admin.php`);
                 const reports = await response.json();
                 if (response.ok) {
-                    const hasPending = reports.some(report => report.status === 'pending');
+                    // The backend returns { userReports: [...], appProblemReports: [...] }
+                    const hasPending = (Array.isArray(reports.userReports) && reports.userReports.some(report => report.status === 'pending')) ||
+                                      (Array.isArray(reports.appProblemReports) && reports.appProblemReports.some(report => report.status === 'pending'));
                     setHasPendingReports(hasPending);
                 }
             } catch (err) { console.error("Error checking reports:", err); }
@@ -495,17 +497,32 @@ function App() {
         return;
     }
 
-    setCurrentUser(userData);
-    setSafeUserInStorage(userData);
-    if (userData.role === 'student') {
-        await fetchAppliedJobs(userData.id);
+    // Fetch the latest user profile from the backend
+    let latestUser = userData;
+    try {
+        const response = await fetch(`http://uniwiz-backend.test/api/get_user_profile_by_id.php?user_id=${userData.id}`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result && result.user) {
+                latestUser = result.user;
+            }
+        }
+    } catch (err) {
+        // fallback to userData if fetch fails
+        console.error('Failed to fetch latest user profile:', err);
     }
-    if (!userData.first_name || (userData.role === 'publisher' && !userData.company_name)) {
+
+    setCurrentUser(latestUser);
+    setSafeUserInStorage(latestUser);
+    if (latestUser.role === 'student') {
+        await fetchAppliedJobs(latestUser.id);
+    }
+    if (!latestUser.first_name || (latestUser.role === 'publisher' && !latestUser.company_name)) {
         setPage('profile-setup');
     } else {
-        setPage(userData.role === 'admin' ? 'dashboard' : 'home');
+        setPage(latestUser.role === 'admin' ? 'dashboard' : 'home');
     }
-    showPopupNotification(`Welcome back, ${userData.first_name}!`, 'success');
+    showPopupNotification(`Welcome back, ${latestUser.first_name}!`, 'success');
   }, [fetchAppliedJobs, showPopupNotification, setPage]);
 
   const handleLogout = useCallback(() => {

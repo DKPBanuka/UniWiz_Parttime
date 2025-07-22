@@ -35,6 +35,10 @@ const StatusBadge = ({ status }) => {
 
 // --- Enhanced Applicant Detail Modal with all details ---
 const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitiateConversation }) => {
+    // --- Student Reviews State (move to top, always called) ---
+    // Remove useState/useEffect for studentReviews and studentAvgRating
+    // Remove the Student Rating section in ApplicantDetailModal (the div with mt-8 mb-4 and its contents)
+    // Remove any review-related imports or variables
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
     const modalRef = useRef();
 

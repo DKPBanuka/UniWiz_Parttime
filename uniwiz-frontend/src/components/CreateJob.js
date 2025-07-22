@@ -145,7 +145,19 @@ function CreateJob({ user, onJobPosted }) {
                 setCardErrorMsg('Please fill in all card details to proceed.');
                 return;
             }
+            // --- Always show payment success if all fields are filled ---
+            setPaymentProcessing(true);
+            setPaymentSuccess(true);
+            setTimeout(() => {
+                setShowPaymentModal(false);
+                setPaymentSuccess(false);
+                setTransactionDetails(null);
+                if (onJobPosted) onJobPosted();
+            }, 3000);
+            setPaymentProcessing(false);
+            return;
         }
+        
         setPaymentProcessing(true);
         setError(null);
         
@@ -257,6 +269,21 @@ function CreateJob({ user, onJobPosted }) {
             return;
         }
 
+        if (paymentType === 'range') {
+            if (!priceMin || !priceMax || Number(priceMin) > Number(priceMax) || Number(priceMin) < 0 || Number(priceMax) < 0) {
+                setError('Please enter a valid salary range (Min should be less than or equal to Max, both positive numbers).');
+                setErroredField('salary');
+                return;
+            }
+        }
+        if (paymentType === 'fixed') {
+            if (!fixedPrice || Number(fixedPrice) < 0) {
+                setError('Please enter a valid fixed salary (positive number).');
+                setErroredField('salary');
+                return;
+            }
+        }
+
         setIsLoading(true);
         setError(null);
         setSuccess(null);
@@ -327,6 +354,11 @@ function CreateJob({ user, onJobPosted }) {
     const [cardFieldErrors, setCardFieldErrors] = useState({ number: false, holder: false, month: false, year: false, cvv: false });
     const [cardErrorMsg, setCardErrorMsg] = useState('');
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // Helper to check if application is closed
+    const isApplicationClosed = applicationDeadline && new Date() > new Date(applicationDeadline + 'T23:59:59');
+
     return (
         <div className="min-h-screen bg-bg-publisher-dashboard flex justify-center items-start py-12 px-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl">
@@ -395,43 +427,6 @@ function CreateJob({ user, onJobPosted }) {
                                 </>
                             )}
                              <div>
-                                <label className="block text-gray-700 font-medium mb-2 flex items-center" htmlFor="application-deadline">
-                                    Application Deadline
-                                    <button type="button" onClick={() => setShowDeadlineInfo(true)} className="ml-2 text-primary-main hover:text-primary-dark focus:outline-none" title="View pricing info">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-                                        </svg>
-                                    </button>
-                                </label>
-                                <input id="application-deadline" ref={deadlineRef} type="date" value={applicationDeadline} onChange={(e) => setApplicationDeadline(e.target.value)} className={`shadow-sm border rounded w-full py-3 px-4 text-gray-500${erroredField==='deadline' ? ' border-red-500' : ''}`} required />
-                                {/* Show post price below deadline field */}
-                                {applicationDeadline && (
-                                    <div className="mt-1 text-sm text-primary-main font-semibold flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" /></svg>
-                                        {`Post Price: Rs. ${getDeadlinePrice(applicationDeadline).toLocaleString()}`}
-                                    </div>
-                                )}
-                                {showDeadlineInfo && (
-                                    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
-                                        <div className="bg-white rounded-xl shadow-lg p-6 max-w-xs w-full relative">
-                                            <button onClick={() => setShowDeadlineInfo(false)} className="absolute top-2 right-2 text-gray-400 hover:text-primary-main">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </button>
-                                            <h4 className="text-lg font-bold mb-2 text-primary-dark">Job Posting Pricing</h4>
-                                            <ul className="text-gray-700 text-sm space-y-1">
-                                                <li>Per 1 ad:</li>
-                                                <li>24hrs <b>free*</b></li>
-                                                <li>3 days - 300/=</li>
-                                                <li>7 days - 500/=</li>
-                                                <li>14 days - 750/=</li>
-                                                <li>30 days - 1000/=</li>
-                                            </ul>
-                                            <div className="mt-3 text-xs text-gray-500">*First 24 hours are free for each job post.</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                             <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="working-hours">Working Hours</label>
                                 <input id="working-hours" type="text" value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} placeholder="e.g., 20 hours/week" className="shadow-sm border rounded w-full py-3 px-4" />
                             </div>
@@ -452,13 +447,13 @@ function CreateJob({ user, onJobPosted }) {
                             </div>
                             {paymentType === 'range' && (
                                 <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                                    <input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="Min Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
-                                    <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Max Price (Rs.)" className="shadow-sm border rounded py-3 px-4" />
+                                    <input type="number" value={priceMin} onChange={e => setPriceMin(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Min Price (Rs.)" min="0" className="shadow-sm border rounded py-3 px-4" />
+                                    <input type="number" value={priceMax} onChange={e => setPriceMax(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Max Price (Rs.)" min={priceMin || 0} className="shadow-sm border rounded py-3 px-4" />
                                 </div>
                             )}
                             {paymentType === 'fixed' && (
                                 <div className="md:col-span-2">
-                                    <input type="number" value={fixedPrice} onChange={(e) => setFixedPrice(e.target.value)} placeholder="Fixed Price (Rs.)" className="shadow-sm border rounded w-full py-3 px-4" />
+                                    <input type="number" value={fixedPrice} onChange={e => setFixedPrice(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Fixed Price (Rs.)" min="0" className="shadow-sm border rounded w-full py-3 px-4" />
                                 </div>
                             )}
                             <div className="md:col-span-2">
@@ -489,13 +484,62 @@ function CreateJob({ user, onJobPosted }) {
                              <div className="md:col-span-2">
                                 <label className="block text-gray-700 font-medium mb-2">Job Duration</label>
                                 <div className="flex items-center space-x-4">
-                                    <input type="date" name="start_date" value={startDate} onChange={e => setStartDate(e.target.value)} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>
+                                    <input type="date" name="start_date" value={startDate} onChange={e => setStartDate(e.target.value)} min={today} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>
                                     {!isSingleDay && <span>to</span>}
-                                    {!isSingleDay && <input type="date" name="end_date" value={endDate} onChange={e => setEndDate(e.target.value)} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>}
+                                    {!isSingleDay && <input type="date" name="end_date" value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate || today} className="shadow-sm border rounded py-3 px-4 text-gray-500"/>}
                                     <label><input type="checkbox" checked={isSingleDay} onChange={(e) => setIsSingleDay(e.target.checked)} className="mr-2"/> Single Day Job</label>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Application Deadline Section */}
+                    <div className="mt-8">
+                        <label className="block text-gray-700 font-medium mb-2 flex items-center" htmlFor="application-deadline">
+                            Application Deadline
+                            <button type="button" onClick={() => setShowDeadlineInfo(true)} className="ml-2 text-primary-main hover:text-primary-dark focus:outline-none" title="View pricing info">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                                </svg>
+                            </button>
+                        </label>
+                        <input
+                            id="application-deadline"
+                            ref={deadlineRef}
+                            type="date"
+                            value={applicationDeadline}
+                            onChange={e => setApplicationDeadline(e.target.value)}
+                            min={today}
+                            max={isSingleDay ? startDate : (endDate || startDate)}
+                            className={`shadow-sm border rounded w-full py-3 px-4 text-gray-500${erroredField==='deadline' ? ' border-red-500' : ''}`}
+                            required
+                        />
+                        {/* Show post price below deadline field */}
+                        {applicationDeadline && (
+                            <div className="mt-1 text-sm text-primary-main font-semibold flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" /></svg>
+                                {`Post Price: Rs. ${getDeadlinePrice(applicationDeadline).toLocaleString()}`}
+                            </div>
+                        )}
+                        {showDeadlineInfo && (
+                            <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
+                                <div className="bg-white rounded-xl shadow-lg p-6 max-w-xs w-full relative">
+                                    <button onClick={() => setShowDeadlineInfo(false)} className="absolute top-2 right-2 text-gray-400 hover:text-primary-main">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <h4 className="text-lg font-bold mb-2 text-primary-dark">Job Posting Pricing</h4>
+                                    <ul className="text-gray-700 text-sm space-y-1">
+                                        <li>Per 1 ad:</li>
+                                        <li>24hrs <b>free*</b></li>
+                                        <li>3 days - 300/=</li>
+                                        <li>7 days - 500/=</li>
+                                        <li>14 days - 750/=</li>
+                                        <li>30 days - 1000/=</li>
+                                    </ul>
+                                    <div className="mt-3 text-xs text-gray-500">*First 24 hours are free for each job post.</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {error && <p className="text-red-500 text-center mt-4">{error}</p>}
@@ -505,8 +549,8 @@ function CreateJob({ user, onJobPosted }) {
                         <button type="button" onClick={() => handleSubmit('draft')} disabled={isLoading} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Saving...' : 'Save as Draft'}
                         </button>
-                        <button type="button" onClick={() => handleSubmit('active')} disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
-                            {isLoading ? 'Posting...' : 'Post Job Live'}
+                        <button type="button" onClick={() => setShowPaymentModal(true)} disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
+                            {isLoading ? 'Processing...' : 'Pay'}
                         </button>
                     </div>
                 </form>

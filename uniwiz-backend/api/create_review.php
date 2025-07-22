@@ -4,9 +4,9 @@
 // This file now handles both creating and updating a company review.
 // It prevents duplicate reviews by updating the existing one.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -32,10 +32,10 @@ if (
     !isset($data->publisher_id) || 
     !isset($data->student_id) ||
     !isset($data->rating) ||
-    !isset($data->review_text)
+    !isset($data->comment)
 ) {
     http_response_code(400);
-    echo json_encode(["message" => "Incomplete data. Publisher ID, Student ID, rating, and review text are required."]);
+    echo json_encode(["message" => "Incomplete data. Publisher ID, Student ID, rating, and comment are required."]);
     exit();
 }
 
@@ -49,11 +49,11 @@ if ($rating === false) {
 
 $publisher_id = (int)$data->publisher_id;
 $student_id = (int)$data->student_id;
-$review_text = htmlspecialchars(strip_tags($data->review_text));
+$review_text = htmlspecialchars(strip_tags($data->comment));
 
 if (empty($review_text)) {
     http_response_code(400);
-    echo json_encode(["message" => "Review text cannot be empty."]);
+    echo json_encode(["message" => "Comment cannot be empty."]);
     exit();
 }
 

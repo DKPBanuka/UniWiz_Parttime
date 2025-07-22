@@ -146,6 +146,15 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
     const [showVerifyMsg, setShowVerifyMsg] = useState(false);
     const isVerified = currentUser && (currentUser.is_verified === true || currentUser.is_verified === 1);
 
+    const [showPostVerifyMessage, setShowPostVerifyMessage] = useState(currentUser && currentUser.is_verified);
+    useEffect(() => {
+        if (currentUser && currentUser.is_verified) {
+            setShowPostVerifyMessage(true);
+            const timer = setTimeout(() => setShowPostVerifyMessage(false), 60000);
+            return () => clearTimeout(timer);
+        }
+    }, [currentUser]);
+
     useEffect(() => {
         const fetchStats = async () => {
             if (!currentUser || !currentUser.id) return;
@@ -211,8 +220,6 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
 
     // Only show warning if not verified AND profile not complete
     const showVerificationWarning = currentUser && !currentUser.is_verified && (stats?.profile_completion_percentage ?? 0) < 100;
-    // Show message if verified but still restricted (e.g., after first login post-verification)
-    const showPostVerifyMessage = currentUser && currentUser.is_verified;
     return (
         <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
             {showVerifyMsg && (
@@ -224,11 +231,6 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                 {showVerificationWarning && (
                     <div className="mb-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
                         <strong>Your account is not verified.</strong> Please complete your profile to request verification.
-                    </div>
-                )}
-                {showPostVerifyMessage && (
-                    <div className="mb-8 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-800 rounded">
-                        <strong>Your account is now verified.</strong> Please logout and login again to access all features.
                     </div>
                 )}
                 {/* Header */}

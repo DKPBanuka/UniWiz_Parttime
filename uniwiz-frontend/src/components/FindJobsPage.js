@@ -133,6 +133,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
     const [selectedCategory, setSelectedCategory] = useState('');
     const [jobTypeFilter, setJobTypeFilter] = useState('');
     const [minSalary, setMinSalary] = useState(0);
+    const [maxSalary, setMaxSalary] = useState(MAX_SALARY);
     const [postedDateFilter, setPostedDateFilter] = useState('anytime');
     const [selectedDistrict, setSelectedDistrict] = useState('');
     const [jobDateFrom, setJobDateFrom] = useState('');
@@ -188,7 +189,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         const categoryMatch = selectedCategory === '' || String(job.category_id) === String(selectedCategory);
         const jobTypeMatch = jobTypeFilter === '' || job.job_type === jobTypeFilter;
         const paymentValue = parseInt(job.payment_range.replace(/[^0-9]/g, ''), 10) || 0;
-        const salaryMatch = paymentValue >= minSalary;
+        const salaryMatch = paymentValue >= minSalary && paymentValue <= maxSalary;
         const districtMatch = selectedDistrict === '' || (job.location && job.location.toLowerCase().includes(selectedDistrict.toLowerCase()));
 
         const now = new Date();
@@ -219,6 +220,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         setSelectedCategory('');
         setJobTypeFilter('');
         setMinSalary(0);
+        setMaxSalary(MAX_SALARY);
         setPostedDateFilter('anytime');
         setSelectedDistrict('');
         setJobDateFrom('');
@@ -266,10 +268,31 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
 
                     {/* --- Row 2 --- */}
                      <div className="lg:col-span-3 md:col-span-4">
-                        <label className="block text-gray-600 font-medium mb-1">Salary Range (Minimum LKR)</label>
+                        <label className="block text-gray-600 font-medium mb-1">Salary Range (LKR)</label>
                         <div className="flex items-center gap-2">
-                            <input type="range" min="0" max={MAX_SALARY} step="500" value={minSalary} onChange={(e) => setMinSalary(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
-                            <span className="font-bold text-blue-600 w-24 text-center bg-gray-100 p-1 rounded-md text-xs">Rs.{minSalary}</span>
+                            <input
+                                type="number"
+                                min="0"
+                                max={maxSalary}
+                                value={minSalary}
+                                onChange={e => {
+                                    const val = Number(e.target.value);
+                                    setMinSalary(val);
+                                    if (val > maxSalary) setMaxSalary(val);
+                                }}
+                                className="w-24 p-2 rounded-lg border"
+                                placeholder="Min"
+                            />
+                            <span>-</span>
+                            <input
+                                type="number"
+                                min={minSalary}
+                                max={MAX_SALARY}
+                                value={maxSalary}
+                                onChange={e => setMaxSalary(Number(e.target.value))}
+                                className="w-24 p-2 rounded-lg border"
+                                placeholder="Max"
+                            />
                         </div>
                     </div>
                      <div className="lg:col-span-2 md:col-span-2">
