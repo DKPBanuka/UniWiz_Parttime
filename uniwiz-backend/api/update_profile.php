@@ -2,14 +2,13 @@
 // FILE: uniwiz-backend/api/update_profile.php (ENHANCED for Company Image Uploads & Deletion)
 // =======================================================================================
 
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit();
 }
 
@@ -33,6 +32,7 @@ $user_id = $_POST['user_id'];
 $profile_image_url_to_update = null;
 $cv_url_to_update = null;
 $cover_image_url_to_update = null;
+$required_doc_url_to_update = null;
 
 try {
     $db->beginTransaction();
@@ -116,6 +116,17 @@ try {
         else { throw new Exception("Failed to move uploaded cover image."); }
     }
 
+    if ($user_role === 'publisher' && isset($_FILES['required_doc']) && $_FILES['required_doc']['error'] == 0) {
+        $file = $_FILES['required_doc'];
+        $allowed_types = ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!in_array($file['type'], $allowed_types) || $file['size'] > 5242880) { throw new Exception("Invalid document. Must be PDF/JPG/PNG and under 5MB."); }
+        $target_dir = "uploads/required_docs/";
+        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
+        $new_filename = "doc_publisher_" . $user_id . "_" . time() . "." . pathinfo($file['name'], PATHINFO_EXTENSION);
+        if (move_uploaded_file($file['tmp_name'], $target_dir . $new_filename)) { $required_doc_url_to_update = $target_dir . $new_filename; }
+        else { throw new Exception("Failed to move uploaded required document."); }
+    }
+
     if ($user_role === 'publisher' && isset($_FILES['company_images'])) {
         $gallery_files = $_FILES['company_images'];
         $target_dir = "uploads/gallery/";
@@ -197,6 +208,10 @@ try {
                 $query_publisher .= ", cover_image_url = :cover_image_url";
                 $params_publisher[':cover_image_url'] = $cover_image_url_to_update;
             }
+            if (isset($required_doc_url_to_update)) {
+                $query_publisher .= ", required_doc_url = :required_doc_url";
+                $params_publisher[':required_doc_url'] = $required_doc_url_to_update;
+            }
             $query_publisher .= " WHERE user_id = :user_id";
         } else {
             $cols = "user_id, about, industry, website_url, address, phone_number, facebook_url, linkedin_url, instagram_url";
@@ -205,6 +220,11 @@ try {
                 $cols .= ", cover_image_url";
                 $vals .= ", :cover_image_url";
                 $params_publisher[':cover_image_url'] = $cover_image_url_to_update;
+            }
+            if (isset($required_doc_url_to_update)) {
+                $cols .= ", required_doc_url";
+                $vals .= ", :required_doc_url";
+                $params_publisher[':required_doc_url'] = $required_doc_url_to_update;
             }
             $query_publisher = "INSERT INTO publisher_profiles ($cols) VALUES ($vals)";
         }
@@ -220,7 +240,7 @@ try {
             u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,
             u.is_verified, u.status,
             sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
-            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url, pp.cover_image_url
+            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url, pp.cover_image_url, pp.required_doc_url
         FROM users u
         LEFT JOIN student_profiles sp ON u.id = sp.user_id
         LEFT JOIN publisher_profiles pp ON u.id = pp.user_id
@@ -230,6 +250,10 @@ try {
     $stmt_fetch->bindParam(':id', $user_id, PDO::PARAM_INT);
     $stmt_fetch->execute();
     $updated_user = $stmt_fetch->fetch(PDO::FETCH_ASSOC);
+    // Only include required_doc_url if the user is admin
+    if ($user_role !== 'admin' && isset($updated_user['required_doc_url'])) {
+        unset($updated_user['required_doc_url']);
+    }
 
     http_response_code(200);
     echo json_encode([

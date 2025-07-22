@@ -4,16 +4,15 @@
 // This file fetches all available job categories from the database.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 // --- Handle Preflight Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+    http_response_code(204);
+    exit;
 }
 
 // --- Database Connection ---
@@ -35,6 +34,11 @@ try {
 
     // Fetch all categories as an associative array
     $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fix HTML entities in category names
+    foreach ($categories as &$category) {
+        $category['name'] = html_entity_decode($category['name'], ENT_QUOTES, 'UTF-8');
+    }
 
     http_response_code(200);
     echo json_encode($categories);

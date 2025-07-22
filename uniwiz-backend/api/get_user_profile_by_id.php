@@ -5,11 +5,10 @@
 // a session from stored user data (e.g., localStorage) without requiring re-authentication.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 // --- Suppress PHP Errors for clean JSON output ---
 ini_set('display_errors', 0);
@@ -17,8 +16,8 @@ error_reporting(0);
 
 // --- Handle Preflight (OPTIONS) Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+    http_response_code(204);
+    exit;
 }
 
 // --- Database Connection ---
@@ -49,7 +48,7 @@ function getFullUserProfileById($db, $id) {
         SELECT 
             u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url, u.is_verified, u.status,
             sp.university_name, sp.field_of_study, sp.year_of_study, sp.languages_spoken, sp.preferred_categories, sp.skills, sp.cv_url,
-            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url
+            pp.about, pp.industry, pp.website_url, pp.address, pp.phone_number, pp.facebook_url, pp.linkedin_url, pp.instagram_url, pp.required_doc_url
         FROM users u
         LEFT JOIN student_profiles sp ON u.id = sp.user_id
         LEFT JOIN publisher_profiles pp ON u.id = pp.user_id

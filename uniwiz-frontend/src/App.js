@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { getSafeUserFromStorage, setSafeUserInStorage } from './utils/debugHelpers';
 
 // --- Component Imports ---
 import LandingPage from './components/LandingPage';
@@ -31,6 +32,7 @@ import ReportManagement from './components/admin/ReportManagement';
 import EditJob from './components/EditJob'; 
 import ViewApplicants from './components/ViewApplicants';
 import AdminSettingsPage from './components/admin/AdminSettingsPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
 import './output.css';
 
@@ -321,7 +323,7 @@ function App() {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasPendingReports, setHasPendingReports] = useState(false);
 
-  
+  const isUserVerified = currentUser && (currentUser.is_verified === true || currentUser.is_verified === 1);
 
   const showPopupNotification = useCallback((message, type = 'info') => {
       setPopupNotification({ message, type, key: Date.now() });
@@ -428,9 +430,8 @@ function App() {
 
   useEffect(() => {
     const initializeUser = async () => {
-        const loggedInUser = localStorage.getItem("user");
-        if (loggedInUser) {
-            const user = JSON.parse(loggedInUser);
+        const user = getSafeUserFromStorage();
+        if (user) {
             try {
                 const response = await fetch(`${API_BASE_URL}/get_user_profile_by_id.php?user_id=${user.id}`);
                 const result = await response.json();
@@ -444,7 +445,7 @@ function App() {
                         return;
                     }
                     setCurrentUser(result.user);
-                    localStorage.setItem('user', JSON.stringify(result.user));
+                    setSafeUserInStorage(result.user);
                     if (result.user.role === 'student') {
                         await fetchAppliedJobs(result.user.id);
                     }
@@ -456,15 +457,24 @@ function App() {
                 } else {
                     showPopupNotification(result.message || "Session expired or user not found. Please log in.", 'error');
                     setCurrentUser(null);
-                    localStorage.removeItem('user');
+                    try {
+                        localStorage.removeItem('user');
+                    } catch (error) {
+                        console.error('Error clearing localStorage:', error);
+                    }
                     setPage('landing');
                 }
-            } catch (err) {
-                showPopupNotification("Could not re-establish session. Please log in again.", 'error');
-                setCurrentUser(null);
-                localStorage.removeItem('user');
-                setPage('landing');
-            }
+                            } catch (err) {
+                    console.error('localStorage or session error:', err);
+                    showPopupNotification("Could not re-establish session. Please log in again.", 'error');
+                    setCurrentUser(null);
+                    try {
+                        localStorage.removeItem('user');
+                    } catch (error) {
+                        console.error('Error clearing localStorage:', error);
+                    }
+                    setPage('landing');
+                }
         } else {
             setPage('landing');
         }
@@ -476,13 +486,17 @@ function App() {
     if (userData.status === 'blocked') {
         showPopupNotification("Your account has been blocked by the administrator.", 'error');
         setCurrentUser(null);
-        localStorage.removeItem('user');
+        try {
+            localStorage.removeItem('user');
+        } catch (error) {
+            console.error('Error clearing localStorage:', error);
+        }
         setPage('login');
         return;
     }
 
     setCurrentUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    setSafeUserInStorage(userData);
     if (userData.role === 'student') {
         await fetchAppliedJobs(userData.id);
     }
@@ -496,7 +510,11 @@ function App() {
 
   const handleLogout = useCallback(() => {
     setCurrentUser(null);
-    localStorage.removeItem('user');
+    try {
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Error clearing localStorage:', error);
+    }
     setAppliedJobs(new Set()); 
     setNotifications([]);
     setShownPopupIds(new Set()); 
@@ -505,7 +523,7 @@ function App() {
 
   const handleProfileUpdate = useCallback((updatedUserData) => {
     setCurrentUser(updatedUserData);
-    localStorage.setItem('user', JSON.stringify(updatedUserData));
+    setSafeUserInStorage(updatedUserData);
     if (page === 'profile-setup') {
         setPage('home');
         showPopupNotification('Profile setup complete!', 'success');
@@ -636,7 +654,21 @@ function App() {
               case 'job-management': return <JobManagementAdmin user={currentUser} setPage={setPage} setSelectedJobIdForDetailsPage={setSelectedJobIdForDetailsPage} initialFilter={currentPageState} />;
               case 'student-profile': return <StudentProfilePage studentId={studentIdForProfile} onBackClick={() => setPage('user-management')} />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
-              case 'view-job-details': return <JobDetailsPage jobId={selectedJobIdForDetailsPage} onBackClick={() => setPage('job-management')} />;
+              case 'view-job-details': return <JobDetailsPage 
+                jobId={selectedJobIdForDetailsPage} 
+                onBackClick={() => setPage('job-management')}
+                onDeleteClick={async (jobId) => {
+                    if (window.confirm('Are you sure you want to delete this job?')) {
+                        await fetch('http://uniwiz-backend.test/api/manage_job_action_admin.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ job_id: jobId, admin_id: currentUser.id, action: 'delete' })
+                        });
+                        setPage('job-management');
+                    }
+                }}
+                onCompanyClick={(publisherId) => { setPublisherIdForProfile(publisherId); setPage('company-profile'); }}
+            />;
               case 'report-management': return <ReportManagement user={currentUser} setPage={setPage} setStudentIdForProfile={setStudentIdForProfile} setPublisherIdForProfile={setPublisherIdForProfile} />;
               case 'conversation-viewer': return <ConversationViewerAdmin user={currentUser} setPage={setPage} />;
               default: return <AdminDashboard setPage={setPage} />;
@@ -665,8 +697,25 @@ function App() {
       else if (currentUser.role === 'student') {
           switch (page) {
               case 'home': return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
-              case 'find-jobs': return <FindJobsPage currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={handleViewCompanyProfile} handleViewJobDetails={handleViewJobDetails} />;
-              case 'applied-jobs': return <AppliedJobsPage user={currentUser} handleViewJobDetails={handleViewJobDetails} initialFilter={appliedJobsPageFilter} setInitialFilter={setAppliedJobsPageFilter} />;
+              case 'find-jobs':
+                return <FindJobsPage 
+                  currentUser={currentUser} 
+                  handleApply={isUserVerified ? handleOpenApplyModal : () => alert('You must verify your account to apply for jobs.')} 
+                  appliedJobs={appliedJobs} 
+                  applyingStatus={applyingStatus} 
+                  setPage={setPage} 
+                  setPublisherIdForProfile={handleViewCompanyProfile} 
+                  handleViewJobDetails={handleViewJobDetails} 
+                  isUserVerified={isUserVerified}
+                />;
+              case 'applied-jobs':
+                return <AppliedJobsPage 
+                  user={currentUser} 
+                  handleViewJobDetails={handleViewJobDetails} 
+                  initialFilter={appliedJobsPageFilter} 
+                  setInitialFilter={setAppliedJobsPageFilter} 
+                  isUserVerified={isUserVerified}
+                />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
               default: return <StudentDashboard currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} setPage={setPage} setPublisherIdForProfile={setPublisherIdForProfile} handleViewJobDetails={handleViewJobDetails} setAppliedJobsPageFilter={setAppliedJobsPageFilter} />;
           }
@@ -684,6 +733,8 @@ function App() {
             return <ProfileSetup user={currentUser} onSetupComplete={handleProfileUpdate} onBackClick={() => setPage('login')} />;
         case 'landing':
              return <LandingPage setPage={setPage} />;
+        case 'reset-password':
+            return <ResetPasswordPage setPage={setPage} />;
         case 'public-jobs':
             return (
                 <div className="flex flex-col h-screen bg-gray-50">

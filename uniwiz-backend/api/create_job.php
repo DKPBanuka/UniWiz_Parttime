@@ -1,9 +1,9 @@
 <?php
-// FILE: uniwiz-backend/api/create_job.php (CONFIRMED - Admin Notifications for New Job Posts)
+// FILE: uniwiz-backend/api/create_job.php (ENHANCED with Payment System)
 // ========================================================================
 
 // --- Headers, DB Connection ---
-header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Max-Age: 3600");
@@ -25,6 +25,31 @@ if ( $data === null || !isset($data->publisher_id) || !isset($data->title) || !i
     http_response_code(400);
     echo json_encode(["message" => "Incomplete data."]);
     exit();
+}
+
+// --- NEW: Function to calculate payment amount based on job type and duration ---
+function calculatePaymentAmount($job_type, $payment_range, $start_date, $end_date) {
+    // Extract numeric value from payment range (e.g., "5000-10000" -> 5000)
+    $min_amount = 0;
+    if (preg_match('/(\d+)/', $payment_range, $matches)) {
+        $min_amount = (int)$matches[1];
+    }
+    
+    // Calculate based on job type
+    switch ($job_type) {
+        case 'freelance':
+            return $min_amount * 0.05; // 5% of payment range
+        case 'part-time':
+            return $min_amount * 0.03; // 3% of payment range
+        case 'internship':
+            return $min_amount * 0.02; // 2% of payment range
+        case 'task-based':
+            return $min_amount * 0.04; // 4% of payment range
+        case 'full-time':
+            return $min_amount * 0.08; // 8% of payment range
+        default:
+            return $min_amount * 0.05; // Default 5%
+    }
 }
 
 // --- NEW: Function to create a notification for all admins (copied from auth.php for reusability) ---
@@ -52,14 +77,13 @@ function createAdminNotification($db, $type, $message, $link) {
     }
 }
 
-
 // --- Main Create Job Logic ---
 try {
     $query = "
         INSERT INTO jobs 
-        (publisher_id, category_id, title, description, skills_required, job_type, payment_range, start_date, end_date, status, work_mode, location, application_deadline, vacancies, working_hours, experience_level) 
+        (publisher_id, category_id, title, description, skills_required, job_type, payment_range, start_date, end_date, status, work_mode, location, application_deadline, vacancies, working_hours, experience_level, payment_status, payment_amount, payment_method) 
         VALUES 
-        (:publisher_id, :category_id, :title, :description, :skills_required, :job_type, :payment_range, :start_date, :end_date, :status, :work_mode, :location, :application_deadline, :vacancies, :working_hours, :experience_level)
+        (:publisher_id, :category_id, :title, :description, :skills_required, :job_type, :payment_range, :start_date, :end_date, :status, :work_mode, :location, :application_deadline, :vacancies, :working_hours, :experience_level, :payment_status, :payment_amount, :payment_method)
     ";
 
     $stmt = $db->prepare($query);
@@ -87,6 +111,12 @@ try {
     $working_hours = isset($data->working_hours) ? htmlspecialchars(strip_tags($data->working_hours)) : null;
     $experience_level = isset($data->experience_level) ? htmlspecialchars(strip_tags($data->experience_level)) : 'any';
 
+    // --- NEW: Payment fields ---
+    $payment_status = isset($data->payment_status) ? htmlspecialchars(strip_tags($data->payment_status)) : 'pending';
+    $payment_method = isset($data->payment_method) ? htmlspecialchars(strip_tags($data->payment_method)) : null;
+    
+    // Calculate payment amount automatically
+    $payment_amount = calculatePaymentAmount($job_type, $payment_range, $start_date, $end_date);
 
     // Bind parameters
     $stmt->bindParam(':publisher_id', $publisher_id);
@@ -108,8 +138,14 @@ try {
     $stmt->bindParam(':working_hours', $working_hours);
     $stmt->bindParam(':experience_level', $experience_level);
 
+    // Bind payment parameters
+    $stmt->bindParam(':payment_status', $payment_status);
+    $stmt->bindParam(':payment_amount', $payment_amount);
+    $stmt->bindParam(':payment_method', $payment_method);
 
     if ($stmt->execute()) {
+        $job_id = $db->lastInsertId();
+        
         // --- NEW: Create notification for admins if job is a draft (pending approval) ---
         if ($status === 'draft') {
             $notification_message = "New job posted: \"" . $title . "\" is pending approval.";
@@ -117,7 +153,12 @@ try {
         }
 
         http_response_code(201);
-        echo json_encode(["message" => "Job post saved successfully."]);
+        echo json_encode([
+            "message" => "Job post saved successfully.",
+            "job_id" => $job_id,
+            "payment_amount" => $payment_amount,
+            "payment_status" => $payment_status
+        ]);
     } else {
         throw new Exception("Failed to save job post.");
     }

@@ -1,14 +1,14 @@
 <?php
 // FILE: uniwiz-backend/api/manage_categories_admin.php
 
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 // Handle preflight (OPTIONS) request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit();
 }
 
@@ -42,6 +42,12 @@ try {
             $stmt = $db->prepare("SELECT id, name FROM job_categories ORDER BY name ASC");
             $stmt->execute();
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Fix HTML entities in category names
+            foreach ($categories as &$category) {
+                $category['name'] = html_entity_decode($category['name'], ENT_QUOTES, 'UTF-8');
+            }
+            
             http_response_code(200);
             echo json_encode($categories);
             break;

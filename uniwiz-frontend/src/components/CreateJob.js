@@ -49,6 +49,29 @@ function CreateJob({ user, onJobPosted }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    
+    // --- NEW: Payment States ---
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState('credit_card');
+    const [paymentProcessing, setPaymentProcessing] = useState(false);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [currentJobId, setCurrentJobId] = useState(null);
+    const [transactionDetails, setTransactionDetails] = useState(null);
+    
+    // Credit Card States
+    const [cardNumber, setCardNumber] = useState('');
+    const [expiryMonth, setExpiryMonth] = useState('');
+    const [expiryYear, setExpiryYear] = useState('');
+    const [cvv, setCvv] = useState('');
+    
+    // Bank Transfer States
+    const [bankName, setBankName] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    
+    // E-Wallet States
+    const [walletType, setWalletType] = useState('ezcash');
+    const [walletId, setWalletId] = useState('');
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -76,6 +99,63 @@ function CreateJob({ user, onJobPosted }) {
 
     const removeSkill = (skillToRemove) => {
         setSkills(skills.filter(skill => skill !== skillToRemove));
+    };
+
+    // --- NEW: Payment Processing Function ---
+    const handlePayment = async () => {
+        setPaymentProcessing(true);
+        setError(null);
+        
+        try {
+            const paymentData = {
+                job_id: currentJobId,
+                payment_method: paymentMethod,
+                amount: paymentAmount
+            };
+            
+            // Add method-specific data
+            switch (paymentMethod) {
+                case 'credit_card':
+                    paymentData.card_number = cardNumber;
+                    paymentData.expiry_month = expiryMonth;
+                    paymentData.expiry_year = expiryYear;
+                    paymentData.cvv = cvv;
+                    break;
+                case 'bank_transfer':
+                    paymentData.bank_name = bankName;
+                    paymentData.account_number = accountNumber;
+                    break;
+                case 'e_wallet':
+                    paymentData.wallet_type = walletType;
+                    paymentData.wallet_id = walletId;
+                    break;
+            }
+            
+            const response = await fetch('http://uniwiz-backend.test/api/process_payment.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData),
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'completed') {
+                setPaymentSuccess(true);
+                setTransactionDetails(result);
+                setTimeout(() => {
+                    setShowPaymentModal(false);
+                    setPaymentSuccess(false);
+                    setTransactionDetails(null);
+                    if (onJobPosted) onJobPosted();
+                }, 5000);
+            } else {
+                throw new Error(result.message || 'Payment failed');
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setPaymentProcessing(false);
+        }
     };
 
     const handleSubmit = async (status) => {
@@ -136,10 +216,17 @@ function CreateJob({ user, onJobPosted }) {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to save job.');
 
-            setSuccess(result.message + " Redirecting...");
-            setTimeout(() => {
-                if (onJobPosted) onJobPosted();
-            }, 2000);
+            // --- NEW: Show payment modal if job created successfully ---
+            if (result.job_id && result.payment_amount) {
+                setCurrentJobId(result.job_id);
+                setPaymentAmount(result.payment_amount);
+                setShowPaymentModal(true);
+            } else {
+                setSuccess(result.message + " Redirecting...");
+                setTimeout(() => {
+                    if (onJobPosted) onJobPosted();
+                }, 2000);
+            }
 
         } catch (err) {
             setError(err.message);
@@ -299,6 +386,126 @@ function CreateJob({ user, onJobPosted }) {
                     </div>
                 </form>
             </div>
+            
+            {/* --- NEW: Payment Modal --- */}
+            {showPaymentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        {paymentSuccess ? (
+                            <div className="text-center">
+                                <div className="text-6xl mb-4">✅</div>
+                                <h3 className="text-2xl font-bold text-green-600 mb-2">Payment Successful!</h3>
+                                <p className="text-gray-600 mb-4">Your job has been posted successfully.</p>
+                                
+                                {transactionDetails && (
+                                    <div className="bg-green-50 p-4 rounded-lg text-left mb-4">
+                                        <h4 className="font-semibold text-green-800 mb-2">Transaction Details:</h4>
+                                        <div className="text-sm text-green-700 space-y-1">
+                                            <p><strong>Transaction ID:</strong> {transactionDetails.transaction_id}</p>
+                                            <p><strong>Amount:</strong> Rs. {transactionDetails.amount?.toLocaleString()}</p>
+                                            <p><strong>Method:</strong> {transactionDetails.method?.replace('_', ' ').toUpperCase()}</p>
+                                            <p><strong>Status:</strong> {transactionDetails.status}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <button onClick={() => setShowPaymentModal(false)} className="bg-green-500 text-white px-6 py-2 rounded-lg">
+                                    Continue
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-center mb-6">
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Complete Payment</h3>
+                                    <p className="text-gray-600">Pay Rs. {paymentAmount.toLocaleString()} to post your job</p>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    {/* Payment Method Selection */}
+                                    <div>
+                                        <label className="block text-gray-700 font-medium mb-2">Payment Method</label>
+                                        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full p-3 border rounded-lg">
+                                            <option value="credit_card">Credit/Debit Card</option>
+                                            <option value="bank_transfer">Bank Transfer</option>
+                                            <option value="e_wallet">E-Wallet (eZ Cash/Mobitel Money)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    {/* Credit Card Form */}
+                                    {paymentMethod === 'credit_card' && (
+                                        <div className="space-y-3">
+                                            <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                                                <p className="font-semibold text-blue-800 mb-2">🧪 Test Card Numbers:</p>
+                                                <ul className="text-blue-700 space-y-1">
+                                                    <li>✅ <strong>4242424242424242</strong> - Success</li>
+                                                    <li>❌ <strong>4000000000000002</strong> - Declined</li>
+                                                    <li>❌ <strong>4000000000009995</strong> - Insufficient Funds</li>
+                                                    <li>❌ <strong>4000000000009987</strong> - Lost Card</li>
+                                                    <li>❌ <strong>4000000000009979</strong> - Stolen Card</li>
+                                                </ul>
+                                            </div>
+                                            <input type="text" placeholder="Card Number" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="w-full p-3 border rounded-lg" maxLength="19" />
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <select value={expiryMonth} onChange={(e) => setExpiryMonth(e.target.value)} className="p-3 border rounded-lg">
+                                                    <option value="">Month</option>
+                                                    {Array.from({length: 12}, (_, i) => i + 1).map(month => (
+                                                        <option key={month} value={month}>{month.toString().padStart(2, '0')}</option>
+                                                    ))}
+                                                </select>
+                                                <select value={expiryYear} onChange={(e) => setExpiryYear(e.target.value)} className="p-3 border rounded-lg">
+                                                    <option value="">Year</option>
+                                                    {Array.from({length: 10}, (_, i) => new Date().getFullYear() + i).map(year => (
+                                                        <option key={year} value={year}>{year}</option>
+                                                    ))}
+                                                </select>
+                                                <input type="text" placeholder="CVV" value={cvv} onChange={(e) => setCvv(e.target.value)} className="p-3 border rounded-lg" maxLength="4" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Bank Transfer Form */}
+                                    {paymentMethod === 'bank_transfer' && (
+                                        <div className="space-y-3">
+                                            <div className="bg-green-50 p-3 rounded-lg text-sm">
+                                                <p className="font-semibold text-green-800 mb-2">🏦 Test Bank Transfer:</p>
+                                                <p className="text-green-700">Any bank name and account number will work. 98% success rate.</p>
+                                            </div>
+                                            <input type="text" placeholder="Bank Name (e.g., Bank of Ceylon)" value={bankName} onChange={(e) => setBankName(e.target.value)} className="w-full p-3 border rounded-lg" />
+                                            <input type="text" placeholder="Account Number (e.g., 1234567890)" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="w-full p-3 border rounded-lg" />
+                                        </div>
+                                    )}
+                                    
+                                    {/* E-Wallet Form */}
+                                    {paymentMethod === 'e_wallet' && (
+                                        <div className="space-y-3">
+                                            <div className="bg-purple-50 p-3 rounded-lg text-sm">
+                                                <p className="font-semibold text-purple-800 mb-2">📱 Test E-Wallet:</p>
+                                                <p className="text-purple-700">Any wallet type and ID will work. 99% success rate.</p>
+                                            </div>
+                                            <select value={walletType} onChange={(e) => setWalletType(e.target.value)} className="w-full p-3 border rounded-lg">
+                                                <option value="ezcash">eZ Cash</option>
+                                                <option value="mobitel_money">Mobitel Money</option>
+                                            </select>
+                                            <input type="text" placeholder="Wallet ID/Phone Number (e.g., 0771234567)" value={walletId} onChange={(e) => setWalletId(e.target.value)} className="w-full p-3 border rounded-lg" />
+                                        </div>
+                                    )}
+                                    
+                                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                                    
+                                    <div className="flex gap-3 pt-4">
+                                        <button onClick={() => setShowPaymentModal(false)} className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium">
+                                            Cancel
+                                        </button>
+                                        <button onClick={handlePayment} disabled={paymentProcessing} className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-medium disabled:opacity-50">
+                                            {paymentProcessing ? 'Processing...' : `Pay Rs. ${paymentAmount.toLocaleString()}`}
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

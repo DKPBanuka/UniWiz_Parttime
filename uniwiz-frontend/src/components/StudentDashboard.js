@@ -2,6 +2,8 @@
 // =================================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { getCategoryColorClass } from '../utils/categoryColors';
+const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
 // --- Reusable Components with Dynamic Colors ---
 
@@ -64,67 +66,65 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-// --- NEW: Category Color Mapping ---
-const categoryColors = {
-    'Graphic Design': 'bg-accent-pink-light text-accent-pink-dark',
-    'Content Writing': 'bg-accent-teal-light text-accent-teal-dark',
-    'Web Development': 'bg-accent-blue-light text-accent-blue-dark',
-    'IT & Software Development': 'bg-accent-blue-light text-accent-blue-dark',
-    'Tutoring': 'bg-accent-purple-light text-accent-purple-dark',
-    'Event Support': 'bg-yellow-100 text-yellow-800',
-    'default': 'bg-gray-100 text-gray-800'
-};
+// Auto color system is now handled by categoryColors.js utility
 
 // UPDATED: JobCard uses dynamic category colors
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
-    const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
     const categoryName = job.category_name || job.category;
-    // NEW: Get color class based on category name
-    const categoryColorClass = categoryColors[categoryName] || categoryColors.default;
-
+    const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
+    const categoryColorClass = getCategoryColorClass(categoryName);
+    const logoUrl = job.profile_image_url;
+    const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
+    const formatDate = (dateString) => {
+        if (!dateString) return null;
+        return new Date(dateString).toLocaleDateString('en-CA');
+    };
+    const postedDate = formatDate(job.created_at);
+    const startDate = formatDate(job.start_date);
+    const endDate = formatDate(job.end_date);
+    const isSingleDayJob = startDate && (startDate === endDate || !endDate);
     return (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md">
-            <div className="p-6 flex flex-col h-full">
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-100 hover:border-blue-300 hover:shadow-md">
+            <div className="p-5 flex flex-col h-full">
                 <div className="flex-grow">
-                    {/* UPDATED: Category badge with dynamic colors */}
-                    <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full mb-3 ${categoryColorClass}`}>
-                        {categoryName}
-                    </span>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">{job.title}</h3>
-                    <p className="text-gray-600 mb-4">
-                        Posted by:
-                        <button
-                            onClick={() => handleViewCompanyProfile(job.publisher_id)}
-                            className="font-semibold text-blue-500 hover:text-blue-600 ml-1"
-                        >
-                            {job.company_name || job.publisher_name}
-                        </button>
-                    </p>
-                    <div className="space-y-2 text-gray-700">
+                    <div className="flex justify-between items-start mb-3">
+                        <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${categoryColorClass}`}>{categoryName}</span>
+                        <span className="text-xs text-gray-500">Posted: {postedDate}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">{job.title}</h3>
+                    <div className="flex items-center mb-4">
+                        <img
+                            src={logoUrl ? (logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL}/${logoUrl}`) : 'https://placehold.co/48x48/E8EAF6/211C84?text=Logo'}
+                            alt={`${displayName} logo`}
+                            className="w-12 h-12 rounded-lg mr-3 object-cover border border-gray-200 bg-gray-100"
+                            onError={e => { e.target.style.display = 'none'; }}
+                        />
+                        <div>
+                            <p className="text-sm text-gray-600">
+                                By: <button onClick={() => handleViewCompanyProfile(job.publisher_id)} className="font-semibold text-blue-500 hover:text-blue-600 ml-1">{displayName}</button>
+                            </p>
+                        </div>
+                    </div>
+                    <div className="space-y-1 text-gray-700 text-sm">
                         <p><strong>Type:</strong> {job.job_type}</p>
-                        <p><strong>Payment (Wage):</strong> {job.payment_range}</p>
+                        <p><strong>Payment:</strong> {job.payment_range}</p>
+                        {isSingleDayJob ? (
+                            <p><strong>Date:</strong> {startDate}</p>
+                        ) : (startDate &&
+                            <p><strong>Duration:</strong> {startDate} to {endDate || 'Ongoing'}</p>
+                        )}
                     </div>
                 </div>
-                <div className="mt-6 pt-4 border-t flex justify-between items-center">
+                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div>
                         {currentApplicationStatus && (
                             <StatusBadge status={currentApplicationStatus} />
                         )}
                     </div>
                     <div className="flex items-center space-x-2">
-                        <button
-                            onClick={() => handleViewJobDetails(job)}
-                            className="font-medium py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition duration-300 text-sm"
-                        >
-                            View
-                        </button>
+                        <button onClick={() => handleViewJobDetails(job)} className="font-medium py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition duration-300 text-sm">Details</button>
                         {currentUser && currentUser.role === 'student' && !currentApplicationStatus && (
-                            <button
-                                onClick={() => handleApply(job)}
-                                className={'bg-blue-500 text-white hover:bg-blue-600 font-medium py-2 px-4 rounded-lg transition duration-300 text-sm'}
-                            >
-                                Apply Now
-                            </button>
+                            <button onClick={() => handleApply(job)} className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm">Apply Now</button>
                         )}
                     </div>
                 </div>
@@ -196,83 +196,99 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         views: { bg: 'bg-accent-pink-light', text: 'text-accent-pink-dark' },
     };
 
+    // Only show warning if not verified AND profile not complete
+    const showVerificationWarning = currentUser && !currentUser.is_verified && (stats?.profile_completion_percentage ?? 0) < 100;
+    // Show message if verified but still restricted (e.g., after first login post-verification)
+    const showPostVerifyMessage = currentUser && currentUser.is_verified;
     return (
-        <div className="p-6 md:p-8 bg-gray-50 min-h-screen text-gray-800">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Welcome, {currentUser?.first_name}!</h1>
-                    <p className="text-gray-600 mt-2">Here's a quick overview of your job search.</p>
-                </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-                {isLoadingStats ? (
-                    <><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div></>
-                ) : errorStats ? (
-                    <div className="lg:col-span-4 text-center text-red-500 py-8 bg-white rounded-xl shadow-sm border border-gray-100">Error loading stats: {errorStats}</div>
-                ) : (
-                    <>
-                        <StatCard 
-                            title="Applications Sent" 
-                            value={stats?.applications_sent ?? 0} 
-                            icon={<ApplicationsSentIcon />} 
-                            delay={0}
-                            description="View all applications"
-                            onLinkClick={() => handleStatLinkClick('All')}
-                            color={statCardColors.sent} // Pass color prop
-                        />
-                        <StatCard 
-                            title="Applications Accepted" 
-                            value={stats?.applications_accepted ?? 0} 
-                            icon={<AcceptedIcon />} 
-                            delay={1}
-                            description="View accepted"
-                            onLinkClick={() => handleStatLinkClick('Accepted')}
-                            color={statCardColors.accepted} // Pass color prop
-                        />
-                        <StatCard 
-                            title="Profile Views" 
-                            value={stats?.profile_views ?? 0} 
-                            icon={<ProfileViewsIcon />} 
-                            delay={2}
-                            description="View who viewed"
-                            onLinkClick={() => handleStatLinkClick('Viewed')} 
-                            color={statCardColors.views} // Pass color prop
-                        />
-                        <ProfileCompletionCard percentage={stats?.profile_completion_percentage ?? 0} setPage={setPage} />
-                    </>
+        <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
+            <div className="max-w-6xl mx-auto">
+                {showVerificationWarning && (
+                    <div className="mb-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+                        <strong>Your account is not verified.</strong> Please complete your profile to request verification.
+                    </div>
                 )}
-            </div>
+                {showPostVerifyMessage && (
+                    <div className="mb-8 p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-800 rounded">
+                        <strong>Your account is now verified.</strong> Please logout and login again to access all features.
+                    </div>
+                )}
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Welcome, {currentUser?.first_name}!</h1>
+                        <p className="text-gray-600 mt-2">Here's a quick overview of your job search.</p>
+                    </div>
+                </div>
 
-            {/* Recommended Jobs Section */}
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Recommended For You</h2>
-                <button onClick={() => setPage('find-jobs')} className="font-semibold text-blue-500 hover:underline">
-                    View All Jobs
-                </button>
-            </div>
-
-            {isLoadingJobs ? <LoadingSpinner /> : errorJobs ? <div className="text-center text-red-500 py-16 bg-white rounded-xl shadow-sm border border-gray-100">{errorJobs}</div> : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {recommendedJobs.length > 0 ? recommendedJobs.map(job => (
-                        <JobCard
-                            key={`rec-${job.id}`}
-                            job={job}
-                            currentUser={currentUser}
-                            handleApply={handleApply}
-                            handleViewCompanyProfile={handleViewCompanyProfile}
-                            handleViewJobDetails={handleViewJobDetails}
-                            applyingStatus={applyingStatus}
-                        />
-                    )) : (
-                        <div className="col-span-3 bg-white rounded-xl shadow-sm p-6 border border-gray-100 text-center">
-                            <p className="text-gray-500">No specific recommendations yet. Use "Find Jobs" to explore!</p>
-                        </div>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                    {isLoadingStats ? (
+                        <><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div></>
+                    ) : errorStats ? (
+                        <div className="lg:col-span-4 text-center text-red-500 py-8 bg-white rounded-xl shadow-sm border border-gray-100">Error loading stats: {errorStats}</div>
+                    ) : (
+                        <>
+                            <StatCard 
+                                title="Applications Sent" 
+                                value={stats?.applications_sent ?? 0} 
+                                icon={<ApplicationsSentIcon />} 
+                                delay={0}
+                                description="View all applications"
+                                onLinkClick={() => handleStatLinkClick('All')}
+                                color={statCardColors.sent} // Pass color prop
+                            />
+                            <StatCard 
+                                title="Applications Accepted" 
+                                value={stats?.applications_accepted ?? 0} 
+                                icon={<AcceptedIcon />} 
+                                delay={1}
+                                description="View accepted"
+                                onLinkClick={() => handleStatLinkClick('Accepted')}
+                                color={statCardColors.accepted} // Pass color prop
+                            />
+                            <StatCard 
+                                title="Profile Views" 
+                                value={stats?.profile_views ?? 0} 
+                                icon={<ProfileViewsIcon />} 
+                                delay={2}
+                                description="View who viewed"
+                                onLinkClick={() => handleStatLinkClick('Viewed')} 
+                                color={statCardColors.views} // Pass color prop
+                            />
+                            <ProfileCompletionCard percentage={stats?.profile_completion_percentage ?? 0} setPage={setPage} />
+                        </>
                     )}
                 </div>
-            )}
+
+                {/* Recommended Jobs Section */}
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">Recommended For You</h2>
+                    <button onClick={() => setPage('find-jobs')} className="font-semibold text-blue-500 hover:underline">
+                        View All Jobs
+                    </button>
+                </div>
+
+                {isLoadingJobs ? <LoadingSpinner /> : errorJobs ? <div className="text-center text-red-500 py-16 bg-white rounded-xl shadow-sm border border-gray-100">{errorJobs}</div> : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {recommendedJobs.length > 0 ? recommendedJobs.map(job => (
+                            <JobCard
+                                key={`rec-${job.id}`}
+                                job={job}
+                                currentUser={currentUser}
+                                handleApply={handleApply}
+                                handleViewCompanyProfile={handleViewCompanyProfile}
+                                handleViewJobDetails={handleViewJobDetails}
+                                applyingStatus={applyingStatus}
+                            />
+                        )) : (
+                            <div className="col-span-3 bg-white rounded-xl shadow-sm p-6 border border-gray-100 text-center">
+                                <p className="text-gray-500">No specific recommendations yet. Use "Find Jobs" to explore!</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -4,11 +4,11 @@
 // This endpoint provides all user data specifically for the admin panel,
 // now with improved filtering for role, verification status, and account status.
 
-header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Allow-Origin: http://localhost:3000");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -45,6 +45,7 @@ try {
             u.status, 
             u.created_at,
             u.profile_image_url,
+            u.email_verified_at,
             -- Student specific fields
             sp.university_name,
             sp.field_of_study,
@@ -61,7 +62,8 @@ try {
             pp.phone_number,
             pp.facebook_url,
             pp.linkedin_url,
-            pp.instagram_url
+            pp.instagram_url,
+            pp.required_doc_url
         FROM 
             users u
         LEFT JOIN 
@@ -121,6 +123,13 @@ try {
     $stmt->execute();
 
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Ensure email_verified_at is always present in the response
+    foreach ($users as &$user) {
+        if (!array_key_exists('email_verified_at', $user)) {
+            $user['email_verified_at'] = null;
+        }
+    }
 
     http_response_code(200);
     echo json_encode($users);

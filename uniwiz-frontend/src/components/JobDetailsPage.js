@@ -37,7 +37,7 @@ const SkillBadge = ({ skill }) => (
     </span>
 );
 
-function JobDetailsPage({ jobId, onBackClick }) {
+function JobDetailsPage({ jobId, onBackClick, onDeleteClick, onCompanyClick }) {
     const [job, setJob] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -79,28 +79,27 @@ function JobDetailsPage({ jobId, onBackClick }) {
     const SkillsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
 
     return (
-        <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
+        <div className="p-8 bg-bg-publisher-dashboard min-h-screen relative">
+            {/* Close button */}
+            <button onClick={onBackClick} className="absolute top-6 right-8 text-gray-400 hover:text-gray-700 text-3xl font-bold z-10">&times;</button>
             <div className="max-w-5xl mx-auto">
-                <button onClick={onBackClick} className="flex items-center text-primary-main font-semibold mb-6 hover:text-primary-dark">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Back to Manage Jobs
-                </button>
-
                 {/* --- Job Header --- */}
-                <div className="bg-white p-8 rounded-xl shadow-lg mb-8">
-                    <h1 className="text-4xl font-bold text-primary-dark">{job.title}</h1>
-                    <p className="text-lg text-gray-600 mt-1">{job.company_name || 'A Reputed Company'}</p>
+                <div className="bg-white p-8 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold text-primary-dark">{job.title}</h1>
+                        {onCompanyClick ? (
+                            <button onClick={() => onCompanyClick(job.publisher_id)} className="text-lg text-blue-600 hover:text-blue-700 hover:underline text-left mt-1">{job.company_name || 'A Reputed Company'}</button>
+                        ) : (
+                            <p className="text-lg text-gray-600 mt-1">{job.company_name || 'A Reputed Company'}</p>
+                        )}
+                    </div>
                 </div>
-
                 {/* --- Main Content Area --- */}
                 <div className="space-y-8">
                     {/* --- Job Description (Full Width) --- */}
                     <InfoCard title="Job Description" icon={DescriptionIcon}>
                         <p className="whitespace-pre-wrap text-base leading-relaxed">{job.description}</p>
                     </InfoCard>
-
                     {/* --- Details & Skills (Two Columns) --- */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
                         <InfoCard title="Job Details" icon={DetailsIcon}>
@@ -123,7 +122,6 @@ function JobDetailsPage({ jobId, onBackClick }) {
                                 <DetailItem label="Date Posted" value={new Date(job.created_at).toLocaleString()} />
                             </div>
                         </InfoCard>
-
                         <InfoCard title="Required Skills" icon={SkillsIcon}>
                             {skills.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
@@ -135,6 +133,14 @@ function JobDetailsPage({ jobId, onBackClick }) {
                         </InfoCard>
                     </div>
                 </div>
+                {/* Delete button for admin */}
+                {onDeleteClick && (
+                    <div className="flex justify-end mt-8">
+                        <button onClick={() => onDeleteClick(job.id)} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">
+                            Delete Job
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

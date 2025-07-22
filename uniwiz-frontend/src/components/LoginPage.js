@@ -222,67 +222,55 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                         </>
                     )}
 
+                    {/* Forgot Password Form */}
+                    {/* REMOVE all UI related to forgot password (forms, buttons, messages) */}
+
+                    {/* Submit Button */}
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Full Name / Company Name */}
+                        {/* Full Name / Company Name (Sign Up mode) */}
                         {isSignUpMode && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-1"
-                            >
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
                                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
                                     {role === 'publisher' ? 'Company Name' : 'Full Name'}
                                 </label>
                                 <div className="relative">
-                                    <input 
-                                        id="fullName" 
-                                        type="text" 
-                                        value={fullName} 
-                                        onChange={(e) => setFullName(e.target.value)} 
-                                        className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2" 
+                                    <input
+                                        id="fullName"
+                                        type="text"
+                                        value={fullName}
+                                        onChange={e => setFullName(e.target.value)}
+                                        className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2"
                                         placeholder={role === 'publisher' ? 'Enter company name' : 'Enter your full name'}
                                         required
                                     />
                                 </div>
                             </motion.div>
                         )}
-
                         {/* Email Input */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="space-y-1"
-                        >
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-1">
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                            <input 
-                                id="email" 
-                                type="email" 
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                                className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2" 
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2"
                                 placeholder="Enter your email"
-                                required 
+                                required
                             />
                         </motion.div>
-
                         {/* Password Input */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="space-y-1"
-                        >
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-1">
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
                             <div className="relative">
-                                <input 
-                                    id="password" 
-                                    type={showPassword ? 'text' : 'password'} 
-                                    value={password} 
-                                    onChange={(e) => setPassword(e.target.value)} 
-                                    className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2 pr-10" 
+                                <input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    className="block w-full border border-gray-300 rounded-lg shadow-sm py-3 px-4 text-gray-900 placeholder-gray-400 focus:ring-primary-main focus:border-primary-main focus:outline-none focus:ring-2 pr-10"
                                     placeholder="Enter your password"
-                                    required 
+                                    required
                                 />
                                 <button
                                     type="button"
@@ -292,7 +280,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         {showPassword ? (
                                             <>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                                             </>
                                         ) : (
                                             <>
@@ -304,23 +292,11 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 </button>
                             </div>
                         </motion.div>
-
-                        {/* Forgot Password */}
-                        {!isSignUpMode && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="text-right"
-                            >
-                                <a href="#" className="text-sm font-medium text-primary-main hover:text-primary-dark">Forgot password?</a>
-                            </motion.div>
-                        )}
-
                         {/* Submit Button */}
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            type="submit" 
+                            type="submit"
                             disabled={isLoading}
                             className="w-full bg-gradient-to-r from-primary-main to-primary-dark hover:from-primary-dark hover:to-primary-main text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
@@ -335,20 +311,33 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             ) : isSignUpMode ? 'Create Account' : 'Sign In'}
                         </motion.button>
                     </form>
-
                     {/* Toggle Mode */}
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="mt-8 text-center text-gray-600"
                     >
-                        {isSignUpMode ? 'Already have an account?' : 'Don\'t have an account?'}
-                        <button 
-                            onClick={toggleMode} 
-                            className="ml-1 font-semibold text-primary-main hover:text-primary-dark focus:outline-none"
-                        >
-                            {isSignUpMode ? 'Sign In' : 'Sign Up'}
-                        </button>
+                        {isSignUpMode ? (
+                            <>
+                                Already have an account?{' '}
+                                <button 
+                                    onClick={toggleMode} 
+                                    className="ml-1 font-semibold text-primary-main hover:text-primary-dark focus:outline-none"
+                                >
+                                    Sign In
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                Don&apos;t have an account?{' '}
+                                <button 
+                                    onClick={toggleMode} 
+                                    className="ml-1 font-semibold text-primary-main hover:text-primary-dark focus:outline-none"
+                                >
+                                    Create Account
+                                </button>
+                            </>
+                        )}
                     </motion.div>
                 </motion.div>
             </div>

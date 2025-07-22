@@ -3,15 +3,14 @@
 // =================================================================================================
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 // --- Handle Preflight (OPTIONS) Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit();
 }
 
@@ -36,6 +35,7 @@ try {
 
     // **CHANGE**: The query now includes a LEFT JOIN to the job_applications table
     // to fetch the status of the application for the specific student.
+    // **ADDED**: profile_image_url field for company logos
     $query = "
         SELECT 
             j.id, 
@@ -49,6 +49,7 @@ try {
             j.end_date,         
             u.first_name as publisher_first_name,
             u.company_name as publisher_company_name,
+            u.profile_image_url,
             u.id as publisher_id,
             ja.status as application_status
         FROM 
@@ -102,7 +103,7 @@ try {
         $job_item = array(
             "id" => $row['id'],
             "title" => $row['title'],
-            "category" => $row['category'],
+            "category" => html_entity_decode($row['category'], ENT_QUOTES, 'UTF-8'),
             "category_id" => $row['category_id'],
             "job_type" => $row['job_type'],
             "payment_range" => $row['payment_range'],
@@ -112,6 +113,7 @@ try {
             "publisher_id" => $row['publisher_id'],
             "publisher_name" => $row['publisher_first_name'],
             "company_name" => $row['publisher_company_name'],
+            "profile_image_url" => $row['profile_image_url'], // **NEW**: Add profile image URL for company logos
             "application_status" => $row['application_status'] // **NEW**: Add the status to the response
         );
         array_push($jobs_arr, $job_item);

@@ -5,13 +5,15 @@
 // It now correctly includes the company name and the student's application status for each job.
 
 // --- Headers & DB Connection ---
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
@@ -48,6 +50,7 @@ try {
             jc.name as category_name,
             u.first_name as publisher_name,
             u.company_name,
+            u.profile_image_url,
             ja.status as application_status
         FROM jobs j 
         JOIN job_categories jc ON j.category_id = jc.id

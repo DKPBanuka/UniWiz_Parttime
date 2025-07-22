@@ -77,6 +77,14 @@ function ProfilePage({ user, onProfileUpdate }) {
     // State for suggestions from the backend
     const [suggestions, setSuggestions] = useState({ skills: [], categories: [] });
 
+    // State for required document (BR/NIC)
+    const [selectedRequiredDoc, setSelectedRequiredDoc] = useState(null);
+    const requiredDocInputRef = useRef();
+
+    // Add a helper to check if publisher is verified (has required_doc_url)
+    const isPublisher = user.role === 'publisher';
+    const isVerified = isPublisher ? (!!user.required_doc_url || !!selectedRequiredDoc) : true;
+
     const fetchPublisherImages = useCallback(async () => {
         if (user && user.role === 'publisher') {
             try {
@@ -167,6 +175,21 @@ function ProfilePage({ user, onProfileUpdate }) {
         }
     };
 
+    const handleRequiredDocChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+                showNotification("Only PDF, JPG, or PNG files are allowed for BR/NIC.", "error");
+                return;
+            }
+            if (file.size > 5242880) {
+                showNotification("Document must be under 5MB.", "error");
+                return;
+            }
+            setSelectedRequiredDoc(file);
+        }
+    };
+
     const handleRemoveCoverImage = () => {
         setCoverImagePreview(null);
         setSelectedCoverImage(null);
@@ -204,6 +227,8 @@ function ProfilePage({ user, onProfileUpdate }) {
         if (user.role === 'publisher' && removeCoverImage) submissionData.append('remove_cover_image', 'true');
         if (user.role === 'publisher' && imagesToRemove.length > 0) submissionData.append('remove_gallery_images', JSON.stringify(imagesToRemove));
         if (user.role === 'student' && selectedCV) submissionData.append('cv_file', selectedCV);
+        // Add required_doc for publisher
+        if (user.role === 'publisher' && selectedRequiredDoc) submissionData.append('required_doc', selectedRequiredDoc);
 
         try {
             const response = await fetch('http://uniwiz-backend.test/api/update_profile.php', { method: 'POST', body: submissionData });
@@ -236,6 +261,12 @@ function ProfilePage({ user, onProfileUpdate }) {
                         <h2 className="text-4xl font-bold text-primary-dark">My Profile</h2>
                         <p className="text-gray-600 mt-1">Manage your personal and professional information.</p>
                     </div>
+                    {/* Show verification required message for publishers if not verified */}
+                    {isPublisher && !isVerified && (
+                        <div className="mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+                            <strong>Account verification required:</strong> Please upload your <b>Business Registration Certificate (BR)</b> or <b>NIC</b> for admin review. Your account will not be verified until a valid document is uploaded. You can still update other profile details.
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-md">
                         <div className="flex items-center space-x-6 mb-8">
                             <img src={profilePicturePreview || `https://placehold.co/100x100/E8EAF6/211C84?text=${user.first_name.charAt(0)}`} alt="Profile" className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-sm"/>
@@ -262,7 +293,7 @@ function ProfilePage({ user, onProfileUpdate }) {
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                                        <input type="email" value={user.email} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100" disabled />
+                                        <input type="email" value={user.email} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100" readOnly />
                                     </div>
                                 </div>
                             </div>
@@ -282,7 +313,7 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700">About Your Company</label>
-                                            <textarea name="about" value={formData.about} rows="4" className="mt-1 block w-full border rounded-md p-2" />
+                                            <textarea name="about" value={formData.about} rows="4" onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700">Website URL</label>
@@ -338,6 +369,26 @@ function ProfilePage({ user, onProfileUpdate }) {
                                         <input type="file" ref={galleryInputRef} onChange={handleGalleryImagesChange} className="hidden" accept="image/*" multiple/>
                                         <button type="button" onClick={() => galleryInputRef.current.click()} className="mt-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Add Gallery Images</button>
                                     </div>
+                                </div>
+                                {/* BR/NIC Upload Field */}
+                                <div className="mt-6">
+                                    <label className="block text-sm font-medium text-gray-700">Business Registration Certificate (BR) or NIC <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="file"
+                                        ref={requiredDocInputRef}
+                                        onChange={handleRequiredDocChange}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-lighter file:text-primary-dark hover:file:bg-primary-light"
+                                        accept="application/pdf,image/jpeg,image/png"
+                                    />
+                                    {selectedRequiredDoc && (
+                                        <p className="mt-2 text-sm text-primary-dark">Selected: {selectedRequiredDoc.name}</p>
+                                    )}
+                                    {/* Show current document if already uploaded */}
+                                    {user.required_doc_url && !selectedRequiredDoc && (
+                                        <p className="mt-2 text-sm text-green-700">
+                                            Current Document: <a href={`http://uniwiz-backend.test/api/${user.required_doc_url}`} target="_blank" rel="noopener noreferrer" className="underline">View/Download</a>
+                                        </p>
+                                    )}
                                 </div>
                                 </>
                             )}

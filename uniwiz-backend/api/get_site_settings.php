@@ -1,52 +1,41 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json");
+// Error reporting suppress
+error_reporting(0);
+ini_set('display_errors', 0);
+
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
 
 require_once '../config/database.php';
-require_once '../vendor/autoload.php';
-
-$response = [
-    'success' => false,
-    'message' => 'An unknown error occurred.'
-];
+// require_once '../vendor/autoload.php'; // Remove if not needed
 
 try {
-    $pdo = getPDO();
+    $db = new Database();
+    $pdo = $db->getConnection();
 
     // Fetch footer settings
-    $stmt = $pdo->prepare("SELECT footer_links FROM site_settings LIMIT 1");
+    $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'footer_links' LIMIT 1");
     $stmt->execute();
     $siteSettings = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($siteSettings) {
-        $footerLinks = json_decode($siteSettings['footer_links'], true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            // Handle JSON decode error - log it and perhaps return an empty array or default
-            $footerLinks = []; // Default to empty array if JSON is invalid
+        $footerLinks = json_decode($siteSettings['setting_value'], true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($footerLinks)) {
+            $footerLinks = [];
         }
+        // Output as root-level object
+        echo json_encode($footerLinks);
+        exit;
     } else {
-        $footerLinks = []; // Default to empty array if no settings found
+        // No settings found, return empty object
+        echo json_encode(new stdClass());
+        exit;
     }
-
-    $response = [
-        'success' => true,
-        'footerLinks' => $footerLinks,
-        'message' => 'Site settings fetched successfully.'
-    ];
-
-} catch (PDOException $e) {
-    $response = [
-        'success' => false,
-        'message' => 'Database error: ' . $e->getMessage()
-    ];
 } catch (Exception $e) {
-    $response = [
-        'success' => false,
-        'message' => 'Server error: ' . $e->getMessage()
-    ];
+    // On error, return empty object
+    echo json_encode(new stdClass());
+    exit;
 }
-
-echo json_encode($response);
 ?>

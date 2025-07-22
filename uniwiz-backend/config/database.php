@@ -14,6 +14,12 @@ try {
     die("Error: Could not load the .env file. Please ensure it exists in the 'uniwiz-backend' directory. Details: " . $e->getMessage());
 }
 
+// --- Database Credentials ---
+$host = "localhost";
+$dbname = "uniwiz_db";
+$username = "root";
+$password = ""; // Your Laragon password (usually empty)
+
 class Database {
     // --- Database Credentials ---
     // These now come from the .env file, but we keep them here as fallbacks.

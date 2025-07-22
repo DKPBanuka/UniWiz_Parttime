@@ -7,18 +7,15 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// --- Handle Preflight (OPTIONS) Request ---
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header('Content-Type: application/json');
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
     http_response_code(204);
     exit;
 }
-
-// --- Standard Headers ---
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
 
 // --- Include Composer's autoloader for PHPMailer ---
 // CORRECTED PATH: No longer needs '../' as this file is in the root backend folder
@@ -68,7 +65,22 @@ function getFullUserProfile($db, $user_id) {
 
 // --- Function to create a notification for all admins ---
 function createAdminNotification($db, $type, $message, $link) {
-    // ... (This function is correct, no changes needed)
+    $stmt_admins = $db->prepare("SELECT id FROM users WHERE role = 'admin'");
+    $stmt_admins->execute();
+    $admin_ids = $stmt_admins->fetchAll(PDO::FETCH_COLUMN, 0);
+
+    if (empty($admin_ids)) return;
+
+    $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, :type, :message, :link)";
+    $stmt_notif = $db->prepare($query_notif);
+
+    foreach ($admin_ids as $admin_id) {
+        $stmt_notif->bindParam(':user_id', $admin_id, PDO::PARAM_INT);
+        $stmt_notif->bindParam(':type', $type);
+        $stmt_notif->bindParam(':message', $message);
+        $stmt_notif->bindParam(':link', $link);
+        $stmt_notif->execute();
+    }
 }
 
 // --- ACTION ROUTER ---
@@ -127,6 +139,12 @@ if ($data->action === 'register') {
                     $stmt_publisher_profile->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
                     $stmt_publisher_profile->execute();
                 }
+
+                // --- NEW: Notify all admins about new registration ---
+                $notif_type = 'new_user_registered';
+                $notif_message = "A new user has registered: " . ($role === 'student' ? "$firstName $lastName" : $companyName) . " ($role)";
+                $notif_link = "/user-management"; // Or relevant admin page
+                createAdminNotification($db, $notif_type, $notif_message, $notif_link);
 
                 $mail = new PHPMailer(true);
                 try {

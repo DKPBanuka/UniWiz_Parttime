@@ -29,16 +29,16 @@ const HowItWorksStep = ({ number, title, text, color }) => (
 
 // Enhanced JobCard with modern styling
 const JobCard = ({ job, setPage }) => (
-    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col hover:shadow-xl transition-all duration-300 hover:-translate-y-2 h-full border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 h-full border border-gray-100">
         <div className="flex items-center mb-5">
             <img
                 src={job.profile_image_url ? `${API_BASE_URL}/${job.profile_image_url}` : 'https://placehold.co/100x100/E2E8F0/4A5568?text=Logo'}
                 alt={`${job.company_name} logo`}
-                className="w-16 h-16 rounded-xl mr-4 object-cover border border-gray-200"
+                className="w-16 h-16 rounded-xl mr-4 object-cover border border-gray-200 bg-gray-100"
             />
             <div>
-                <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
-                <p className="text-gray-600 font-medium">{job.company_name}</p>
+                <h3 className="text-xl font-bold text-gray-900 line-clamp-1">{job.title}</h3>
+                <p className="text-gray-600 font-medium line-clamp-1">{job.company_name}</p>
             </div>
         </div>
         <div className="flex-grow mb-5">
@@ -294,21 +294,19 @@ const LandingPage = ({ setPage }) => {
                                 Browse through our curated selection of student-friendly jobs
                             </p>
                         </div>
-                        
                         {jobs.length > 0 ? (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {jobs.map(job => <JobCard key={job.id} job={job} setPage={setPage} />)}
                             </div>
                         ) : (
-                            <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-                                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            <div className="bg-white rounded-2xl shadow-sm p-12 text-center flex flex-col items-center">
+                                <svg className="w-20 h-20 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7M16 3v4M8 3v4m-5 4h18"></path>
                                 </svg>
-                                <h3 className="text-xl font-semibold text-gray-700 mb-2">No active jobs available</h3>
+                                <h3 className="text-2xl font-semibold text-gray-700 mb-2">No active jobs available</h3>
                                 <p className="text-gray-500 max-w-md mx-auto">We're currently updating our job listings. Please check back later for new opportunities.</p>
                             </div>
                         )}
-                        
                         <div className="text-center mt-16">
                             <button 
                                 onClick={() => setPage('public-jobs')} 

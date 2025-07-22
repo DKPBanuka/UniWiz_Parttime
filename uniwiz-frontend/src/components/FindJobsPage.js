@@ -2,6 +2,7 @@
 // =================================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { getCategoryColorClass } from '../utils/categoryColors';
 
 // --- Constants ---
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
@@ -30,23 +31,15 @@ const StatusBadge = ({ status }) => {
 };
 
 
-const categoryColors = {
-    'Graphic Design': 'bg-pink-100 text-pink-800',
-    'Content Writing': 'bg-teal-100 text-teal-800',
-    'Web Development': 'bg-blue-100 text-blue-800',
-    'IT & Software Development': 'bg-indigo-100 text-indigo-800',
-    'Tutoring': 'bg-purple-100 text-purple-800',
-    'Event Support': 'bg-amber-100 text-amber-800',
-    'Data Entry & Admin': 'bg-slate-100 text-slate-800',
-    'Digital Marketing & SEO': 'bg-pink-100 text-pink-800',
-    'Writing & Translation': 'bg-teal-100 text-teal-800',
-    'default': 'bg-gray-100 text-gray-800'
-};
+// Auto color system is now handled by categoryColors.js utility
 
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
     const categoryName = job.category_name || job.category;
     const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
-    const categoryColorClass = categoryColors[categoryName] || categoryColors.default;
+    const categoryColorClass = getCategoryColorClass(categoryName);
+    
+    // Get logo URL from profile_image_url field
+    const logoUrl = job.profile_image_url;
     
     // UPDATED: Determine the current application status
     const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
@@ -75,9 +68,30 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 mb-2">{job.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        By: <button onClick={() => handleViewCompanyProfile(job.publisher_id)} className="font-semibold text-blue-500 hover:text-blue-600 ml-1">{displayName}</button>
-                    </p>
+                    
+                    {/* UPDATED: Company Logo and Name Section - Check for logo URL */}
+                    {logoUrl ? (
+                        <div className="flex items-center mb-4">
+                            <img
+                                src={logoUrl.startsWith('http') ? logoUrl : `${API_BASE_URL}/${logoUrl}`}
+                                alt={`${displayName} logo`}
+                                className="w-12 h-12 rounded-lg mr-3 object-cover border border-gray-200 bg-gray-100"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                            <div>
+                                <p className="text-sm text-gray-600">
+                                    By: <button onClick={() => handleViewCompanyProfile(job.publisher_id)} className="font-semibold text-blue-500 hover:text-blue-600 ml-1">{displayName}</button>
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-600 mb-4">
+                            By: <button onClick={() => handleViewCompanyProfile(job.publisher_id)} className="font-semibold text-blue-500 hover:text-blue-600 ml-1">{displayName}</button>
+                        </p>
+                    )}
+                    
                     <div className="space-y-1 text-gray-700 text-sm">
                         <p><strong>Type:</strong> {job.job_type}</p>
                         <p><strong>Payment:</strong> {job.payment_range}</p>
