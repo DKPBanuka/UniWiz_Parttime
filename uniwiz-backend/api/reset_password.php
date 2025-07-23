@@ -3,11 +3,13 @@
 // ===========================
 // Handle password reset with token
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// --- Set CORS and Content-Type Headers ---
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// --- Handle preflight OPTIONS request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -15,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once '../config/database.php';
 
+// --- Database Connection ---
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -24,6 +27,7 @@ try {
     exit;
 }
 
+// --- Only allow POST requests for password reset ---
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
@@ -32,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true);
 
+// --- Validate required fields ---
 if (!isset($input['token']) || empty($input['token'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Reset token is required']);
@@ -47,7 +52,7 @@ if (!isset($input['password']) || empty($input['password'])) {
 $token = $input['token'];
 $newPassword = $input['password'];
 
-// Validate password strength
+// --- Validate password strength ---
 if (strlen($newPassword) < 6) {
     http_response_code(400);
     echo json_encode(['error' => 'Password must be at least 6 characters long']);
@@ -55,7 +60,7 @@ if (strlen($newPassword) < 6) {
 }
 
 try {
-    // Find user with valid reset token
+    // --- Find user with valid reset token ---
     $stmt = $pdo->prepare("SELECT id, reset_token, reset_token_expiry FROM users WHERE reset_token = ? AND status = 'active'");
     $stmt->execute([$token]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -66,7 +71,7 @@ try {
         exit;
     }
 
-    // Check if token has expired
+    // --- Check if token has expired ---
     if (strtotime($user['reset_token_expiry']) < time()) {
         // Clear expired token
         $stmt = $pdo->prepare("UPDATE users SET reset_token = NULL, reset_token_expiry = NULL WHERE id = ?");
@@ -77,10 +82,10 @@ try {
         exit;
     }
 
-    // Hash the new password
+    // --- Hash the new password ---
     $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-    // Update password and clear reset token
+    // --- Update password and clear reset token ---
     $stmt = $pdo->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?");
     $stmt->execute([$hashedPassword, $user['id']]);
 
@@ -93,10 +98,12 @@ try {
     }
 
 } catch (PDOException $e) {
+    // Log database errors for debugging
     error_log("Database error in reset_password.php: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'An error occurred. Please try again later.']);
 } catch (Exception $e) {
+    // Log general errors for debugging
     error_log("General error in reset_password.php: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'An error occurred. Please try again later.']);

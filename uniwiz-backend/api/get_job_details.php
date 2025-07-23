@@ -1,20 +1,21 @@
 <?php
-// FILE: uniwiz-backend/api/get_job_details.php (FIXED to include company name and application status)
-// ==============================================================================
-// This file fetches all details for a single job, including the company name
+// FILE: uniwiz-backend/api/get_job_details.php
+// ===============================================================================
+// This endpoint fetches all details for a single job, including the company name
 // and optionally the application status for a specific student.
 
 // --- Headers & DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -24,17 +25,18 @@ if ($db === null) {
 }
 
 // --- Get parameters ---
+// Validate job_id parameter
 if (!isset($_GET['job_id']) || !filter_var($_GET['job_id'], FILTER_VALIDATE_INT)) {
     http_response_code(400);
     echo json_encode(["message" => "A valid Job ID is required."]);
     exit();
 }
 $job_id = (int)$_GET['job_id'];
-// **NEW**: Get optional student_id
+// Optionally get student_id to fetch application status
 $student_id = isset($_GET['student_id']) ? (int)$_GET['student_id'] : null;
 
 try {
-    // **UPDATED**: Query now conditionally joins job_applications
+    // Build query to fetch job details, company name, and accepted count
     $query = "
         SELECT 
             j.*,
@@ -52,7 +54,7 @@ try {
         LEFT JOIN
             users u ON j.publisher_id = u.id ";
 
-    // Conditionally join the job_applications table
+    // Conditionally join the job_applications table if student_id is provided
     if ($student_id !== null) {
         $query .= " LEFT JOIN job_applications ja ON j.id = ja.job_id AND ja.student_id = :student_id ";
     }

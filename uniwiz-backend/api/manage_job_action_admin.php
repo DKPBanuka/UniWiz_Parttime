@@ -1,22 +1,23 @@
 <?php
-// FILE: uniwiz-backend/api/manage_job_action_admin.php (No changes needed for this feature)
+// FILE: uniwiz-backend/api/manage_job_action_admin.php
 // ===============================================================
-// This file handles admin-specific actions on jobs, such as deleting a job.
+// This endpoint handles admin-specific actions on jobs, such as deleting a job.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -25,7 +26,7 @@ if ($db === null) {
 
 $data = json_decode(file_get_contents("php://input"));
 
-// Basic validation
+// Basic validation: Ensure required fields are present
 if ($data === null || !isset($data->job_id) || !isset($data->action) || !isset($data->admin_id)) {
     http_response_code(400);
     echo json_encode(["message" => "Incomplete data. Job ID, action, and Admin ID are required."]);

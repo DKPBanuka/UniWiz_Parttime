@@ -1,14 +1,18 @@
 // FILE: src/components/CompanyProfilePage.js (ENHANCED for Gallery Display)
+// ========================================================================
+// This component displays a company's profile, jobs, gallery, reviews, and contact info.
+
 import React, { useState, useEffect, useCallback } from 'react';
 import CreateReviewModal from './CreateReviewModal';
 
-// --- Reusable Components ---
+// --- LoadingSpinner: Shows a loading animation while fetching data ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-main"></div>
     </div>
 );
 
+// --- InfoCard: Card layout for grouping company info sections ---
 const InfoCard = ({ icon, title, children, className = '' }) => (
     <div className={`bg-white p-6 rounded-xl shadow-md border border-gray-100 ${className}`}>
         <div className="flex items-center mb-4">
@@ -19,6 +23,7 @@ const InfoCard = ({ icon, title, children, className = '' }) => (
     </div>
 );
 
+// --- StarRating: Shows star rating and review count ---
 const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false }) => {
     const totalStars = 5;
     const numericRating = parseFloat(rating) || 0;
@@ -35,6 +40,7 @@ const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false })
     );
 };
 
+// --- ReviewCard: Shows a single student review ---
 const ReviewCard = ({ review }) => (
     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <div className="flex items-center mb-2">
@@ -53,6 +59,7 @@ const ReviewCard = ({ review }) => (
     </div>
 );
 
+// --- StatusBadge: Shows application status as a colored badge ---
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -65,7 +72,8 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-const JobCard = ({ job, currentUser, handleApply, handleViewJobDetails, applyingStatus }) => {
+// --- JobCard: Shows a summary of a job with apply/view buttons ---
+const JobCard = ({ job, currentUser, handleApply, handleViewJobDetails, applyingStatus, handleApplyClick }) => {
     const safeApplyingStatus = applyingStatus || {}; 
     const currentApplicationStatus = safeApplyingStatus[job.id] || job.application_status;
     const categoryName = job.category_name || job.category;
@@ -103,7 +111,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewJobDetails, applying
                         </button>
                         {currentUser && currentUser.role === 'student' && !currentApplicationStatus && (
                             <button 
-                                onClick={() => handleApply(job)} 
+                                onClick={() => handleApplyClick(job)} 
                                 className="font-medium py-2 px-4 rounded-lg transition duration-300 bg-blue-500 text-white hover:bg-blue-600 text-sm"
                             >
                                 Apply Now
@@ -116,9 +124,9 @@ const JobCard = ({ job, currentUser, handleApply, handleViewJobDetails, applying
     );
 };
 
-
 // --- Main Component ---
 function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJobDetails, showNotification, appliedJobs, applyingStatus }) {
+    // --- State for company, jobs, reviews, gallery, loading, error, review modal ---
     const [company, setCompany] = useState(null);
     const [jobs, setJobs] = useState([]);
     const [reviews, setReviews] = useState([]);
@@ -127,7 +135,22 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
     const [error, setError] = useState(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [userReview, setUserReview] = useState(null);
+    // --- Show verify warning for unverified students (Sinhala + English) ---
+    const [showVerifyMsg, setShowVerifyMsg] = useState(false);
+    // --- Check if current user is verified ---
+    const isVerified = currentUser && (currentUser.is_verified === true || currentUser.is_verified === 1);
 
+    // --- Apply button click handler with verify check ---
+    const handleApplyClick = (job) => {
+        if (!isVerified) {
+            setShowVerifyMsg(true);
+            setTimeout(() => setShowVerifyMsg(false), 4000);
+            return;
+        }
+        handleApply(job);
+    };
+
+    // --- Fetch company profile, jobs, reviews, gallery from backend ---
     const fetchCompanyData = useCallback(async () => {
         if (!publisherId) {
             setError("No company selected.");
@@ -148,6 +171,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
             setGalleryImages(Array.isArray(data.gallery_images) ? data.gallery_images : []);
             
             if (currentUser && currentUser.id) {
+                // --- For students, fetch application status for each job ---
                 const jobsWithApplicationStatus = await Promise.all(
                     data.jobs.map(async (job) => {
                         const appStatusResponse = await fetch(`http://uniwiz-backend.test/api/get_job_details.php?job_id=${job.id}&student_id=${currentUser.id}`);
@@ -156,6 +180,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
                     })
                 );
                 setJobs(jobsWithApplicationStatus);
+                // --- Find if the current student has already reviewed ---
                 const foundReview = allReviews.find(r => r.student_id === currentUser.id);
                 setUserReview(foundReview || null);
             }
@@ -167,10 +192,12 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
         }
     }, [publisherId, currentUser]);
 
+    // --- Fetch company data on mount or when publisherId/currentUser changes ---
     useEffect(() => {
         fetchCompanyData();
     }, [fetchCompanyData]);
     
+    // --- Handle review submission success ---
     const handleReviewSubmitSuccess = (message) => {
         if(showNotification) {
             showNotification(message, 'success');
@@ -178,11 +205,12 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
         fetchCompanyData();
     };
 
+    // --- Show loading, error, or not found states ---
     if (isLoading) return <LoadingSpinner />;
     if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
     if (!company) return <div className="p-8 text-center text-gray-500">Company profile not found.</div>;
 
-    // Icons
+    // --- SVG icons for sections ---
     const AboutIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const GalleryIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
     const JobsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
@@ -191,9 +219,15 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
     const SocialIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.368a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" /></svg>;
     const hasSocialLinks = company.facebook_url || company.linkedin_url || company.instagram_url;
 
+    // --- Main Render: Company profile layout ---
     return (
         <>
             <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
+                {showVerifyMsg && (
+                    <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+                        <div className="mt-1 text-sm">Please verify your account before applying for jobs. You cannot apply for jobs until your account is verified.</div>
+                    </div>
+                )}
                 <div className="max-w-6xl mx-auto">
                     {/* Cover Image */}
                     {company.cover_image_url ? (
@@ -263,6 +297,7 @@ function CompanyProfilePage({ publisherId, currentUser, handleApply, handleViewJ
                                             handleApply={handleApply}
                                             handleViewJobDetails={handleViewJobDetails}
                                             applyingStatus={applyingStatus}
+                                            handleApplyClick={handleApplyClick}
                                         />
                                     )) : (
                                         <p className="text-center text-gray-500 py-8">No active jobs currently posted.</p> 

@@ -1,22 +1,24 @@
 <?php
-// FILE: uniwiz-backend/api/send_message.php (UPDATED for Single Conversation Thread)
+// FILE: uniwiz-backend/api/send_message.php
 // =================================================================
-// DESCRIPTION: This version ensures only ONE conversation thread exists between two users,
-// regardless of the job context. The job_id is now only used when creating the conversation for the first time.
+// This endpoint allows a user to send a message to another user.
+// It ensures only ONE conversation thread exists between two users, regardless of job context.
+// The job_id is only used when creating the conversation for the first time.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -55,6 +57,7 @@ try {
     $stmt_conv->execute();
 
     if ($stmt_conv->rowCount() > 0) {
+        // Conversation already exists
         $conversation = $stmt_conv->fetch(PDO::FETCH_ASSOC);
         $conversation_id = $conversation['id'];
     } else {

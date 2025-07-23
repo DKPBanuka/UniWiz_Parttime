@@ -1,16 +1,16 @@
 <?php
-// FILE: uniwiz-backend/api/get_publisher_stats.php (UPDATED for Job Overview Vacancy & Accepted Counts)
+// FILE: uniwiz-backend/api/get_publisher_stats.php
 // =============================================================================
-// This file now includes the publisher's average rating and total review count,
-// and also vacancy and accepted counts for jobs in the overview.
+// This endpoint provides various statistics for a publisher's dashboard, including
+// job overview, applicant counts, recent applicants, reviews, and ratings.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit(); }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -19,6 +19,7 @@ if ($db === null) {
     exit();
 }
 
+// Validate publisher_id parameter
 if (!isset($_GET['publisher_id']) || !filter_var($_GET['publisher_id'], FILTER_VALIDATE_INT)) {
     http_response_code(400);
     echo json_encode(["message" => "A valid Publisher ID is required."]);
@@ -59,15 +60,15 @@ try {
     $stmt->execute();
     $stats['recent_applicants'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // 6. Job Overview (Top 5 recent jobs) - UPDATED with vacancies and accepted_count
+    // 6. Job Overview (Top 5 recent jobs) - includes vacancies and accepted_count
     $stmt_jobs = $db->prepare("
         SELECT 
             j.id, 
             j.title, 
             j.status, 
-            j.vacancies, -- NEW: Added vacancies
+            j.vacancies, -- Number of vacancies for the job
             (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id) as application_count,
-            (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id AND ja.status = 'accepted') as accepted_count -- NEW: Added accepted_count
+            (SELECT COUNT(*) FROM job_applications ja WHERE ja.job_id = j.id AND ja.status = 'accepted') as accepted_count -- Number of accepted applicants
         FROM jobs j 
         WHERE j.publisher_id = :publisher_id 
         ORDER BY j.created_at DESC 
@@ -77,7 +78,7 @@ try {
     $stmt_jobs->execute();
     $stats['job_overview'] = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
 
-    // 7. Latest Reviews
+    // 7. Latest Reviews (Top 3)
     $stmt_reviews = $db->prepare("
         SELECT 
             r.id as review_id, r.rating, r.review_text, r.created_at,
@@ -106,7 +107,6 @@ try {
     
     $stats['average_rating'] = $rating_data['average_rating'] ? round($rating_data['average_rating'], 1) : 0;
     $stats['total_review_count'] = $rating_data['total_review_count'] ? (int)$rating_data['total_review_count'] : 0;
-
 
     http_response_code(200);
     echo json_encode($stats);

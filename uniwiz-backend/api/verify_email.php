@@ -1,8 +1,8 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -22,6 +22,7 @@ if ($db === null) {
 }
 
 // --- Verification Logic ---
+// Check if the verification token is provided in the URL
 if (!isset($_GET['token']) || empty($_GET['token'])) {
     die("<h1>Verification Failed</h1><p>Invalid verification link. No token provided.</p>");
 }
@@ -43,7 +44,7 @@ try {
             die("<h1>Already Verified</h1><p>This email address has already been verified. You can now log in.</p>");
         }
 
-        // 3. If not verified, update the user record
+        // 3. If not verified, update the user record to set email_verified_at and clear the token
         $update_query = "
             UPDATE users 
             SET 

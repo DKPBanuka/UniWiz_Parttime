@@ -1,4 +1,4 @@
-// FILE: src/components/EditJob.js (UPDATED with restrictions)
+// FILE: src/components/EditJob.js
 
 import React, { useState, useEffect } from 'react';
 

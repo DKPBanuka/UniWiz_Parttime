@@ -1,20 +1,20 @@
 <?php
-// FILE: uniwiz-backend/api/applications.php (ENHANCED with Specific Notification Links)
+// FILE: uniwiz-backend/api/applications.php
 // ==================================================================================
-// This file now creates a specific link in the notification, including the application_id,
-// allowing the frontend to open the correct applicant modal directly.
+// This endpoint allows a student to apply for a job and notifies the publisher.
+// The notification includes a direct link to the application for the frontend.
 
 // --- Headers, DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -92,7 +92,7 @@ try {
         
         $notification_message = "$student_name has applied for your job \"$job_title\".";
         $notification_type = 'new_applicant';
-        // **CHANGE**: The link now includes the application ID to directly open the modal.
+        // The link now includes the application ID to directly open the modal.
         $notification_link = "/applicants/view/{$new_application_id}"; 
 
         $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, :type, :message, :link)";

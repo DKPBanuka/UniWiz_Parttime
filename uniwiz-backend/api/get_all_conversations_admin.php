@@ -2,20 +2,24 @@
 // FILE: uniwiz-backend/api/get_all_conversations_admin.php (NEW FILE)
 // DESCRIPTION: Fetches all conversations in the system for the admin panel.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// --- Set CORS and Content-Type Headers ---
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// --- Handle preflight OPTIONS request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
+// --- Database Connection ---
 include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// --- Check for database connection failure ---
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -23,7 +27,7 @@ if ($db === null) {
 }
 
 try {
-    // This query joins conversations with both users to get their names.
+    // --- Query: Join conversations with both users to get their names and last message ---
     $query = "
         SELECT 
             c.id as conversation_id,

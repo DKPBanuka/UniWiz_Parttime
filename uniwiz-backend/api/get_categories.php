@@ -1,13 +1,13 @@
 <?php
 // FILE: uniwiz-backend/api/get_categories.php
 // =============================================
-// This file fetches all available job categories from the database.
+// This endpoint fetches all available job categories from the database.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // --- Handle Preflight Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -16,10 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503); 
     echo json_encode(["message" => "Database connection failed."]);

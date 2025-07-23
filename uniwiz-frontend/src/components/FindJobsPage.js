@@ -8,15 +8,14 @@ import { getCategoryColorClass } from '../utils/categoryColors';
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 const MAX_SALARY = 40000;
 
-// --- Reusable Components ---
-
+// --- LoadingSpinner: Shows a loading animation ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
     </div>
 );
 
-// ADDED: StatusBadge component to show application status
+// --- StatusBadge: Shows a colored badge for application status ---
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -30,31 +29,23 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-
-// Auto color system is now handled by categoryColors.js utility
-
+// --- JobCard: Displays a single job card in the job list ---
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
     const categoryName = job.category_name || job.category;
     const displayName = job.company_name || job.publisher_name || 'A Reputed Company';
     const categoryColorClass = getCategoryColorClass(categoryName);
-    
     // Get logo URL from profile_image_url field
     const logoUrl = job.profile_image_url;
-    
-    // UPDATED: Determine the current application status
+    // Determine the current application status
     const currentApplicationStatus = applyingStatus[job.id] || job.application_status;
-
     const formatDate = (dateString) => {
         if (!dateString) return null;
         return new Date(dateString).toLocaleDateString('en-CA');
     };
-
     const postedDate = formatDate(job.created_at);
     const startDate = formatDate(job.start_date);
     const endDate = formatDate(job.end_date);
-    
     const isSingleDayJob = startDate && (startDate === endDate || !endDate);
-
     return (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-100 hover:border-blue-300 hover:shadow-md">
             <div className="p-5 flex flex-col h-full">
@@ -68,8 +59,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 mb-2">{job.title}</h3>
-                    
-                    {/* UPDATED: Company Logo and Name Section - Check for logo URL */}
+                    {/* --- Company Logo and Name Section --- */}
                     {logoUrl ? (
                         <div className="flex items-center mb-4">
                             <img
@@ -91,7 +81,6 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                             By: <button onClick={() => handleViewCompanyProfile(job.publisher_id)} className="font-semibold text-blue-500 hover:text-blue-600 ml-1">{displayName}</button>
                         </p>
                     )}
-                    
                     <div className="space-y-1 text-gray-700 text-sm">
                         <p><strong>Type:</strong> {job.job_type}</p>
                         <p><strong>Payment:</strong> {job.payment_range}</p>
@@ -102,7 +91,7 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
                         )}
                     </div>
                 </div>
-                {/* UPDATED: Logic to show status or Apply button */}
+                {/* --- Logic to show status or Apply button --- */}
                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div>
                         {currentApplicationStatus && (
@@ -121,8 +110,9 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
     );
 };
 
-// --- Main FindJobsPage Component (No changes needed below this line in this file) ---
+// --- Main FindJobsPage Component: Shows job search, filters, and job list ---
 function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, applyingStatus }) {
+    // --- State hooks for jobs, filters, loading, and error ---
     const [allJobs, setAllJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -149,6 +139,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
     ];
 
+    // --- Fetch jobs and categories from backend ---
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -177,6 +168,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         fetchCategories();
     }, [fetchData]);
 
+    // --- View company profile handler ---
     const handleViewCompanyProfile = (publisherId) => {
         if (setPage && setPublisherIdForProfile) {
             setPublisherIdForProfile(publisherId);
@@ -184,6 +176,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         }
     };
     
+    // --- Filter jobs based on all filter states ---
     const filteredJobs = allJobs.filter(job => {
         const searchTermMatch = searchTerm === '' || job.title.toLowerCase().includes(searchTerm.toLowerCase()) || (job.company_name && job.company_name.toLowerCase().includes(searchTerm.toLowerCase()));
         const categoryMatch = selectedCategory === '' || String(job.category_id) === String(selectedCategory);
@@ -215,6 +208,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
         return searchTermMatch && categoryMatch && jobTypeMatch && salaryMatch && postedDateMatch && districtMatch && durationMatch;
     });
     
+    // --- Reset all filters to default ---
     const handleResetFilters = () => {
         setSearchTerm('');
         setSelectedCategory('');
@@ -236,7 +230,7 @@ function FindJobsPage({ currentUser, handleApply, setPage, setPublisherIdForProf
                 </div>
             </div>
 
-            {/* UPDATED: Ultra-Compact Filter Section */}
+            {/* --- Ultra-Compact Filter Section --- */}
             <div className="mb-6 p-3 bg-white rounded-xl shadow-sm border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-2 text-xs items-end">
                     {/* --- Row 1 --- */}

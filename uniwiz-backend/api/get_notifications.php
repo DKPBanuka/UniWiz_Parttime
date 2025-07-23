@@ -3,12 +3,13 @@
 // =====================================================================
 // This file fetches all notifications for a given user.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// --- Set CORS and Content-Type Headers ---
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
-// Handle preflight OPTIONS request
+// --- Handle preflight OPTIONS request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
@@ -19,7 +20,7 @@ include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
-// Check for database connection failure
+// --- Check for database connection failure ---
 if ($db === null) {
     http_response_code(503); // Service Unavailable
     echo json_encode(["message" => "Database connection failed."]);
@@ -36,7 +37,7 @@ if (!isset($_GET['user_id']) || !filter_var($_GET['user_id'], FILTER_VALIDATE_IN
 $user_id = (int)$_GET['user_id'];
 
 try {
-    // Query to fetch all notifications for the specified user
+    // --- Query to fetch all notifications for the specified user ---
     $query = "
         SELECT
             id,

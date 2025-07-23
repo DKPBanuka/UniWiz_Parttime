@@ -5,29 +5,34 @@
 // and verification status (is_verified).
 // FIXED: Now sends a notification to the user when their verification status changes.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// --- Set CORS and Content-Type Headers ---
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// --- Handle preflight OPTIONS request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
 }
 
+// --- Database Connection ---
 include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// --- Check DB connection ---
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
     exit();
 }
 
+// --- Parse and validate input ---
 $data = json_decode(file_get_contents("php://input"));
 
-// Basic validation
+// Basic validation for required fields
 if ($data === null || !isset($data->target_user_id) || !isset($data->admin_id)) {
     http_response_code(400);
     echo json_encode(["message" => "Incomplete data. Target User ID and Admin ID are required."]);
@@ -40,7 +45,7 @@ $new_status = isset($data->status) ? htmlspecialchars(strip_tags($data->status))
 $new_is_verified = isset($data->is_verified) ? (int)$data->is_verified : null;
 
 try {
-    // Security check: Ensure the user performing the action is actually an admin
+    // --- Security check: Ensure the user performing the action is actually an admin ---
     $stmt_check = $db->prepare("SELECT role FROM users WHERE id = :admin_id");
     $stmt_check->bindParam(':admin_id', $admin_id, PDO::PARAM_INT);
     $stmt_check->execute();
@@ -52,10 +57,10 @@ try {
         exit();
     }
 
-    // Start transaction for atomicity
+    // --- Start transaction for atomicity ---
     $db->beginTransaction();
 
-    // Fetch current user status before update for notification logic
+    // --- Fetch current user status before update for notification logic ---
     $stmt_current_user = $db->prepare("SELECT is_verified, status, first_name, last_name, company_name FROM users WHERE id = :target_user_id");
     $stmt_current_user->bindParam(':target_user_id', $target_user_id, PDO::PARAM_INT);
     $stmt_current_user->execute();
@@ -71,7 +76,7 @@ try {
     $old_is_verified = (int)$current_user_data['is_verified'];
     $old_status = $current_user_data['status'];
 
-    // Construct the update query dynamically based on provided fields
+    // --- Construct the update query dynamically based on provided fields ---
     $update_fields = [];
     $params = [':target_user_id' => $target_user_id];
 
@@ -107,6 +112,7 @@ try {
     $query = "UPDATE users SET " . implode(", ", $update_fields) . " WHERE id = :target_user_id";
     $stmt = $db->prepare($query);
 
+    // --- Bind parameters dynamically ---
     foreach ($params as $key => &$val) {
         $param_type = is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR;
         $stmt->bindParam($key, $val, $param_type);

@@ -5,8 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getCategoryColorClass } from '../utils/categoryColors';
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
-// --- Reusable Components with Dynamic Colors ---
-
+// --- StatCard: Displays a dashboard stat with icon and action ---
 // UPDATED: StatCard now accepts color classes
 const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description, color }) => (
   <div
@@ -32,6 +31,7 @@ const StatCard = ({ title, value, icon, delay = 0, onLinkClick, description, col
   </div>
 );
 
+// --- ProfileCompletionCard: Shows profile completion progress ---
 const ProfileCompletionCard = ({ percentage, setPage }) => (
     <div onClick={() => setPage('profile')} className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-gray-100 hover:border-blue-200 cursor-pointer">
         <p className="text-sm font-medium text-gray-600">Profile Completion</p>
@@ -47,12 +47,14 @@ const ProfileCompletionCard = ({ percentage, setPage }) => (
     </div>
 );
 
+// --- LoadingSpinner: Shows a loading animation ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
     </div>
 );
 
+// --- StatusBadge: Shows a colored badge for application status ---
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -66,8 +68,7 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
-// Auto color system is now handled by categoryColors.js utility
-
+// --- JobCard: Displays a single recommended job card ---
 // UPDATED: JobCard uses dynamic category colors
 const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, handleViewJobDetails, applyingStatus }) => {
     const categoryName = job.category_name || job.category;
@@ -133,8 +134,9 @@ const JobCard = ({ job, currentUser, handleApply, handleViewCompanyProfile, hand
     );
 };
 
-
+// --- StudentDashboard: Main dashboard for students ---
 function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdForProfile, handleViewJobDetails, setAppliedJobsPageFilter, applyingStatus }) {
+    // --- State hooks for stats, jobs, loading, error, and verification messages ---
     const [stats, setStats] = useState(null);
     const [isLoadingStats, setIsLoadingStats] = useState(true);
     const [errorStats, setErrorStats] = useState(null);
@@ -155,6 +157,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         }
     }, [currentUser]);
 
+    // --- Fetch student stats from backend ---
     useEffect(() => {
         const fetchStats = async () => {
             if (!currentUser || !currentUser.id) return;
@@ -170,6 +173,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         fetchStats();
     }, [currentUser]);
 
+    // --- Fetch recommended jobs from backend ---
     useEffect(() => {
         const fetchRecommendedJobs = async () => {
             if (!currentUser || !currentUser.id) return;
@@ -185,6 +189,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         fetchRecommendedJobs();
     }, [currentUser]);
 
+    // --- View company profile handler ---
     const handleViewCompanyProfile = (publisherId) => {
         if (setPage && setPublisherIdForProfile) {
             setPublisherIdForProfile(publisherId);
@@ -192,12 +197,13 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         }
     };
     
+    // --- Stat card link click handler ---
     const handleStatLinkClick = (filter) => {
         setAppliedJobsPageFilter(filter);
         setPage('applied-jobs');
     };
 
-    // Handler for apply button
+    // --- Handler for apply button ---
     const handleApplyClick = (job) => {
         if (!isVerified) {
             setShowVerifyMsg(true);
@@ -233,7 +239,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                         <strong>Your account is not verified.</strong> Please complete your profile to request verification.
                     </div>
                 )}
-                {/* Header */}
+                {/* --- Header --- */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Welcome, {currentUser?.first_name}!</h1>
@@ -241,7 +247,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                     </div>
                 </div>
 
-                {/* Stats Grid */}
+                {/* --- Stats Grid --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
                     {isLoadingStats ? (
                         <><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div><div className="h-24 bg-white rounded-xl animate-pulse"></div></>
@@ -281,7 +287,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
                     )}
                 </div>
 
-                {/* Recommended Jobs Section */}
+                {/* --- Recommended Jobs Section --- */}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-gray-800">Recommended For You</h2>
                     <button onClick={() => setPage('find-jobs')} className="font-semibold text-blue-500 hover:underline">

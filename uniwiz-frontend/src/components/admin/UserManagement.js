@@ -1,4 +1,21 @@
-// FILE: src/components/admin/UserManagement.js (UPDATED - Compact Filters)
+// =======================================================
+// UserManagement.js
+// -------------------------------------------------------
+// This file defines the UserManagement component for the
+// UniWiz admin dashboard. It allows admins to view, search,
+// filter, block/unblock, verify/unverify, delete users, and
+// view user details in a popup. Includes reusable components
+// for notifications, modals, and dropdowns.
+// -------------------------------------------------------
+//
+// Key Features:
+// - Fetches and displays all users with filters and search
+// - Allows admin to block/unblock, verify/unverify, delete users
+// - View user details in a popup modal
+// - Uses notification toasts and confirmation modals
+// - Debounced search and filter updates
+// =======================================================
+// FILE: src/components/admin/UserManagement.js 
 // =======================================================
 // This page allows administrators to view, search, manage, block/unblock,
 // and verify/unverify users, delete users, and now also view full user profiles.
@@ -6,6 +23,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // Reusable Notification Component (Toast)
+// Shows a notification message for success/error actions
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 3000);
@@ -21,6 +39,7 @@ const Notification = ({ message, type, onClose }) => {
 };
 
 // Reusable Loading Spinner
+// Shows a spinner while loading data
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
@@ -28,6 +47,7 @@ const LoadingSpinner = () => (
 );
 
 // Reusable Confirmation Modal
+// Shows a modal to confirm destructive actions (block, delete, etc.)
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', confirmColor = 'red', isLoading = false }) => {
     if (!isOpen) return null;
 
@@ -54,6 +74,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
 };
 
 // Actions Dropdown Component for User Management
+// Shows a dropdown menu for each user with actions (block, verify, delete, etc.)
 const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -81,6 +102,7 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
         setIsOpen(false);
     };
 
+    // Prevent admin from acting on themselves
     if (adminUser && user.id === adminUser.id) {
         return <span className="text-gray-400 italic">Self</span>;
     }
@@ -104,10 +126,12 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
                     aria-labelledby={`options-menu-${user.id}`}
                 >
                     <div className="py-1" role="none">
+                        {/* View user details */}
                         <button onClick={handleViewDetailsClick} className="flex items-center text-primary-main block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">
                             <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             View Details
                         </button>
+                        {/* Block/Unblock user */}
                         {user.status === 'active' ? (
                             <button onClick={() => handleMenuAction('block')} className="flex items-center text-red-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">
                                 <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg>
@@ -119,6 +143,7 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
                                 Unblock
                             </button>
                         )}
+                        {/* Verify/Unverify user */}
                         {user.is_verified ? (
                             <button onClick={() => handleMenuAction('unverify')} className="flex items-center text-gray-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">
                                 <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -130,6 +155,7 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
                                 Verify
                             </button>
                         )}
+                        {/* Delete user */}
                         <button onClick={() => handleMenuAction('delete')} className="flex items-center text-red-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">
                             <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                             Delete
@@ -141,7 +167,7 @@ const ActionsDropdown = ({ user, adminUser, onAction, onViewProfile }) => {
     );
 };
 
-// Add a simple popup/modal component for user details
+// UserDetailsPopup: Shows a popup with user details (profile image, name, email, etc.)
 const UserDetailsPopup = ({ user, onClose }) => {
     if (!user) return null;
     return (

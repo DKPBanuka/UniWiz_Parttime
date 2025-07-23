@@ -1,4 +1,4 @@
-// FILE: src/components/JobDetailsPage.js (ENHANCED with all job fields)
+// FILE: src/components/JobDetailsPage.js 
 // =====================================================================
 // This component displays the full details of a single job for the publisher and students.
 

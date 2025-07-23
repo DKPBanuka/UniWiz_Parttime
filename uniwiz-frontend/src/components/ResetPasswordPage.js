@@ -1,4 +1,4 @@
-// FILE: src/components/ResetPasswordPage.js (NEW)
+// FILE: src/components/ResetPasswordPage.js 
 // =============================================
 // Reset password page for users who clicked the reset link
 

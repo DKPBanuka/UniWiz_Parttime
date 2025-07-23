@@ -1,4 +1,4 @@
-// FILE: src/components/MessagesPage.js (UPDATED with Search, Back Button, and New Chat Context)
+// FILE: src/components/MessagesPage.js 
 // =================================================================
 // DESCRIPTION: This component serves as the main layout for the messaging feature,
 // now with a more compact and theme-based design, search functionality, and

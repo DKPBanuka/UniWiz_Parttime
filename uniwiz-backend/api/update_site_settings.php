@@ -1,10 +1,11 @@
 <?php
 // FILE: uniwiz-backend/api/update_site_settings.php
-// DESCRIPTION: Allows an administrator to update site-wide settings.
+// =====================================================
+// This endpoint allows an administrator to update site-wide settings (e.g., footer links).
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Content-Type: application/json; charset=UTF-8"); // Respond with JSON
+header("Access-Control-Allow-Methods: POST, OPTIONS"); // Allow POST and OPTIONS methods
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
@@ -13,10 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);

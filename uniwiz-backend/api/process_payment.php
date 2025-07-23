@@ -1,18 +1,20 @@
 <?php
-// FILE: uniwiz-backend/api/process_payment.php (FAKE Payment System for Demo)
+// FILE: uniwiz-backend/api/process_payment.php
 // ========================================================================
+// This endpoint simulates a payment system for job postings (for demo/testing purposes).
+// It supports fake credit card, bank transfer, and e-wallet payments.
 
 // --- Headers, DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -36,20 +38,16 @@ function validateFakeCreditCard($card_number, $expiry_month, $expiry_year, $cvv)
     if (strlen($card_number) < 13 || strlen($card_number) > 19) {
         return false;
     }
-    
     if ($expiry_month < 1 || $expiry_month > 12) {
         return false;
     }
-    
     $current_year = date('Y');
     if ($expiry_year < $current_year) {
         return false;
     }
-    
     if (strlen($cvv) < 3 || strlen($cvv) > 4) {
         return false;
     }
-    
     // FAKE: Specific card numbers for testing
     $test_cards = [
         '4242424242424242', // Success
@@ -58,7 +56,6 @@ function validateFakeCreditCard($card_number, $expiry_month, $expiry_year, $cvv)
         '4000000000009987', // Lost card
         '4000000000009979', // Stolen card
     ];
-    
     // If it's a test card, return specific results
     if (in_array($card_number, $test_cards)) {
         switch ($card_number) {
@@ -74,14 +71,12 @@ function validateFakeCreditCard($card_number, $expiry_month, $expiry_year, $cvv)
                 return 'stolen_card';
         }
     }
-    
     // For other cards, simulate 95% success rate
     return (rand(1, 100) <= 95) ? 'success' : 'declined';
 }
 
 function processFakeCreditCardPayment($card_data, $amount) {
     $validation_result = validateFakeCreditCard($card_data['number'], $card_data['expiry_month'], $card_data['expiry_year'], $card_data['cvv']);
-    
     if ($validation_result === 'success') {
         return [
             'success' => true,
@@ -97,7 +92,6 @@ function processFakeCreditCardPayment($card_data, $amount) {
             'lost_card' => 'Card reported as lost',
             'stolen_card' => 'Card reported as stolen'
         ];
-        
         return [
             'success' => false,
             'error' => $error_messages[$validation_result] ?? 'Payment failed'
@@ -186,7 +180,6 @@ try {
             ];
             $payment_result = processFakeCreditCardPayment($card_data, $amount);
             break;
-            
         case 'bank_transfer':
             if (!isset($data->bank_name) || !isset($data->account_number)) {
                 http_response_code(400);
@@ -200,7 +193,6 @@ try {
             ];
             $payment_result = processFakeBankTransfer($bank_data, $amount);
             break;
-            
         case 'e_wallet':
             if (!isset($data->wallet_type) || !isset($data->wallet_id)) {
                 http_response_code(400);
@@ -214,7 +206,6 @@ try {
             ];
             $payment_result = processFakeEWallet($wallet_data, $amount);
             break;
-            
         default:
             http_response_code(400);
             echo json_encode(["message" => "Invalid payment method."]);

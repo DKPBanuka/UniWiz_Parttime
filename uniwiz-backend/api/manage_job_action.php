@@ -1,13 +1,13 @@
 <?php
-// FILE: uniwiz-backend/api/manage_job_action.php (NEW FILE)
+// FILE: uniwiz-backend/api/manage_job_action.php
 // =========================================================
-// This file handles actions like closing or deleting a job.
+// This endpoint handles actions like closing or deleting a job (for publishers or authorized users).
 
 // --- Headers & DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Include and Check Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -38,8 +38,10 @@ try {
     $job_id = (int)$data->job_id; // Cast to integer for security
 
     if ($action === 'close') {
+        // Close the job (set status to 'closed')
         $stmt = $db->prepare("UPDATE jobs SET status = 'closed' WHERE id = :job_id");
     } elseif ($action === 'delete') {
+        // Delete the job
         $stmt = $db->prepare("DELETE FROM jobs WHERE id = :job_id");
     } else {
         http_response_code(400);

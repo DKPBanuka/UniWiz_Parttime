@@ -1,21 +1,23 @@
 <?php
-// FILE: uniwiz-backend/api/update_profile.php (ENHANCED for Company Image Uploads & Deletion)
+// FILE: uniwiz-backend/api/update_profile.php
 // =======================================================================================
+// This endpoint handles updating a user's profile, including file uploads and image deletions.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503); 
     echo json_encode(["message" => "Database connection failed."]);
@@ -37,6 +39,7 @@ $required_doc_url_to_update = null;
 try {
     $db->beginTransaction();
 
+    // --- 1. Get User Role ---
     $stmt_role = $db->prepare("SELECT role FROM users WHERE id = :user_id LIMIT 1");
     $stmt_role->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $stmt_role->execute();
@@ -46,7 +49,7 @@ try {
     }
     $user_role = $user_role_row['role'];
 
-    // --- 1. Handle Image Deletion ---
+    // --- 2. Handle Image Deletion (for publishers) ---
     if ($user_role === 'publisher') {
         // Handle Cover Image Deletion
         if (isset($_POST['remove_cover_image']) && $_POST['remove_cover_image'] == 'true') {
@@ -59,31 +62,27 @@ try {
             $stmt_remove_cover = $db->prepare("UPDATE publisher_profiles SET cover_image_url = NULL WHERE user_id = :user_id");
             $stmt_remove_cover->execute([':user_id' => $user_id]);
         }
-        
         // Handle Gallery Image Deletion
         if (isset($_POST['remove_gallery_images'])) {
             $images_to_delete_ids = json_decode($_POST['remove_gallery_images']);
             if (is_array($images_to_delete_ids) && !empty($images_to_delete_ids)) {
                 $placeholders = implode(',', array_fill(0, count($images_to_delete_ids), '?'));
-                
                 $stmt_get_gallery = $db->prepare("SELECT image_url FROM publisher_images WHERE id IN ($placeholders) AND publisher_id = ?");
                 $params = array_merge($images_to_delete_ids, [$user_id]);
                 $stmt_get_gallery->execute($params);
                 $images_to_unlink = $stmt_get_gallery->fetchAll(PDO::FETCH_COLUMN, 0);
-                
                 foreach ($images_to_unlink as $image_url) {
                     if (file_exists($image_url)) {
                         unlink($image_url);
                     }
                 }
-                
                 $stmt_delete_gallery = $db->prepare("DELETE FROM publisher_images WHERE id IN ($placeholders) AND publisher_id = ?");
                 $stmt_delete_gallery->execute($params);
             }
         }
     }
 
-    // --- 2. Handle File Uploads ---
+    // --- 3. Handle File Uploads (profile picture, CV, cover image, required doc, gallery images) ---
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
         $file = $_FILES['profile_picture'];
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
@@ -143,7 +142,7 @@ try {
         }
     }
 
-    // --- 3. Update Database Tables ---
+    // --- 4. Update Database Tables (users, student_profiles, publisher_profiles) ---
     $query_users = "UPDATE users SET first_name = :first_name, last_name = :last_name";
     $params_users = [
         ':user_id' => $user_id,
@@ -156,6 +155,7 @@ try {
     $stmt_users = $db->prepare($query_users);
     $stmt_users->execute($params_users);
 
+    // --- 5. Update Student or Publisher Profile Tables ---
     if ($user_role === 'student') {
         $stmt_check = $db->prepare("SELECT id FROM student_profiles WHERE user_id = :user_id LIMIT 1");
         $stmt_check->bindParam(':user_id', $user_id, PDO::PARAM_INT);
@@ -234,7 +234,7 @@ try {
     
     $db->commit();
 
-    // --- 4. Fetch and Return Fully Updated User Data ---
+    // --- 6. Fetch and Return Fully Updated User Data ---
     $query_fetch = "
         SELECT 
             u.id, u.email, u.first_name, u.last_name, u.role, u.company_name, u.profile_image_url,

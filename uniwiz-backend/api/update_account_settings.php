@@ -1,23 +1,24 @@
 <?php
-// FILE: uniwiz-backend/api/update_account_settings.php (NEW FILE)
+// FILE: uniwiz-backend/api/update_account_settings.php
 // =====================================================================
-// This file handles account-level actions like changing a password or deleting an account.
+// This endpoint handles account-level actions like changing a password or deleting an account.
 
 // --- Headers & DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -26,6 +27,7 @@ if ($db === null) {
 
 $data = json_decode(file_get_contents("php://input"));
 
+// Validate required fields
 if ($data === null || !isset($data->action) || !isset($data->user_id)) {
     http_response_code(400);
     echo json_encode(["message" => "Invalid request. Action and User ID are required."]);
@@ -35,7 +37,6 @@ if ($data === null || !isset($data->action) || !isset($data->user_id)) {
 $user_id = (int)$data->user_id;
 
 // --- ACTION ROUTER ---
-
 if ($data->action === 'update_password') {
     // --- UPDATE PASSWORD LOGIC ---
     if (!isset($data->current_password) || !isset($data->new_password)) {
@@ -51,7 +52,7 @@ if ($data->action === 'update_password') {
     }
 
     try {
-        // First, get the current stored password hash for the user
+        // Get the current stored password hash for the user
         $stmt_get = $db->prepare("SELECT password FROM users WHERE id = :user_id");
         $stmt_get->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt_get->execute();

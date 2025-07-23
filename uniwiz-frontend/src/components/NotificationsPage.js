@@ -4,6 +4,7 @@
 
 import React from 'react';
 
+// --- NotificationIcon: Shows an icon based on notification type ---
 const NotificationIcon = ({ type }) => {
     const iconMap = {
         new_applicant: (
@@ -62,8 +63,10 @@ const NotificationIcon = ({ type }) => {
     return <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">{iconMap[type] || iconMap.new_applicant}</div>;
 };
 
+// --- Main NotificationsPage component ---
 function NotificationsPage({ user, notifications, isLoading, error, onNotificationClick }) {
 
+    // --- Format time since notification ---
     const timeSince = (date) => {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         let interval = seconds / 31536000;
@@ -79,6 +82,7 @@ function NotificationsPage({ user, notifications, isLoading, error, onNotificati
         return Math.floor(seconds) + " seconds ago";
     };
 
+    // --- Main Render: Notifications list layout ---
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <div className="max-w-3xl mx-auto">

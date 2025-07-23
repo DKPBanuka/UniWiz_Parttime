@@ -1,32 +1,36 @@
 <?php
-// FILE: uniwiz-backend/api/create_review.php (FIXED & ENHANCED)
+// FILE: uniwiz-backend/api/create_review.php
 // =====================================================================
-// This file now handles both creating and updating a company review.
-// It prevents duplicate reviews by updating the existing one.
+// This endpoint handles both creating and updating a company review by a student.
+// It prevents duplicate reviews by updating the existing one if found, otherwise inserts a new review.
+// Also sends a notification to the publisher when a new review is created.
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Origin: *'); // Allow requests from any origin
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS'); // Allow these HTTP methods
 header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Response will be in JSON format
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
     exit();
 }
 
-$data = json_decode(file_get_contents("php://input"));
+$data = json_decode(file_get_contents("php://input")); // Get POST data as JSON
 
 // --- Validate Data ---
+// Ensure all required fields are present
 if (
     $data === null || 
     !isset($data->publisher_id) || 
@@ -39,7 +43,7 @@ if (
     exit();
 }
 
-// Further validation
+// Validate rating is an integer between 1 and 5
 $rating = filter_var($data->rating, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1, "max_range" => 5]]);
 if ($rating === false) {
     http_response_code(400);
@@ -49,7 +53,7 @@ if ($rating === false) {
 
 $publisher_id = (int)$data->publisher_id;
 $student_id = (int)$data->student_id;
-$review_text = htmlspecialchars(strip_tags($data->comment));
+$review_text = htmlspecialchars(strip_tags($data->comment)); // Sanitize comment
 
 if (empty($review_text)) {
     http_response_code(400);
@@ -57,9 +61,8 @@ if (empty($review_text)) {
     exit();
 }
 
-
 try {
-    $db->beginTransaction();
+    $db->beginTransaction(); // Start transaction
 
     // 1. Check if the student has already reviewed this publisher
     $query_check = "SELECT id FROM company_reviews WHERE publisher_id = :publisher_id AND student_id = :student_id";
@@ -69,7 +72,8 @@ try {
     $stmt_check->execute();
 
     if ($stmt_check->rowCount() > 0) {
-        // **UPDATE LOGIC**: If review exists, update it.
+        // --- UPDATE LOGIC ---
+        // If a review exists, update it with the new rating and comment
         $existing_review = $stmt_check->fetch(PDO::FETCH_ASSOC);
         $review_id = $existing_review['id'];
 
@@ -88,7 +92,8 @@ try {
         }
 
     } else {
-        // **INSERT LOGIC**: If no review exists, insert a new one.
+        // --- INSERT LOGIC ---
+        // If no review exists, insert a new one
         $query_insert = "INSERT INTO company_reviews (publisher_id, student_id, rating, review_text) VALUES (:publisher_id, :student_id, :rating, :review_text)";
         $stmt_insert = $db->prepare($query_insert);
         $stmt_insert->bindParam(':publisher_id', $publisher_id);
@@ -105,9 +110,11 @@ try {
             $student_info = $stmt_student->fetch(PDO::FETCH_ASSOC);
             $student_name = $student_info ? $student_info['first_name'] . ' ' . $student_info['last_name'] : 'A student';
 
+            // Prepare notification message
             $notification_message = "$student_name has left a $rating-star review for your company.";
             $notification_link = "/applicants"; // Or a link to a dedicated reviews page
 
+            // Insert notification for the publisher
             $query_notif = "INSERT INTO notifications (user_id, type, message, link) VALUES (:user_id, 'new_review', :message, :link)";
             $stmt_notif = $db->prepare($query_notif);
             $stmt_notif->bindParam(':user_id', $publisher_id);
@@ -125,6 +132,7 @@ try {
     }
 
 } catch (Exception $e) {
+    // Rollback transaction if any error occurs
     if ($db->inTransaction()) {
         $db->rollBack();
     }

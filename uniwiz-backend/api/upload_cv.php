@@ -4,19 +4,22 @@
 // This file handles uploading a student's CV file.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // Suppress PHP errors from being displayed directly in output for cleaner JSON
 ini_set('display_errors', 0);
 error_reporting(0);
 
+// --- Handle preflight OPTIONS request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
+
+// --- Database Connection ---
 include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
@@ -77,6 +80,7 @@ if (move_uploaded_file($file['tmp_name'], $target_file)) {
         $profile_exists = $stmt_check->rowCount() > 0;
 
         if ($profile_exists) {
+            // Update existing student profile with new CV URL
             $stmt = $db->prepare("UPDATE student_profiles SET cv_url = :cv_url WHERE user_id = :user_id");
         } else {
             // If profile doesn't exist, create a new entry with user_id and cv_url

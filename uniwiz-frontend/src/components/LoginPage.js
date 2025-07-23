@@ -4,7 +4,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- LoginPage: Handles both login and sign up for students and publishers ---
 function LoginPage({ onLoginSuccess, setPage, initialState }) {
+    // --- State hooks for form fields and UI ---
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -14,14 +16,14 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
     const [isSignUpMode, setIsSignUpMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // Add state for floating logo animation
+    // --- Animation state for floating logo ---
     const [logoFloat, setLogoFloat] = useState(false);
     useEffect(() => {
         const t = setTimeout(() => setLogoFloat(true), 500);
         return () => clearTimeout(t);
     }, []);
 
-    // useEffect to handle the initial state from another page
+    // --- Handle initial state from navigation (e.g., open in sign up mode) ---
     useEffect(() => {
         if (initialState) {
             if (initialState.signup) {
@@ -33,7 +35,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
         }
     }, [initialState]);
 
-
+    // --- Toggle between sign in and sign up modes ---
     const toggleMode = () => {
         setIsSignUpMode(prev => !prev);
         setError(null);
@@ -43,6 +45,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
         setFullName('');
     };
 
+    // --- Handle form submission for login or sign up ---
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError(null);
@@ -89,7 +92,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-300 to-blue-500 animate-gradient-x overflow-auto">
-            {/* Back to Home button */}
+            {/* --- Back to Home button --- */}
             <button
                 onClick={() => setPage('home')}
                 className="fixed top-6 left-6 z-50 bg-white/80 backdrop-blur-lg border border-blue-200 text-blue-700 font-bold py-2 px-5 rounded-full shadow hover:bg-blue-100 hover:scale-105 transition-all duration-300"
@@ -97,7 +100,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                 <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 Home
             </button>
-            {/* Main content */}
+            {/* --- Main content: Centered login/signup card --- */}
             <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 lg:p-16 w-full">
                 <img 
                     src="/logo.png" 
@@ -122,7 +125,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             {isSignUpMode ? 'Create your account to get started' : 'Sign in to continue'}
                         </p>
                     </div>
-                    {/* Error Message */}
+                    {/* --- Error Message --- */}
                     <AnimatePresence>
                         {error && (
                             <motion.div
@@ -138,7 +141,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    {/* Role Selection */}
+                    {/* --- Role Selection (Sign Up mode) --- */}
                     {isSignUpMode && (
                         <motion.div 
                             initial={{ opacity: 0 }}
@@ -180,7 +183,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                         </motion.div>
                     )}
                     <form onSubmit={handleSubmit} className="space-y-7">
-                        {/* Full Name / Company Name (Sign Up mode) */}
+                        {/* --- Full Name / Company Name (Sign Up mode) --- */}
                         {isSignUpMode && (
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
                                 <label htmlFor="fullName" className="block text-base font-semibold text-blue-900">
@@ -199,7 +202,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 </div>
                             </motion.div>
                         )}
-                        {/* Email Input */}
+                        {/* --- Email Input --- */}
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-1">
                             <label htmlFor="email" className="block text-base font-semibold text-blue-900">Email</label>
                             <input
@@ -212,7 +215,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 required
                             />
                         </motion.div>
-                        {/* Password Input */}
+                        {/* --- Password Input --- */}
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-1">
                             <label htmlFor="password" className="block text-base font-semibold text-blue-900">Password</label>
                             <div className="relative">
@@ -233,7 +236,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         {showPassword ? (
                                             <>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268-2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </>
                                         ) : (
                                             <>
@@ -245,7 +248,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                                 </button>
                             </div>
                         </motion.div>
-                        {/* Submit Button */}
+                        {/* --- Submit Button --- */}
                         <motion.button
                             whileHover={{ scale: 1.04 }}
                             whileTap={{ scale: 0.98 }}
@@ -264,7 +267,7 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                             ) : isSignUpMode ? 'Create Account' : 'Sign In'}
                         </motion.button>
                     </form>
-                    {/* Toggle Mode */}
+                    {/* --- Toggle Mode (Sign In / Sign Up) --- */}
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}

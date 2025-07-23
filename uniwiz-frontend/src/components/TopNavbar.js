@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- Reusable Notification Icon with Role-Based Colors ---
+// --- NotificationIcon: Shows notification icon with color based on type and user role ---
 const NotificationIcon = ({ type, role }) => {
     // Define base colors for each role
     const roleColors = {
@@ -15,6 +15,7 @@ const NotificationIcon = ({ type, role }) => {
         default: 'text-gray-500'
     };
 
+    // Map notification types to SVG icons
     const iconMap = {
         new_applicant: (
             <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${roleColors.publisher}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,19 +64,21 @@ const NotificationIcon = ({ type, role }) => {
 
 // --- Main TopNavbar Component ---
 function TopNavbar({ user, setPage, notifications, onNotificationClick }) {
+    // --- State for notification dropdown ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    // --- Count unread notifications ---
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    // Determine notification badge color based on role
+    // --- Determine notification badge color based on role ---
     const badgeColor = {
         student: 'bg-blue-500',
         publisher: 'bg-primary-main',
         admin: 'bg-green-600',
     }[user?.role] || 'bg-red-500';
 
-    // Close dropdown when clicking outside
+    // --- Close dropdown when clicking outside ---
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -86,11 +89,13 @@ function TopNavbar({ user, setPage, notifications, onNotificationClick }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [dropdownRef]);
 
+    // --- Handle notification item click ---
     const handleItemClick = (notification) => {
         onNotificationClick(notification);
         setIsDropdownOpen(false); // Close dropdown after clicking an item
     };
     
+    // --- Format time since notification ---
     const timeSince = (date) => {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         let interval = seconds / 31536000;
@@ -106,12 +111,14 @@ function TopNavbar({ user, setPage, notifications, onNotificationClick }) {
         return Math.floor(seconds) + "s ago";
     };
 
+    // --- Unread notification background color by role ---
     const unreadBgClass = {
         student: 'bg-blue-50',
         publisher: 'bg-primary-lighter/50',
         admin: 'bg-green-50'
     }[user?.role] || '';
 
+    // --- Main Render: Top navigation bar layout ---
     return (
         <header className="bg-white shadow-sm p-4 flex justify-between items-center z-20">
             <div className="flex-1"></div> 

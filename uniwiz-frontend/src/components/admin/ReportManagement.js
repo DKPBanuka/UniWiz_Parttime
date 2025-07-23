@@ -1,4 +1,19 @@
-// FILE: src/components/admin/ReportManagement.js (UPDATED with Direct Profile Linking)
+// =======================================================
+// ReportManagement.js
+// -------------------------------------------------------
+// This file defines the ReportManagement component for the
+// UniWiz admin dashboard. It allows admins to view and manage
+// user-submitted reports and app problem reports, update their
+// status, and navigate directly to user profiles.
+// -------------------------------------------------------
+//
+// Key Features:
+// - Fetches and displays user reports and app problem reports
+// - Allows admin to resolve or dismiss reports
+// - Direct navigation to student/publisher/company profiles
+// - Uses loading spinners and error handling for UX
+// =======================================================
+// FILE: src/components/admin/ReportManagement.js 
 // =======================================================
 // This page allows administrators to view and manage user-submitted reports.
 // User links now navigate directly to the respective profile pages.
@@ -8,12 +23,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
 // Reusable components
+// LoadingSpinner: Shows a spinner while data is loading
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
 );
 
+// StatusBadge: Shows a colored badge for report status
 const StatusBadge = ({ status }) => {
     const statusMap = {
         pending: "bg-yellow-100 text-yellow-800",
@@ -23,13 +40,22 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
-// UPDATED: Added props to handle profile navigation
+// ReportManagement main component
+// Props:
+// - user: current admin user object
+// - setPage: function to change admin page
+// - setStudentIdForProfile: function to view student profile
+// - setPublisherIdForProfile: function to view publisher profile
 function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherIdForProfile }) {
+    // State for user reports (user-to-user or conversation reports)
     const [userReports, setUserReports] = useState([]);
+    // State for app problem reports (bug/issue reports)
     const [appProblemReports, setAppProblemReports] = useState([]);
+    // Loading and error state
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Fetch all reports from backend
     const fetchReports = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -46,10 +72,12 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
         }
     }, []);
 
+    // Fetch reports on mount
     useEffect(() => {
         fetchReports();
     }, [fetchReports]);
 
+    // Update report status (resolve/dismiss)
     const handleStatusUpdate = async (reportId, newStatus) => {
         try {
             const response = await fetch(`${API_BASE_URL}/update_report_status_admin.php`, {
@@ -70,7 +98,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
         }
     };
     
-    // UPDATED: Function now navigates directly to the correct profile page based on user role.
+    // Navigate to the correct profile page based on user role
     const handleViewProfile = (reportedUser) => {
         if (reportedUser.role === 'student') {
             setStudentIdForProfile(reportedUser.id);
@@ -85,7 +113,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
         }
     };
 
-
+    // Render
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             <h1 className="text-4xl font-bold text-primary-dark mb-8">User Reports</h1>
@@ -105,18 +133,23 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {isLoading ? (
+                                // Show loading spinner while fetching
                                 <tr><td colSpan="6" className="text-center py-8"><LoadingSpinner /></td></tr>
                             ) : error ? (
+                                // Show error message if fetch fails
                                 <tr><td colSpan="6" className="text-center py-8 text-red-500">{error}</td></tr>
                             ) : userReports.length > 0 ? (
+                                // Render each user report row
                                 userReports.map(report => (
                                     <tr key={report.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {/* Link to reporter's profile */}
                                             <button onClick={() => handleViewProfile({id: report.reporter_id, first_name: report.reporter_first_name, last_name: report.reporter_last_name, role: report.reporter_role})} className="text-primary-main hover:underline">
                                                 {report.reporter_first_name} {report.reporter_last_name}
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {/* Link to reported user's profile */}
                                             <button onClick={() => handleViewProfile({id: report.reported_id, first_name: report.reported_first_name, last_name: report.reported_last_name, role: report.reported_role})} className="text-primary-main hover:underline">
                                                 {report.reported_first_name} {report.reported_last_name}
                                             </button>
@@ -125,6 +158,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center"><StatusBadge status={report.status} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            {/* Show action buttons if report is pending */}
                                             {report.status === 'pending' && (
                                                 <>
                                                     <button onClick={() => handleStatusUpdate(report.id, 'resolved')} className="text-green-600 hover:text-green-800">Resolve</button>
@@ -135,6 +169,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                     </tr>
                                 ))
                             ) : (
+                                // No reports found
                                 <tr><td colSpan="6" className="text-center py-8 text-gray-500">No reports found.</td></tr>
                             )}
                         </tbody>
@@ -157,13 +192,17 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {isLoading ? (
+                                // Show loading spinner while fetching
                                 <tr><td colSpan="5" className="text-center py-8"><LoadingSpinner /></td></tr>
                             ) : error ? (
+                                // Show error message if fetch fails
                                 <tr><td colSpan="5" className="text-center py-8 text-red-500">{error}</td></tr>
                             ) : appProblemReports.length > 0 ? (
+                                // Render each app problem report row
                                 appProblemReports.map(report => (
                                     <tr key={report.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            {/* Link to reporter's profile */}
                                             <button onClick={() => handleViewProfile({id: report.reporter_id, first_name: report.reporter_first_name, last_name: report.reporter_last_name, role: report.reporter_role})} className="text-primary-main hover:underline">
                                                 {report.reporter_first_name} {report.reporter_last_name}
                                             </button>
@@ -172,6 +211,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(report.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center"><StatusBadge status={report.status} /></td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            {/* Show action buttons if report is pending */}
                                             {report.status === 'pending' && (
                                                 <>
                                                     <button onClick={() => handleStatusUpdate(report.id, 'resolved')} className="text-green-600 hover:text-green-800">Resolve</button>
@@ -182,6 +222,7 @@ function ReportManagement({ user, setPage, setStudentIdForProfile, setPublisherI
                                     </tr>
                                 ))
                             ) : (
+                                // No app problem reports found
                                 <tr><td colSpan="5" className="text-center py-8 text-gray-500">No app problem reports found.</td></tr>
                             )}
                         </tbody>

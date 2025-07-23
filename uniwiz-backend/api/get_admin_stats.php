@@ -1,13 +1,13 @@
 <?php
-// FILE: uniwiz-backend/api/get_admin_stats.php (UPDATED for Admin Dashboard with Unverified Users)
+// FILE: uniwiz-backend/api/get_admin_stats.php
 // =======================================================
-// This file fetches various statistics for the Admin Dashboard.
+// This endpoint fetches various statistics for the Admin Dashboard.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
@@ -40,7 +40,7 @@ try {
     $stmt->execute();
     $stats['totalJobs'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // 3. Jobs Pending Approval (e.g., status 'draft' or 'pending' if you have such a status)
+    // 3. Jobs Pending Approval (e.g., status 'draft')
     // Assuming 'draft' jobs need admin approval before becoming 'active'
     $stmt = $db->prepare("SELECT COUNT(*) as count FROM jobs WHERE status = 'draft'");
     $stmt->execute();
@@ -56,8 +56,8 @@ try {
     $stmt->execute();
     $stats['totalPublishers'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // 6. Unverified Users Count (NEW)
-    $stmt = $db->prepare("SELECT COUNT(*) as count FROM users WHERE is_verified = 0 AND role != 'admin'"); // Exclude admin from unverified count
+    // 6. Unverified Users Count (excluding admins)
+    $stmt = $db->prepare("SELECT COUNT(*) as count FROM users WHERE is_verified = 0 AND role != 'admin'");
     $stmt->execute();
     $stats['unverifiedUsers'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 

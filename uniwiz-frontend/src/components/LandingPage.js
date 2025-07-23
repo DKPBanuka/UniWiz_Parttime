@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // --- Constants ---
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
-// Enhanced FeatureCard with modern styling
+// --- FeatureCard: Displays a single feature with icon, title, and description ---
 const FeatureCard = ({ icon, title, text }) => (
     <div className="bg-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
@@ -16,7 +16,7 @@ const FeatureCard = ({ icon, title, text }) => (
     </div>
 );
 
-// Enhanced HowItWorksStep with modern styling
+// --- HowItWorksStep: Displays a single step in the 'How It Works' section ---
 const HowItWorksStep = ({ number, title, text, color }) => (
     <div className="text-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 h-full">
         <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center text-3xl font-bold text-white ${color} shadow-lg`}>
@@ -27,7 +27,7 @@ const HowItWorksStep = ({ number, title, text, color }) => (
     </div>
 );
 
-// Modernize JobCard
+// --- JobCard: Displays a single job listing card ---
 const JobCard = ({ job, setPage, isNew }) => (
     <div className="relative bg-white rounded-2xl shadow-lg p-6 flex flex-col hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 h-full border-l-8 border-blue-400 group transform hover:scale-105">
         {isNew && (
@@ -76,15 +76,18 @@ const JobCard = ({ job, setPage, isNew }) => (
     </div>
 );
 
+// --- LandingPage: Main landing page component for UniWiz ---
 const LandingPage = ({ setPage }) => {
-    const [activeTab, setActiveTab] = useState('students');
-    const [jobs, setJobs] = useState([]);
-    const [footerLinks, setFooterLinks] = useState(null);
-    const [isScrolled, setIsScrolled] = useState(false);
-    const [showBackToTop, setShowBackToTop] = useState(false);
+    // --- State hooks for UI and data ---
+    const [activeTab, setActiveTab] = useState('students'); // Tab for 'How It Works' section
+    const [jobs, setJobs] = useState([]); // Latest jobs
+    const [footerLinks, setFooterLinks] = useState(null); // Footer links from API
+    const [isScrolled, setIsScrolled] = useState(false); // Header scroll effect
+    const [showBackToTop, setShowBackToTop] = useState(false); // Show back-to-top button
 
+    // --- Fetch jobs and footer links, handle header scroll effect ---
     useEffect(() => {
-        // Fetch public jobs
+        // Fetch public jobs from backend
         fetch(`${API_BASE_URL}/get_public_jobs.php`)
             .then(response => response.json())
             .then(data => {
@@ -94,7 +97,7 @@ const LandingPage = ({ setPage }) => {
             })
             .catch(error => console.error('Error fetching jobs:', error));
         
-        // Fetch footer links
+        // Fetch footer links from backend
         fetch(`${API_BASE_URL}/get_site_settings.php`)
             .then(response => response.json())
             .then(data => {
@@ -102,7 +105,7 @@ const LandingPage = ({ setPage }) => {
             })
             .catch(error => console.error('Error fetching footer links:', error));
 
-        // Handle scroll for header
+        // Handle scroll for header background
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
         };
@@ -110,6 +113,7 @@ const LandingPage = ({ setPage }) => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // --- Show back-to-top button on scroll ---
     useEffect(() => {
       const onScroll = () => setShowBackToTop(window.scrollY > 300);
       window.addEventListener('scroll', onScroll);
@@ -118,7 +122,7 @@ const LandingPage = ({ setPage }) => {
 
     return (
         <div className="bg-gray-50 text-gray-800 font-sans antialiased">
-            {/* Enhanced Header with glass morphism and smooth transition */}
+            {/* --- Enhanced Header with glass morphism and smooth transition --- */}
             <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4'}`}>
                 <nav className="container mx-auto px-6 py-2 flex justify-between items-center">
                     <div className="flex items-center">
@@ -142,6 +146,7 @@ const LandingPage = ({ setPage }) => {
                 </nav>
             </header>
 
+            {/* --- Back to Top Button --- */}
             {showBackToTop && (
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -151,6 +156,7 @@ const LandingPage = ({ setPage }) => {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" /></svg>
                 </button>
             )}
+            {/* --- Quick Sign Up Button (floating) --- */}
             <button
                 onClick={() => setPage('login', { signup: true, role: 'student' })}
                 className="hidden lg:flex fixed bottom-8 right-24 z-40 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-2xl hover:scale-110 hover:shadow-2xl transition-all duration-300 text-lg items-center gap-2 animate-bounce"
@@ -161,15 +167,14 @@ const LandingPage = ({ setPage }) => {
             </button>
 
             <main className="pt-16">
-                {/* Enhanced Hero Section with gradient overlay and floating elements */}
+                {/* --- Hero Section: Main banner with call to action --- */}
                 <section className="relative h-screen min-h-[600px] flex items-center text-white overflow-hidden">
+                    {/* --- Background image and overlays --- */}
                     <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{backgroundImage: "url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2084&auto=format&fit=crop')"}}></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-blue-800/80"></div>
-                    
-                    {/* Floating circles decoration */}
+                    {/* --- Floating circles decoration --- */}
                     <div className="absolute top-20 left-20 w-40 h-40 rounded-full bg-blue-500/20 blur-xl"></div>
                     <div className="absolute bottom-20 right-20 w-60 h-60 rounded-full bg-blue-400/20 blur-xl"></div>
-                    
                     <div className="relative container mx-auto px-6 text-center z-10">
                         <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6 animate-fade-in">
                             <span className="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">Earn While</span> <span className="bg-gradient-to-r from-blue-300 to-blue-400 bg-clip-text text-transparent">You Learn</span>
@@ -192,8 +197,7 @@ const LandingPage = ({ setPage }) => {
                             </button>
                         </div>
                     </div>
-                    
-                    {/* Scroll indicator */}
+                    {/* --- Scroll indicator --- */}
                     <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
                         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
@@ -201,12 +205,11 @@ const LandingPage = ({ setPage }) => {
                     </div>
                 </section>
 
-                {/* Why Choose UniWiz Section with animated features */}
+                {/* --- Why Choose UniWiz Section --- */}
                 <section className="py-20 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
-                    {/* Background decoration */}
+                    {/* --- Background decoration --- */}
                     <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-blue-100/30 blur-3xl"></div>
                     <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-blue-200/20 blur-3xl"></div>
-                    
                     <div className="container mx-auto px-6 text-center relative z-10">
                         <div className="inline-block mb-2 bg-blue-100 text-blue-600 text-sm font-semibold px-4 py-1 rounded-full">
                             Why Choose Us
@@ -235,10 +238,9 @@ const LandingPage = ({ setPage }) => {
                     </div>
                 </section>
 
-                {/* How It Works Section with tabbed interface */}
+                {/* --- How It Works Section with tabbed interface --- */}
                 <section className="py-20 bg-white relative overflow-hidden">
                     <div className="absolute -top-40 right-0 w-80 h-80 bg-blue-100/30 rounded-full blur-3xl"></div>
-                    
                     <div className="container mx-auto px-6 text-center relative z-10">
                         <div className="inline-block mb-2 bg-blue-100 text-blue-600 text-sm font-semibold px-4 py-1 rounded-full">
                             Simple Process
@@ -249,8 +251,7 @@ const LandingPage = ({ setPage }) => {
                                 'Find the perfect part-time job in just a few steps' : 
                                 'Connect with talented university students quickly and easily'}
                         </p>
-                        
-                        {/* Enhanced tab switcher */}
+                        {/* --- Tab switcher for students/employers --- */}
                         <div className="flex justify-center mb-16">
                             <div className="inline-flex bg-gray-100 p-1 rounded-xl">
                                 <button 
@@ -267,7 +268,7 @@ const LandingPage = ({ setPage }) => {
                                 </button>
                             </div>
                         </div>
-                        
+                        {/* --- Steps for each tab --- */}
                         {activeTab === 'students' && (
                             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                                 <HowItWorksStep 
@@ -314,8 +315,7 @@ const LandingPage = ({ setPage }) => {
                         )}
                     </div>
                 </section>
-                
-                {/* Latest Active Jobs Section with enhanced cards */}
+                {/* --- Latest Active Jobs Section --- */}
                 <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
                     <div className="container mx-auto px-6">
                         <div className="text-center mb-16">
@@ -355,8 +355,7 @@ const LandingPage = ({ setPage }) => {
                         </div>
                     </div>
                 </section>
-
-                {/* Enhanced Testimonials Section */}
+                {/* --- Testimonials Section --- */}
                 <section className="py-20 bg-white">
                     <div className="container mx-auto px-6">
                         <div className="text-center mb-16">
@@ -368,8 +367,9 @@ const LandingPage = ({ setPage }) => {
                                 Hear from students and employers who found success with UniWiz
                             </p>
                         </div>
-                        
+                        {/* --- Two example testimonials --- */}
                         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                            {/* --- Student testimonial --- */}
                             <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
                                 <div className="flex items-start mb-6">
                                     <img 
@@ -396,7 +396,7 @@ const LandingPage = ({ setPage }) => {
                                     "UniWiz helped me find a part-time web development job that perfectly fits around my class schedule. I'm gaining real-world experience while earning money to support my studies. The platform is incredibly easy to use!"
                                 </p>
                             </div>
-                            
+                            {/* --- Employer testimonial --- */}
                             <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300">
                                 <div className="flex items-start mb-6">
                                     <img 
@@ -426,8 +426,7 @@ const LandingPage = ({ setPage }) => {
                         </div>
                     </div>
                 </section>
-
-                {/* CTA Section */}
+                {/* --- CTA Section --- */}
                 <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
                     <div className="container mx-auto px-6 text-center">
                         <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to get started?</h2>
@@ -452,12 +451,12 @@ const LandingPage = ({ setPage }) => {
                 </section>
             </main>
 
-            {/* Enhanced Footer */}
+            {/* --- Enhanced Footer --- */}
             <footer className="relative bg-gray-900 text-gray-300 mt-24">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 via-blue-600 to-blue-400 opacity-60 rounded-t-xl"></div>
                 <div className="container mx-auto px-6 py-16">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 items-start">
-                        {/* Logo and About */}
+                        {/* --- Logo and About --- */}
                         <div className="col-span-2 flex flex-col items-start">
                             <div className="flex items-center mb-6">
                                 <img src="/logo.png" alt="UniWiz Logo" className="h-16 w-16 rounded-2xl shadow-lg mr-3" />
@@ -474,7 +473,7 @@ const LandingPage = ({ setPage }) => {
                                 <a href="#" title="LinkedIn" className="text-blue-500 hover:text-white transition-colors duration-300 text-2xl"><i className="fab fa-linkedin"></i></a>
                             </div>
                         </div>
-                        {/* Dynamic Footer Links */}
+                        {/* --- Dynamic Footer Links --- */}
                         {footerLinks ? (
                             Object.keys(footerLinks)
                                 .filter(category => Array.isArray(footerLinks[category]) && footerLinks[category].some(link => link && link.text && link.text.trim() !== ''))

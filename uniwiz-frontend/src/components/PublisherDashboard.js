@@ -7,8 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Reusable Components ---
-
+// --- StatCard: Displays a dashboard stat with icon and action ---
 // UPDATED: StatCard now accepts dynamic color props
 const StatCard = ({ title, value, icon, onClick, description, color }) => (
     <motion.div
@@ -46,7 +45,7 @@ const StatCard = ({ title, value, icon, onClick, description, color }) => (
     </motion.div>
 );
 
-// ICONS for Stat Cards
+// --- SVG ICONS for Stat Cards ---
 const BriefcaseIcon = (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -80,7 +79,7 @@ const BriefcaseIcon = (
     newToday: { bg: 'bg-accent-teal-light', text: 'text-accent-teal-dark' },
   };
 
-// StarRating component (copied from CompanyProfilePage for consistency)
+// --- StarRating: Displays a row of stars for average rating ---
 const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false }) => {
     const totalStars = 5;
     const numericRating = parseFloat(rating) || 0;
@@ -97,7 +96,7 @@ const StarRating = ({ rating, reviewCount, size = 'w-5 h-5', showText = false })
     );
 };
 
-
+// --- ApplicantRow: Displays a single recent applicant row ---
 // ApplicantRow now calls onViewProfile with application_id
 const ApplicantRow = ({ applicant, onViewProfile }) => (
     <motion.div
@@ -127,6 +126,7 @@ const ApplicantRow = ({ applicant, onViewProfile }) => (
     </motion.div>
 );
 
+// --- JobOverviewRow: Displays a single job in the overview list ---
 // JobOverviewRow now displays vacancies and accepted counts
 const JobOverviewRow = ({ job, onViewJob }) => {
     const statusClasses = {
@@ -160,6 +160,7 @@ const JobOverviewRow = ({ job, onViewJob }) => {
     );
 };
 
+// --- ReviewCard: Displays a single review for the publisher ---
 const ReviewCard = ({ review }) => {
     const Star = ({ filled }) => (
         <svg className={`w-4 h-4 ${filled ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -191,6 +192,7 @@ const ReviewCard = ({ review }) => {
     );
 };
 
+// --- LoadingSkeleton: Shows animated skeletons while loading ---
 const LoadingSkeleton = ({ count = 3 }) => (
     <div className="space-y-4">
         {[...Array(count)].map((_, i) => (
@@ -205,9 +207,10 @@ const LoadingSkeleton = ({ count = 3 }) => (
     </div>
 );
 
-// --- Main Dashboard Component ---
+// --- PublisherDashboard: Main dashboard for publishers ---
 // UPDATED: Prop renamed from onViewStudentProfile to onViewApplicantDetails
 function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewApplicants, onViewApplicantDetails }) {
+    // --- State hooks for stats, loading, error, and verification messages ---
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -217,6 +220,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
     const [showPostVerifyMessage, setShowPostVerifyMessage] = useState(false);
     const [showPendingAdminVerification, setShowPendingAdminVerification] = useState(false);
 
+    // --- Show post-verification message if just verified ---
     useEffect(() => {
         const isVerified = user && (user.is_verified === true || user.is_verified === 1);
         if (prevIsVerifiedRef.current === false && isVerified === true) {
@@ -227,6 +231,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
         prevIsVerifiedRef.current = isVerified;
     }, [user]);
 
+    // --- Show pending admin verification message if docs uploaded ---
     useEffect(() => {
         if (user && user.role === 'publisher' && !!user.required_doc_url && !user.is_verified) {
             setShowPendingAdminVerification(true);
@@ -235,6 +240,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
         }
     }, [user]);
 
+    // --- Fetch dashboard stats from backend ---
     useEffect(() => {
         const fetchStats = async () => {
             if (!user) return;
@@ -257,10 +263,10 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
         fetchStats();
     }, [user]);
 
-    // Add profile completion logic for publisher
+    // --- Profile completion logic for publisher ---
     const isProfileComplete = user && user.role === 'publisher' && !!user.required_doc_url;
 
-    // Show message if verified but still restricted (e.g., after first login post-verification)
+    // --- Show message if verified but still restricted (e.g., after first login post-verification) ---
     return (
         <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
             {showVerifyMsg && (
@@ -269,7 +275,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                 </div>
             )}
             <div className="max-w-6xl mx-auto">
-                {/* Profile Completion Card for Publisher */}
+                {/* --- Profile Completion Card for Publisher --- */}
                 {user && user.role === 'publisher' && !isVerified && (
                     <div className={`mb-8 p-6 rounded-xl shadow-md border-2 ${isProfileComplete ? 'border-green-400 bg-green-50' : 'border-yellow-400 bg-yellow-50'}`}>
                         <h3 className="text-xl font-bold mb-2 text-primary-dark">Profile Completion</h3>
@@ -286,7 +292,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                         ) : null}
                     </div>
                 )}
-                {/* Header */}
+                {/* --- Header --- */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Welcome back, {user.first_name}!</h1>
@@ -302,7 +308,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                     </motion.button>
                 </div>
 
-                {/* Stats Grid */}
+                {/* --- Stats Grid --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
                     {isLoading ? (
                         <>
@@ -323,9 +329,9 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                     )}
                 </div>
 
-                {/* Main Content Grid */}
+                {/* --- Main Content Grid --- */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Recent Applicants Card */}
+                    {/* --- Recent Applicants Card --- */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
@@ -344,7 +350,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                         )}
                     </motion.div>
 
-                    {/* Jobs Overview Card */}
+                    {/* --- Jobs Overview Card --- */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
@@ -363,7 +369,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                         )}
                     </motion.div>
 
-                    {/* Latest Reviews Card */}
+                    {/* --- Latest Reviews Card --- */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
@@ -382,7 +388,7 @@ function PublisherDashboard({ user, onPostJobClick, onViewAllJobsClick, onViewAp
                         )}
                     </motion.div>
 
-                    {/* Average Rating Display (NEW SECTION) */}
+                    {/* --- Average Rating Display (NEW SECTION) --- */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
                         <h3 className="text-xl font-bold text-primary-dark mb-4 flex items-center justify-center">
                             <span className="mr-2 text-yellow-500">{StarFilledIcon}</span>

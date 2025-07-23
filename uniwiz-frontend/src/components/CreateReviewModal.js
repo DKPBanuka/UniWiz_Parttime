@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-// Reusable Star component for rating
+// --- Star: Reusable star icon component for rating ---
 const Star = ({ selected = false, onSelect = f => f }) => (
     <svg
         className={`w-8 h-8 cursor-pointer ${selected ? 'text-yellow-400' : 'text-gray-300'}`}
@@ -16,14 +16,15 @@ const Star = ({ selected = false, onSelect = f => f }) => (
     </svg>
 );
 
-// **UPDATED**: Component now accepts an 'existingReview' prop
+// --- CreateReviewModal: Modal for creating or editing a review ---
 function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyName, onSubmitSuccess, existingReview }) {
+    // --- State hooks for form fields and UI ---
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // **NEW**: useEffect to pre-fill the form when editing
+    // --- Pre-fill the form when editing an existing review ---
     useEffect(() => {
         if (isOpen) {
             if (existingReview) {
@@ -39,6 +40,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
 
     if (!isOpen) return null;
 
+    // --- Handle review submission ---
     const handleSubmit = async () => {
         if (rating === 0) {
             setError("Please select a star rating.");
@@ -79,6 +81,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         }
     };
     
+    // --- Handle modal close and reset state ---
     const handleClose = () => {
         setError(null);
         setIsLoading(false);
@@ -89,7 +92,7 @@ function CreateReviewModal({ isOpen, onClose, publisherId, studentId, companyNam
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg relative">
                 <button onClick={handleClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-                {/* **UPDATED**: Modal title changes based on whether it's a new review or an edit */}
+                {/* --- Modal title changes based on whether it's a new review or an edit --- */}
                 <h2 className="text-2xl font-bold text-primary-dark mb-2">
                     {existingReview ? `Edit your review for ${companyName}` : `Write a review for ${companyName}`}
                 </h2>

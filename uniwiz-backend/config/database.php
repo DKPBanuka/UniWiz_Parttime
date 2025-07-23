@@ -1,8 +1,10 @@
 <?php
 // FILE: uniwiz-backend/config/database.php (FULLY FIXED FOR .ENV LOADING)
 // ======================================================================
+// This file handles the database connection for the backend API.
+// It loads environment variables from a .env file and provides a Database class for PDO connection.
 
-// NEW: Load environment variables from .env file
+// --- Load environment variables from .env file ---
 // This ensures that this file can be included anywhere and still find the root .env file.
 require_once __DIR__ . '/../vendor/autoload.php';
 try {
@@ -14,7 +16,7 @@ try {
     die("Error: Could not load the .env file. Please ensure it exists in the 'uniwiz-backend' directory. Details: " . $e->getMessage());
 }
 
-// --- Database Credentials ---
+// --- Database Credentials (fallbacks, not used if .env is loaded) ---
 $host = "localhost";
 $dbname = "uniwiz_db";
 $username = "root";
@@ -34,6 +36,7 @@ class Database {
         $this->conn = null;
 
         try {
+            // Create a new PDO connection
             $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch(PDOException $exception) {

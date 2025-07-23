@@ -3,14 +3,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-// Reusable InputIcon component
+// --- InputIcon: Reusable icon wrapper for input fields ---
 const InputIcon = ({ children }) => (
     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         {children}
     </div>
 );
 
-// Array of Sri Lankan districts
+// --- Array of Sri Lankan districts ---
 const sriLankaDistricts = [
     "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
     "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala",
@@ -18,9 +18,10 @@ const sriLankaDistricts = [
     "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
 ];
 
-
+// --- CreateJob: Main component for job creation form ---
 function CreateJob({ user, onJobPosted }) {
     // --- Form Field States ---
+    // (All useState hooks for form fields, payment, modal, etc.)
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [categoryId, setCategoryId] = useState('');
@@ -77,7 +78,7 @@ function CreateJob({ user, onJobPosted }) {
     const [showDeadlineInfo, setShowDeadlineInfo] = useState(false);
     const [calculatedPrice, setCalculatedPrice] = useState('');
 
-    // Calculate price based on selected deadline
+    // --- Calculate price based on selected deadline ---
     function getDeadlinePrice(deadline) {
         if (!deadline) return 0;
         const today = new Date();
@@ -93,12 +94,13 @@ function CreateJob({ user, onJobPosted }) {
         return 0;
     }
 
-    // Ensure paymentAmount is always a number and up to date
+    // --- Update payment amount when deadline changes ---
     useEffect(() => {
         const amt = getDeadlinePrice(applicationDeadline);
         setPaymentAmount(amt);
     }, [applicationDeadline]);
 
+    // --- Fetch job categories from backend ---
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -113,6 +115,7 @@ function CreateJob({ user, onJobPosted }) {
         fetchCategories();
     }, []);
 
+    // --- Skill input handlers ---
     const handleSkillKeyDown = (event) => {
         if (event.key === 'Enter' && currentSkill.trim() !== '') {
             event.preventDefault();
@@ -127,7 +130,7 @@ function CreateJob({ user, onJobPosted }) {
         setSkills(skills.filter(skill => skill !== skillToRemove));
     };
 
-    // --- NEW: Payment Processing Function ---
+    // --- Payment Processing Function ---
     const handlePayment = async () => {
         setError(null);
         setCardErrorMsg('');
@@ -145,16 +148,62 @@ function CreateJob({ user, onJobPosted }) {
                 setCardErrorMsg('Please fill in all card details to proceed.');
                 return;
             }
-            // --- Always show payment success if all fields are filled ---
+            // --- Simulate payment success ---
             setPaymentProcessing(true);
-            setPaymentSuccess(true);
-            setTimeout(() => {
-                setShowPaymentModal(false);
-                setPaymentSuccess(false);
-                setTransactionDetails(null);
-                if (onJobPosted) onJobPosted();
-            }, 3000);
-            setPaymentProcessing(false);
+            setTimeout(async () => {
+                // Payment success simulation
+                // 1. Prepare jobData from form fields
+                let payment_range = '';
+                if (paymentType === 'range') {
+                    payment_range = `Rs. ${Number(priceMin).toLocaleString()} - Rs. ${Number(priceMax).toLocaleString()}`;
+                } else if (paymentType === 'fixed') {
+                    payment_range = `Rs. ${Number(fixedPrice).toLocaleString()}`;
+                } else {
+                    payment_range = 'Negotiable';
+                }
+                const finalLocation = (workMode === 'on-site' || workMode === 'hybrid') 
+                    ? `${location}, ${district}` 
+                    : null;
+                const jobData = {
+                    publisher_id: user.id,
+                    category_id: categoryId,
+                    title,
+                    description,
+                    job_type: jobType,
+                    payment_range: payment_range,
+                    skills_required: skills.join(','),
+                    start_date: startDate,
+                    end_date: isSingleDay ? startDate : endDate,
+                    status: 'active', // or 'draft' if you want admin approval
+                    work_mode: workMode,
+                    location: finalLocation,
+                    application_deadline: applicationDeadline,
+                    vacancies: vacancies,
+                    working_hours: workingHours,
+                    experience_level: experienceLevel
+                };
+                try {
+                    const response = await fetch('http://uniwiz-backend.test/api/create_job.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(jobData),
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.job_id) {
+                        setSuccess('Job post successful!');
+                        setShowPaymentModal(false);
+                        setPaymentSuccess(false);
+                        setTransactionDetails(null);
+                        if (onJobPosted) onJobPosted();
+                    } else {
+                        setError(result.message || 'Failed to post job.');
+                    }
+                } catch (err) {
+                    setError('Error posting job.');
+                } finally {
+                    setPaymentProcessing(false);
+                }
+            }, 2000);
             return;
         }
         
@@ -214,6 +263,7 @@ function CreateJob({ user, onJobPosted }) {
         }
     };
 
+    // --- Form field refs for error scrolling ---
     const titleRef = useRef();
     const descriptionRef = useRef();
     const categoryRef = useRef();
@@ -221,38 +271,44 @@ function CreateJob({ user, onJobPosted }) {
     const districtRef = useRef();
     const [erroredField, setErroredField] = useState('');
 
-    const handleSubmit = async (status) => {
+    // --- Form submission handler (validates and posts job) ---
+    const validateFields = () => {
         if (!title) {
             setError('Please enter a Job Title.');
             setErroredField('title');
             titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            return false;
         }
         if (!description) {
             setError('Please enter a Job Description.');
             setErroredField('description');
             descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            return false;
         }
         if (!categoryId) {
             setError('Please select a Category.');
             setErroredField('category');
             categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            return false;
         }
         if (!applicationDeadline) {
             setError('Please select an Application Deadline.');
             setErroredField('deadline');
             deadlineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            return false;
         }
         if ((workMode === 'on-site' || workMode === 'hybrid') && !district) {
             setError('Please select a district for on-site or hybrid jobs.');
             setErroredField('district');
             districtRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
+            return false;
         }
         setErroredField('');
+        return true;
+    };
+
+    const handleSubmit = async (status) => {
+        if (!validateFields()) return;
 
         if (!title || !description || !categoryId) {
             setError('Please fill in all required fields: Title, Description, and Category.');
@@ -350,15 +406,22 @@ function CreateJob({ user, onJobPosted }) {
         }
     };
 
-    // Card field error state
+    // --- Pay button click handler ---
+    const handlePayClick = () => {
+        if (!validateFields()) return;
+        setShowPaymentModal(true);
+    };
+
+    // --- Card field error state for payment modal ---
     const [cardFieldErrors, setCardFieldErrors] = useState({ number: false, holder: false, month: false, year: false, cvv: false });
     const [cardErrorMsg, setCardErrorMsg] = useState('');
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Helper to check if application is closed
+    // --- Helper to check if application is closed ---
     const isApplicationClosed = applicationDeadline && new Date() > new Date(applicationDeadline + 'T23:59:59');
 
+    // --- Main Render ---
     return (
         <div className="min-h-screen bg-bg-publisher-dashboard flex justify-center items-start py-12 px-4">
             <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-4xl">
@@ -368,9 +431,10 @@ function CreateJob({ user, onJobPosted }) {
                 </div>
                 
                 <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-                    {/* Core Details Section */}
+                    {/* --- Core Details Section --- */}
                     <div className="p-6 border rounded-xl">
                         <h3 className="text-xl font-semibold text-primary-dark mb-4">Core Details</h3>
+                        {/* Job title, description, category, job type */}
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="title">Job Title</label>
@@ -399,9 +463,10 @@ function CreateJob({ user, onJobPosted }) {
                         </div>
                     </div>
 
-                    {/* Job Logistics Section */}
+                    {/* --- Job Logistics Section --- */}
                     <div className="p-6 border rounded-xl">
                          <h3 className="text-xl font-semibold text-primary-dark mb-4">Job Logistics</h3>
+                         {/* Work mode, district, location, working hours */}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2" htmlFor="work-mode">Work Mode</label>
@@ -433,9 +498,10 @@ function CreateJob({ user, onJobPosted }) {
                          </div>
                     </div>
 
-                    {/* Specifics Section */}
+                    {/* --- Specifics Section --- */}
                     <div className="p-6 border rounded-xl">
                         <h3 className="text-xl font-semibold text-primary-dark mb-4">Specifics</h3>
+                        {/* Payment type, salary, skills, vacancies, experience, duration */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2">Payment Type</label>
@@ -493,8 +559,9 @@ function CreateJob({ user, onJobPosted }) {
                         </div>
                     </div>
 
-                    {/* Application Deadline Section */}
+                    {/* --- Application Deadline Section --- */}
                     <div className="mt-8">
+                        {/* Application deadline input, pricing info modal */}
                         <label className="block text-gray-700 font-medium mb-2 flex items-center" htmlFor="application-deadline">
                             Application Deadline
                             <button type="button" onClick={() => setShowDeadlineInfo(true)} className="ml-2 text-primary-main hover:text-primary-dark focus:outline-none" title="View pricing info">
@@ -542,26 +609,29 @@ function CreateJob({ user, onJobPosted }) {
                         )}
                     </div>
 
+                    {/* --- Error and Success Messages --- */}
                     {error && <p className="text-red-500 text-center mt-4">{error}</p>}
                     {success && <p className="text-green-500 text-center mt-4">{success}</p>}
                     
+                    {/* --- Form Action Buttons --- */}
                     <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-4">
                         <button type="button" onClick={() => handleSubmit('draft')} disabled={isLoading} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Saving...' : 'Save as Draft'}
                         </button>
-                        <button type="button" onClick={() => setShowPaymentModal(true)} disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
+                        <button type="button" onClick={handlePayClick} disabled={isLoading} className="bg-primary-main hover:bg-primary-dark text-white font-bold py-3 px-8 rounded-lg transition duration-300 w-full md:w-auto">
                             {isLoading ? 'Processing...' : 'Pay'}
                         </button>
                     </div>
                 </form>
             </div>
             
-            {/* --- NEW: Payment Modal --- */}
+            {/* --- Payment Modal --- */}
             {showPaymentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-0 md:p-0 max-w-3xl w-full max-h-[95vh] overflow-y-auto flex flex-col md:flex-row shadow-2xl">
-                        {/* Card Form Section */}
+                        {/* --- Card Form Section --- */}
                         <div className="flex-1 p-8 flex flex-col justify-center">
+                            {/* Card preview, payment forms, error messages, pay button */}
                             <div className="mb-6 text-center">
                                 <h3 className="text-2xl font-bold text-gray-800 mb-2">Complete Payment</h3>
                                 <p className="text-gray-600">Pay Rs. {paymentAmount.toLocaleString()} to post your job</p>
@@ -635,8 +705,9 @@ function CreateJob({ user, onJobPosted }) {
                                 </button>
                             </div>
                         </div>
-                        {/* Order Summary Section */}
+                        {/* --- Order Summary Section --- */}
                         <div className="hidden md:flex flex-col justify-between bg-gray-50 rounded-r-2xl p-8 w-96 border-l">
+                            {/* Order summary, help, footer */}
                             <div>
                                 <div className="flex items-center justify-between mb-6">
                                     <img src="/logo.png" alt="UniWiz Logo" className="h-10" />

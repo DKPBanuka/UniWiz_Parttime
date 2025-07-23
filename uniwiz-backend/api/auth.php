@@ -1,24 +1,25 @@
 <?php
-// FILE: uniwiz-backend/auth.php (FULLY FIXED AND CLEANED)
+// FILE: uniwiz-backend/api/auth.php
 // ======================================================================
+// This endpoint handles user authentication and registration, including email verification and admin notifications.
 
 // For debugging purposes ONLY. Remove these lines in a live environment.
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
 // --- Include Composer's autoloader for PHPMailer ---
-// CORRECTED PATH: No longer needs '../' as this file is in the root backend folder
 require __DIR__ . '/../vendor/autoload.php';
 include_once '../config/database.php';
 
@@ -26,10 +27,10 @@ include_once '../config/database.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503); 
     echo json_encode(["message" => "Database connection failed. Check your config/database.php credentials."]);
@@ -85,6 +86,7 @@ function createAdminNotification($db, $type, $message, $link) {
 
 // --- ACTION ROUTER ---
 if ($data->action === 'register') {
+    // --- Registration Logic ---
     if (!isset($data->email) || !isset($data->password) || !isset($data->role)) {
         http_response_code(400);
         echo json_encode(["message" => "Incomplete data for registration."]);
@@ -92,6 +94,7 @@ if ($data->action === 'register') {
     }
 
     try {
+        // Check if email already exists
         $query = "SELECT id FROM users WHERE email = :email";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':email', $data->email);
@@ -112,6 +115,7 @@ if ($data->action === 'register') {
                 exit();
             }
 
+            // Insert new user
             $query = "INSERT INTO users (email, password, first_name, last_name, company_name, role, email_verification_token) VALUES (:email, :password, :first_name, :last_name, :company_name, :role, :token)";
             $stmt = $db->prepare($query);
 
@@ -130,6 +134,7 @@ if ($data->action === 'register') {
             if ($stmt->execute()) {
                 $new_user_id = $db->lastInsertId();
 
+                // Create profile for student or publisher
                 if ($role === 'student') {
                     $stmt_student_profile = $db->prepare("INSERT INTO student_profiles (user_id) VALUES (:user_id)");
                     $stmt_student_profile->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
@@ -140,12 +145,13 @@ if ($data->action === 'register') {
                     $stmt_publisher_profile->execute();
                 }
 
-                // --- NEW: Notify all admins about new registration ---
+                // Notify all admins about new registration
                 $notif_type = 'new_user_registered';
                 $notif_message = "A new user has registered: " . ($role === 'student' ? "$firstName $lastName" : $companyName) . " ($role)";
                 $notif_link = "/user-management"; // Or relevant admin page
                 createAdminNotification($db, $notif_type, $notif_message, $notif_link);
 
+                // Send verification email
                 $mail = new PHPMailer(true);
                 try {
                     if (empty($_ENV['SMTP_PASS'])) {
@@ -164,7 +170,7 @@ if ($data->action === 'register') {
                     $mail->isHTML(true);
                     $mail->Subject = 'Verify Your Email Address for UniWiz';
                     
-                    // CORRECTED PATH: Removed '/api' from the link
+                    // Verification link
                     $verification_link = 'http://uniwiz-backend.test/api/verify_email.php?token=' . $verification_token;
                     
                     $mail->Body    = "<h2>Welcome to UniWiz!</h2><p>Thank you for registering. Please click the link below to verify your email address:</p><p><a href='{$verification_link}' style='padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;'>Verify My Email</a></p><p>If you did not create an account, no further action is required.</p>";
@@ -189,6 +195,7 @@ if ($data->action === 'register') {
     }
 
 } elseif ($data->action === 'login') {
+    // --- Login Logic ---
     if (!isset($data->email) || !isset($data->password)) {
         http_response_code(400);
         echo json_encode(["message" => "Incomplete data for login."]);
@@ -203,18 +210,21 @@ if ($data->action === 'register') {
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             
+            // Check if account is blocked
             if ($row['status'] === 'blocked') {
                 http_response_code(403);
                 echo json_encode(["message" => "Your account has been blocked by the administrator."]);
                 exit();
             }
 
+            // Require email verification for non-admins
             if ($row['role'] !== 'admin' && $row['email_verified_at'] === null) {
                 http_response_code(403);
                 echo json_encode(["message" => "Please verify your email address before logging in."]);
                 exit();
             }
 
+            // Verify password
             if (password_verify($data->password, $row['password'])) {
                 $full_user_profile = getFullUserProfile($db, $row['id']);
                 http_response_code(200);

@@ -1,4 +1,20 @@
-// FILE: src/components/admin/JobManagement.js (FIXED - Initial Filter Logic)
+// =======================================================
+// JobManagement.js
+// -------------------------------------------------------
+// This file defines the JobManagement component for the
+// UniWiz admin dashboard. It allows admins to view, filter,
+// approve, reject, close, reopen, and delete job postings.
+// Includes reusable components for notifications, status
+// badges, and dropdowns. Integrates with backend APIs.
+// -------------------------------------------------------
+//
+// Key Features:
+// - Fetches and displays all jobs with filters and search
+// - Allows admin to approve, reject, close, reopen, delete jobs
+// - Uses notification toasts and loading spinners
+// - Debounced search and filter updates
+// =======================================================
+// FILE: src/components/admin/JobManagement.js 
 // =======================================================
 // This page allows administrators to view, filter, and manage job postings,
 // including approving, rejecting, closing, reopening, and deleting jobs.
@@ -6,6 +22,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 // Reusable Notification Component (Toast)
+// Shows a notification message for success/error actions
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 3000);
@@ -21,6 +38,7 @@ const Notification = ({ message, type, onClose }) => {
 };
 
 // Reusable Loading Spinner
+// Shows a spinner while loading data
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
@@ -28,6 +46,7 @@ const LoadingSpinner = () => (
 );
 
 // Reusable Job Status Badge
+// Shows a colored badge for job status (active, draft, closed, expired)
 const JobStatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -40,6 +59,7 @@ const JobStatusBadge = ({ status }) => {
 };
 
 // Actions Dropdown Component for Job Management
+// Shows a dropdown menu for each job with actions (approve, close, delete, etc.)
 const ActionsDropdown = ({ job, onAction, onViewDetails }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -95,9 +115,11 @@ const ActionsDropdown = ({ job, onAction, onViewDetails }) => {
                     aria-labelledby={`options-menu-${job.id}`}
                 >
                     <div className="py-1" role="none">
+                        {/* View job details */}
                         <button onClick={handleViewDetailsClick} className="text-primary-main block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">View Details</button>
                         <div className="my-1 border-t border-gray-100"></div> {/* Divider */}
 
+                        {/* Approve/Reject/Close/Reopen actions based on job status */}
                         {currentStatus === 'draft' && (
                             <>
                                 <button onClick={() => handleMenuAction('active')} className="text-green-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">Approve</button>
@@ -110,6 +132,7 @@ const ActionsDropdown = ({ job, onAction, onViewDetails }) => {
                         {(currentStatus === 'closed' || currentStatus === 'expired') && (
                             <button onClick={() => handleMenuAction('active')} className="text-green-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">Reopen Job</button>
                         )}
+                        {/* Delete job */}
                         <button onClick={() => handleMenuAction('delete')} className="text-red-600 block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left" role="menuitem">Delete Job</button>
                     </div>
                 </div>

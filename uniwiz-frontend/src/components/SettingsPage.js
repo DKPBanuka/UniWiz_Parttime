@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-// --- Reusable Notification Component (Toast) ---
+// --- Notification: Shows a temporary message at the top right ---
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 4000);
@@ -20,7 +20,7 @@ const Notification = ({ message, type, onClose }) => {
     );
 };
 
-// --- Reusable Confirmation Modal ---
+// --- ConfirmationModal: Modal for confirming sensitive actions (password, delete) ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, children, confirmText = 'Confirm', confirmColor = 'red', isLoading = false }) => {
     if (!isOpen) return null;
 
@@ -46,27 +46,28 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, childre
     );
 };
 
+// --- Main SettingsPage component ---
 function SettingsPage({ user, onLogout }) {
+    // --- State for notifications and modals ---
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
-    
-    // State for modals
     const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
     const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
-    // State for password change form
+    // --- State for password change form ---
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     
-    // State for delete confirmation
+    // --- State for delete confirmation ---
     const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
-
     const [isLoading, setIsLoading] = useState(false);
 
+    // --- Show notification message ---
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
     };
     
+    // --- Handle password update ---
     const handleUpdatePassword = async () => {
         if (!user || !user.id) {
             showNotification("User data is not available. Please try again.", "error");
@@ -109,6 +110,7 @@ function SettingsPage({ user, onLogout }) {
         }
     };
 
+    // --- Handle account deletion ---
     const handleDeleteAccount = async () => {
         if (!user || !user.id) {
             showNotification("User data is not available. Please try again.", "error");
@@ -143,6 +145,7 @@ function SettingsPage({ user, onLogout }) {
         }
     };
     
+    // --- Show error if user is not loaded ---
     if (!user) {
         return (
             <div className="min-h-screen bg-gray-50 flex justify-center items-center p-4">
@@ -154,6 +157,7 @@ function SettingsPage({ user, onLogout }) {
         );
     }
 
+    // --- Main Render: Settings page layout ---
     return (
         <>
             {notification.message && (

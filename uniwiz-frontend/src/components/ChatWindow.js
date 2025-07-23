@@ -1,4 +1,4 @@
-// FILE: src/components/ChatWindow.js (UPDATED with Scroll Fix & Initial Message Context)
+// FILE: src/components/ChatWindow.js 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE_URL = 'http://uniwiz-backend.test/api';

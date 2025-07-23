@@ -1,14 +1,14 @@
 <?php
-// FILE: uniwiz-backend/api/get_student_application_details.php (UPDATED for job_status)
+// FILE: uniwiz-backend/api/get_student_application_details.php
 // =======================================================================
-// This file fetches all details for a student's job applications,
+// This endpoint fetches all details for a student's job applications,
 // including job title, publisher, date applied, application status, and job status.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
@@ -39,15 +39,15 @@ $student_id = (int)$_GET['student_id'];
 
 try {
     // SQL query to fetch application details, joining with jobs and users tables
-    // to get job title, publisher name, and application status.
+    // to get job title, publisher name, job status, and application status.
     $query = "
         SELECT
             ja.job_id,
             j.title AS job_title,
-            j.status AS job_status, -- NEW: Added job_status
+            j.status AS job_status, -- Job status (e.g., active, closed)
             u.first_name AS publisher_name,
             ja.applied_at,
-            ja.status AS application_status -- Renamed to avoid conflict with job status
+            ja.status AS application_status -- Application status for the student
         FROM
             job_applications ja
         JOIN

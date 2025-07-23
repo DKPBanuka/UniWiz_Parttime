@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-// The LoginModal component receives props to control it and handle success
+// --- LoginModal: Modal popup for user login ---
+// Receives props to control visibility, handle close, and handle login success
 function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     // --- State Management for the Form ---
     const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // This function handles the form submission
+    // --- Handle form submission for login ---
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError(null);
@@ -42,9 +43,10 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         }
     };
 
+    // --- Don't render modal if not open ---
     if (!isOpen) return null;
 
-    // --- JSX to Render the Modal ---
+    // --- Main Render: Modal layout with login form ---
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
@@ -62,6 +64,7 @@ function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                         <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" required />
                     </div>
 
+                    {/* Show error message if login fails */}
                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
                     
                     <div className="flex items-center justify-center">

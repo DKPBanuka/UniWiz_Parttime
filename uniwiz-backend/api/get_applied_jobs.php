@@ -3,13 +3,13 @@
 // =================================================
 // Fetches an array of job IDs a specific user has applied to.
 
-// --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// --- Set CORS and Content-Type Headers ---
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
-// --- Handle Preflight Request ---
+// --- Handle Preflight Request for CORS ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -20,6 +20,7 @@ include_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// --- Check for database connection failure ---
 if ($db === null) {
     http_response_code(503); 
     echo json_encode(["message" => "Database connection failed."]);

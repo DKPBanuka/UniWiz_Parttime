@@ -1,14 +1,17 @@
 // FILE: src/components/AppliedJobsPage.js (UPDATED - Job Status Display)
 // ===================================================
+// This component shows all jobs the student has applied to, with filters by application/job status.
 
 import React, { useState, useEffect, useCallback } from 'react';
 
+// --- LoadingSpinner: Shows a loading animation while fetching data ---
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-8">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
   </div>
 );
 
+// --- StatusBadge: Shows application/job status as a colored badge ---
 const StatusBadge = ({ status }) => {
     const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
     const statusClasses = {
@@ -25,16 +28,19 @@ const StatusBadge = ({ status }) => {
     return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.default}`}>{status}</span>;
 };
 
+// --- Main AppliedJobsPage component ---
 function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobDetails }) {
+    // --- State for all applications, filtered applications, loading, error, and active tab ---
     const [allApplications, setAllApplications] = useState([]);
     const [filteredApplications, setFilteredApplications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState(initialFilter || 'All');
 
-    // FIXED: Added 'Closed' and 'Deleted' tabs for job statuses
+    // Tabs for filtering by application/job status
     const tabs = ['All', 'Pending', 'Viewed', 'Accepted', 'Rejected', 'Closed', 'Deleted'];
 
+    // --- Fetch all applications for the student ---
     const fetchApplicationDetails = useCallback(async () => {
         if (!user || !user.id) {
             setIsLoading(false);
@@ -61,16 +67,13 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
         }
     }, [user]);
 
+    // --- Filter applications by tab ---
     const filterApplications = useCallback((applicationsToFilter, tab) => {
         if (tab === 'All') {
             setFilteredApplications(applicationsToFilter);
         } else if (tab === 'Closed') { // Filter by job_status for 'Closed'
             setFilteredApplications(applicationsToFilter.filter(app => app.job_status === 'closed'));
-        } else if (tab === 'Deleted') { // Filter by job_status for 'Deleted' (assuming 'deleted' is a job_status)
-            // Note: 'deleted' is not a formal job status in the DB enum, but if a job is deleted,
-            // it won't appear in get_job_details.php. For this filter, we'll assume a 'deleted'
-            // status is implied if job_status is not 'active', 'draft', or 'closed'.
-            // A more robust solution would be to check if the job_id still exists in the DB.
+        } else if (tab === 'Deleted') { // Filter by job_status for 'Deleted'
             setFilteredApplications(applicationsToFilter.filter(app => 
                 app.job_status !== 'active' && app.job_status !== 'draft' && app.job_status !== 'closed'
             ));
@@ -80,14 +83,17 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
         }
     }, []);
 
+    // --- Fetch applications on mount ---
     useEffect(() => {
         fetchApplicationDetails();
     }, [fetchApplicationDetails]);
 
+    // --- Filter applications when tab or data changes ---
     useEffect(() => {
         filterApplications(allApplications, activeTab);
     }, [activeTab, allApplications, filterApplications]);
 
+    // --- Reset initial filter on unmount ---
     useEffect(() => {
         return () => {
             if (setInitialFilter) {
@@ -96,6 +102,7 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
         };
     }, [setInitialFilter]);
     
+    // --- Handle tab click ---
     const handleTabClick = (tab) => {
         setActiveTab(tab);
         if (setInitialFilter) {
@@ -103,10 +110,12 @@ function AppliedJobsPage({ user, initialFilter, setInitialFilter, handleViewJobD
         }
     };
 
+    // --- Show loading spinner if user is not loaded ---
     if (!user) {
         return <LoadingSpinner />;
     }
 
+    // --- Main Render: Applications table and filter tabs ---
     return (
         <div className="p-6 md:p-8 bg-gray-50 min-h-screen text-gray-800">
             <div className="max-w-7xl mx-auto">

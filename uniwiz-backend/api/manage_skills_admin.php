@@ -1,21 +1,24 @@
 <?php
 // FILE: uniwiz-backend/api/manage_skills_admin.php
+// =====================================================
+// This endpoint allows admin users to manage (view, add, delete) skills in the system.
 
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+header("Content-Type: application/json; charset=UTF-8"); // Respond with JSON
+header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
 
-// Handle preflight (OPTIONS) request
+// Handle preflight (OPTIONS) request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);

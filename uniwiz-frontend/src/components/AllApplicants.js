@@ -1,8 +1,7 @@
 // FILE: src/components/AllApplicants.js (FULLY IMPLEMENTED)
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
-// --- Reusable Components ---
-
+// --- Notification: Shows a temporary message at the top right ---
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => onClose(), 3000);
@@ -16,12 +15,14 @@ const Notification = ({ message, type, onClose }) => {
     );
 };
 
+// --- LoadingSpinner: Shows a loading animation ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
 );
 
+// --- StatusBadge: Shows a colored badge for application status ---
 const StatusBadge = ({ status }) => {
     const statusMap = {
         pending: "bg-yellow-100 text-yellow-800",
@@ -33,15 +34,13 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
-// --- Enhanced Applicant Detail Modal with all details ---
+// --- ApplicantDetailModal: Shows all details of a selected applicant ---
 const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitiateConversation }) => {
-    // --- Student Reviews State (move to top, always called) ---
-    // Remove useState/useEffect for studentReviews and studentAvgRating
-    // Remove the Student Rating section in ApplicantDetailModal (the div with mt-8 mb-4 and its contents)
-    // Remove any review-related imports or variables
+    // --- State for current status of the application ---
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
     const modalRef = useRef();
 
+    // --- Mark as viewed if opened from pending ---
     useEffect(() => {
         if (applicant && applicant.status === 'pending') {
             onStatusChange(applicant.application_id, 'viewed', false); 
@@ -51,6 +50,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
         }
     }, [applicant, onStatusChange]);
 
+    // --- Close modal on Escape key ---
     useEffect(() => {
         const handleKeyDown = (event) => { if (event.key === 'Escape') onClose(); };
         window.addEventListener('keydown', handleKeyDown);
@@ -59,11 +59,13 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
 
     if (!applicant) return null;
 
+    // --- Handle status change buttons ---
     const handleStatusButtonClick = (newStatus) => {
         onStatusChange(applicant.application_id, newStatus, true); 
         setCurrentStatus(newStatus);
     };
     
+    // --- Start a conversation with the applicant ---
     const onMessageClick = () => {
         const targetInfo = {
             targetUserId: applicant.student_id,
@@ -158,8 +160,9 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
     );
 };
 
-// --- Main AllApplicants Component ---
+// --- AllApplicants: Main component to view and manage all job applicants ---
 function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicationId, onModalClose, handleInitiateConversation }) {
+    // --- State hooks for data, UI, and filters ---
     const [allApplicants, setAllApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -175,10 +178,12 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
     
     const modalOpenedRef = useRef(false);
 
+    // --- Show notification message ---
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
     };
 
+    // --- Fetch all applications for the publisher ---
     const fetchAllApplications = useCallback(async () => {
         if (!user || !user.id) return;
         setIsLoading(true);
@@ -203,6 +208,7 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         }
     }, [user, searchTerm, statusFilter]);
 
+    // --- Open modal if initialApplicationId is provided ---
     useEffect(() => {
         if (initialApplicationId && allApplicants.length > 0 && !modalOpenedRef.current) {
             const applicantToShow = allApplicants.find(app => app.application_id === initialApplicationId);
@@ -214,6 +220,7 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         }
     }, [initialApplicationId, allApplicants]);
     
+    // --- Close modal and reset state ---
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedApplicant(null);
@@ -223,11 +230,13 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         modalOpenedRef.current = false; 
     };
 
+    // --- Open modal for selected applicant ---
     const handleViewDetails = (applicant) => {
         setSelectedApplicant(applicant);
         setIsModalOpen(true);
     };
     
+    // --- Change application status (accept/reject/viewed) ---
     const handleStatusChange = async (applicationId, newStatus, showNotif) => {
         try {
             const response = await fetch(`http://uniwiz-backend.test/api/update_application_status.php`, {
@@ -248,6 +257,7 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         }
     };
     
+    // --- Debounced fetch on search/filter change ---
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             fetchAllApplications();
@@ -255,12 +265,14 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         return () => clearTimeout(delayDebounceFn);
     }, [fetchAllApplications]);
 
+    // --- Reset filter on unmount ---
     useEffect(() => {
         return () => {
             if (setInitialFilter) setInitialFilter('All');
         };
     }, [setInitialFilter]);
 
+    // --- Sort applicants based on selected order ---
     const sortedApplicants = useMemo(() => {
         const sorted = [...allApplicants];
         switch (sortOrder) {
@@ -281,12 +293,13 @@ function AllApplicants({ user, initialFilter, setInitialFilter, initialApplicati
         return sorted;
     }, [allApplicants, sortOrder]);
 
-
+    // --- Tabs for status filtering ---
     const tabs = ['All', 'pending', 'viewed', 'accepted', 'rejected'];
     if (initialFilter === 'today' && !tabs.includes('today')) {
         tabs.push('today');
     }
 
+    // --- Render main content (table or empty state) ---
     const renderContent = () => {
         if (isLoading) return <LoadingSpinner />;
         if (error) return <div className="text-center py-16 text-red-500 bg-white rounded-xl shadow-md">{error}</div>;

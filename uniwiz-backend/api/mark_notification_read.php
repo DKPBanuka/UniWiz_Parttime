@@ -1,12 +1,12 @@
 <?php
-// FILE: uniwiz-backend/api/mark_notification_read.php (NEW FILE)
+// FILE: uniwiz-backend/api/mark_notification_read.php
 // =====================================================================
-// This file marks a specific notification as read.
+// This endpoint marks a specific notification as read for a user.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
@@ -38,7 +38,7 @@ if ($data === null || !isset($data->notification_id) || !isset($data->user_id)) 
 
 try {
     // Update the notification status to 'read' (is_read = 1)
-    // We also check that the notification belongs to the user making the request for security.
+    // Also check that the notification belongs to the user making the request for security.
     $query = "UPDATE notifications SET is_read = 1 WHERE id = :notification_id AND user_id = :user_id";
     $stmt = $db->prepare($query);
 

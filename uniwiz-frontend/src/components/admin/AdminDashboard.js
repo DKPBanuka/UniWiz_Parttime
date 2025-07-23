@@ -1,10 +1,24 @@
-// FILE: src/components/admin/AdminDashboard.js (ENHANCED with New Colors & Icons)
 // =======================================================
-// Main dashboard for the Administrator, updated with a new color scheme and fresh icons.
+// AdminDashboard.js
+// -------------------------------------------------------
+// This file defines the AdminDashboard component for the
+// UniWiz admin dashboard. It displays platform statistics,
+// quick actions, and a system overview for administrators.
+// Includes reusable components for stat cards and loading
+// skeletons. Integrates with backend API for stats.
+// -------------------------------------------------------
+//
+// Key Features:
+// - Shows total users, jobs, pending jobs, unverified users
+// - Quick actions for user/job management
+// - System overview with student/publisher counts
+// - Uses loading skeletons and error handling
+// =======================================================
 
 import React, { useState, useEffect } from 'react';
 
 // A reusable card for displaying stats with dynamic colors
+// StatCard displays a single statistic with icon and action
 const StatCard = ({ title, value, icon, colorClass, onClick, description }) => (
     <div 
         className="bg-white p-6 rounded-xl shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 hover:-translate-y-1 border-l-4" 
@@ -40,8 +54,8 @@ const StatCard = ({ title, value, icon, colorClass, onClick, description }) => (
     </div>
 );
 
-
 // Loading skeleton for StatCard
+// StatCardSkeleton shows a placeholder while loading stats
 const StatCardSkeleton = ({ colorClass }) => (
     <div className="bg-white p-6 rounded-xl shadow-md flex items-center justify-between animate-pulse border-l-4" style={{borderColor: colorClass}}>
         <div>

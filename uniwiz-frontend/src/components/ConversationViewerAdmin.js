@@ -1,4 +1,4 @@
-// FILE: src/components/admin/ConversationViewerAdmin.js (NEW FILE)
+// FILE: src/components/admin/ConversationViewerAdmin.js
 // =================================================================
 // DESCRIPTION: This component provides a read-only interface for administrators
 // to view all user conversations on the platform for moderation purposes.

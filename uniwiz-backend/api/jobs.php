@@ -1,12 +1,13 @@
 <?php
-// FILE: uniwiz-backend/api/jobs.php (ENHANCED to include student-specific application status)
+// FILE: uniwiz-backend/api/jobs.php
 // =================================================================================================
+// This endpoint fetches all active jobs, with optional filters and student-specific application status.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // --- Handle Preflight (OPTIONS) Request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -15,10 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) { 
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -33,9 +35,9 @@ try {
     $category_id_filter = isset($_GET['category_id']) ? trim($_GET['category_id']) : '';
     $job_type_filter = isset($_GET['job_type']) ? trim($_GET['job_type']) : '';
 
-    // **CHANGE**: The query now includes a LEFT JOIN to the job_applications table
+    // The query includes a LEFT JOIN to the job_applications table
     // to fetch the status of the application for the specific student.
-    // **ADDED**: profile_image_url field for company logos
+    // Also includes profile_image_url for company logos
     $query = "
         SELECT 
             j.id, 
@@ -113,8 +115,8 @@ try {
             "publisher_id" => $row['publisher_id'],
             "publisher_name" => $row['publisher_first_name'],
             "company_name" => $row['publisher_company_name'],
-            "profile_image_url" => $row['profile_image_url'], // **NEW**: Add profile image URL for company logos
-            "application_status" => $row['application_status'] // **NEW**: Add the status to the response
+            "profile_image_url" => $row['profile_image_url'], // Company logo
+            "application_status" => $row['application_status'] // Student's application status
         );
         array_push($jobs_arr, $job_item);
     }

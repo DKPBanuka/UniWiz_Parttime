@@ -1,16 +1,17 @@
 <?php
-// FILE: uniwiz-backend/api/create_job.php (ENHANCED with Payment System)
+// FILE: uniwiz-backend/api/create_job.php
 // ========================================================================
+// This endpoint allows publishers to create a new job post, including payment calculation and admin notifications.
 
 // --- Headers, DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Content-Type: application/json; charset=UTF-8"); // Respond with JSON
+header("Access-Control-Allow-Methods: POST, OPTIONS"); // Allow POST and OPTIONS methods
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -27,7 +28,7 @@ if ( $data === null || !isset($data->publisher_id) || !isset($data->title) || !i
     exit();
 }
 
-// --- NEW: Function to calculate payment amount based on job type and duration ---
+// --- Function to calculate payment amount based on job type and duration ---
 function calculatePaymentAmount($job_type, $payment_range, $start_date, $end_date) {
     // Extract numeric value from payment range (e.g., "5000-10000" -> 5000)
     $min_amount = 0;
@@ -52,7 +53,7 @@ function calculatePaymentAmount($job_type, $payment_range, $start_date, $end_dat
     }
 }
 
-// --- NEW: Function to create a notification for all admins (copied from auth.php for reusability) ---
+// --- Function to create a notification for all admins ---
 function createAdminNotification($db, $type, $message, $link) {
     // Fetch all admin user IDs
     $stmt_admins = $db->prepare("SELECT id FROM users WHERE role = 'admin'");
@@ -111,7 +112,7 @@ try {
     $working_hours = isset($data->working_hours) ? htmlspecialchars(strip_tags($data->working_hours)) : null;
     $experience_level = isset($data->experience_level) ? htmlspecialchars(strip_tags($data->experience_level)) : 'any';
 
-    // --- NEW: Payment fields ---
+    // --- Payment fields ---
     $payment_status = isset($data->payment_status) ? htmlspecialchars(strip_tags($data->payment_status)) : 'pending';
     $payment_method = isset($data->payment_method) ? htmlspecialchars(strip_tags($data->payment_method)) : null;
     
@@ -146,7 +147,7 @@ try {
     if ($stmt->execute()) {
         $job_id = $db->lastInsertId();
         
-        // --- NEW: Create notification for admins if job is a draft (pending approval) ---
+        // Create notification for admins if job is a draft (pending approval)
         if ($status === 'draft') {
             $notification_message = "New job posted: \"" . $title . "\" is pending approval.";
             createAdminNotification($db, 'new_job_pending_approval', $notification_message, '/job-management?filter=draft');

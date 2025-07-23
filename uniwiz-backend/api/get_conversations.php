@@ -1,17 +1,21 @@
 <?php
-// FILE: uniwiz-backend/api/get_conversations.php (UPDATED)
+// FILE: uniwiz-backend/api/get_conversations.php
+// =====================================================
+// This endpoint fetches all conversations for a given user, including job info and unread message count.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Validate user_id parameter
 if (!isset($_GET['user_id'])) {
     http_response_code(400);
     echo json_encode(["message" => "User ID is required."]);
@@ -20,7 +24,7 @@ if (!isset($_GET['user_id'])) {
 $user_id = (int)$_GET['user_id'];
 
 try {
-    // The query is updated to LEFT JOIN the jobs table to fetch the job_title
+    // Query fetches all conversations for the user, including job title, other user info, last message, and unread count
     $query = "
         SELECT 
             c.id as conversation_id,

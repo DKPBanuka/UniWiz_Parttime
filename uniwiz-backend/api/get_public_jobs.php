@@ -1,15 +1,18 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+// FILE: uniwiz-backend/api/get_public_jobs.php
+// =====================================================
+// This endpoint fetches a list of public (active) jobs for display on the public site.
+// It includes company details and limits the results to the latest 6 jobs.
+
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // Include the database connection file
-// Make sure the path is correct based on your file structure
 require_once '../config/database.php';
 
 // Create a new Database object and get the connection
-// This assumes your Database class is correctly set up to return a PDO object.
 $database = new Database();
 $db = $database->getConnection(); 
 
@@ -22,7 +25,7 @@ if ($db === null) {
 }
 
 // SQL query to select active jobs along with company details
-// It joins the 'jobs' table with the 'users' table to get the company name and profile image.
+// Joins the 'jobs' table with the 'users' table to get the company name and profile image.
 // Jobs are ordered by creation date in descending order and limited to 6 results.
 $query = "
     SELECT 

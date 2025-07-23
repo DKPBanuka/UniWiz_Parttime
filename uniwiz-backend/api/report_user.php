@@ -1,20 +1,24 @@
 <?php
-// FILE: uniwiz-backend/api/report_user.php (NEW FILE)
+// FILE: uniwiz-backend/api/report_user.php
+// =====================================================
+// This endpoint allows users to report other users or app problems.
+// It saves the report and notifies all administrators.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 
-// This function notifies all administrators about a new event.
-// It can be moved to a common utility file (e.g., 'utils.php') and included where needed.
+// Utility function to notify all administrators about a new event/report
+// This can be moved to a common utility file if needed
 function createAdminNotification($db, $type, $message, $link) {
     // Fetch all admin user IDs
     $stmt_admins = $db->prepare("SELECT id FROM users WHERE role = 'admin'");
@@ -41,10 +45,11 @@ function createAdminNotification($db, $type, $message, $link) {
 $database = new Database();
 $db = $database->getConnection();
 
-$data = json_decode(file_get_contents("php://input"));
+$data = json_decode(file_get_contents("php://input")); // Get POST data as JSON
 
-$type = isset($data->type) ? $data->type : 'user';
+$type = isset($data->type) ? $data->type : 'user'; // Default type is 'user'
 
+// Validate required fields based on report type
 if ($type === 'app_problem') {
     if (!isset($data->reporter_id) || !isset($data->reason)) {
         http_response_code(400);
@@ -67,6 +72,7 @@ if ($type === 'app_problem') {
     $reason = htmlspecialchars(strip_tags($data->reason));
 }
 
+// Ensure the reason is not empty
 if (empty(trim($reason))) {
     http_response_code(400);
     echo json_encode(["message" => "A reason for the report is required."]);
@@ -74,6 +80,7 @@ if (empty(trim($reason))) {
 }
 
 try {
+    // Insert the report into the database
     $query = "INSERT INTO reports (type, reporter_id, reported_user_id, conversation_id, reason) 
               VALUES (:type, :reporter_id, :reported_user_id, :conversation_id, :reason)";
     $stmt = $db->prepare($query);

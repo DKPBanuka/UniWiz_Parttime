@@ -1,10 +1,11 @@
 // FILE: src/components/Sidebar.js (UPDATED with Messages Link & Notification Dot)
 // ====================================================================================
+// This component renders the sidebar navigation for publisher/admin users, with animated expand/collapse and notification dot.
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Reusable navigation link component with enhanced animations
+// --- NavLink: Reusable navigation link with icon, text, and notification dot ---
 const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, hasNotification = false }) => {
   const [isHovering, setIsHovering] = useState(false);
   
@@ -32,6 +33,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
                 <motion.div animate={{ rotate: isHovering && !isActive ? 5 : 0 }}>
                     {icon}
                 </motion.div>
+                {/* Notification dot for collapsed sidebar */}
                 {!isExpanded && hasNotification && (
                     <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -49,6 +51,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
             </motion.span>
             )}
         </div>
+        {/* Notification dot for expanded sidebar */}
         {isExpanded && hasNotification && (
             <span className="flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-red-400 opacity-75"></span>
@@ -57,6 +60,7 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
         )}
       </motion.button>
       
+      {/* Tooltip for collapsed sidebar */}
       {!isExpanded && (
         <motion.div 
           initial={{ opacity: 0, y: -5 }}
@@ -74,12 +78,13 @@ const NavLink = ({ icon, text, isActive, isExpanded, onClick, isLogout = false, 
   );
 };
 
+// --- Main Sidebar component ---
 function Sidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnreadMessages }) {
     const [isHovered, setIsHovered] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const isExpanded = isLocked || isHovered;
 
-    // Icons
+    // --- SVG icons for sidebar links ---
     const dashboardIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>;
     const jobsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
     const applicantsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
@@ -90,6 +95,7 @@ function Sidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnre
     const pinIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>;
     const unpinIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary-main" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" /></svg>;
 
+    // --- Handle sidebar lock/unlock toggle ---
     const handleToggleLock = () => {
       if (isAnimating) return;
       setIsAnimating(true);
@@ -97,6 +103,7 @@ function Sidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnre
       setTimeout(() => setIsAnimating(false), 300);
     };
 
+    // --- Main Render: Sidebar layout ---
     return (
         <motion.aside 
             className={`bg-white h-full flex-shrink-0 p-4 flex flex-col shadow-xl transition-all duration-200 ease-out relative z-20 ${isExpanded ? 'w-64' : 'w-20'}`}
@@ -156,6 +163,7 @@ function Sidebar({ currentPage, setPage, onLogout, isLocked, toggleLock, hasUnre
                 <NavLink text="Log Out" icon={logoutIcon} isExpanded={isExpanded} onClick={onLogout} isLogout={true} />
             </div>
             
+            {/* Blue accent bar for collapsed sidebar */}
             {!isExpanded && !isLocked && (
               <motion.div 
                 className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-16 bg-primary-main rounded-l-full"

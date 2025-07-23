@@ -1,16 +1,37 @@
+// =======================================================
+// AdminSettingsPage.js
+// -------------------------------------------------------
+// This file defines the AdminSettingsPage component for the
+// UniWiz admin dashboard. It allows admins to manage job
+// categories, skills, and footer links for the platform.
+// Includes reusable components for list management and footer
+// link management, with API integration and user feedback.
+// -------------------------------------------------------
+//
+// Key Features:
+// - Manage job categories and skills (add/delete)
+// - Manage footer links for different categories
+// - Uses loading, error, and success states for UX
+// - API integration for CRUD operations
+// =======================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { getCategoryColorClass, getAllCategoryColors } from '../../utils/categoryColors';
 
 const API_BASE_URL = 'http://uniwiz-backend.test/api';
 
 // Reusable component to manage a list (Skills or Categories)
+// ListManager handles fetching, adding, and deleting items (categories/skills)
 const ListManager = ({ title, apiEndpoint }) => {
+    // State for list items
     const [items, setItems] = useState([]);
+    // State for new item input
     const [newItem, setNewItem] = useState('');
+    // Loading and error states
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState(null);
 
+    // Fetch list data from backend
     const fetchData = useCallback(async () => {
         try {
             setError(null);
@@ -26,10 +47,12 @@ const ListManager = ({ title, apiEndpoint }) => {
         }
     }, [apiEndpoint, title]);
 
+    // Fetch data on mount
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    // Add new item to the list
     const handleAdd = async () => {
         if (!newItem.trim()) return;
         setIsAdding(true);
@@ -49,6 +72,7 @@ const ListManager = ({ title, apiEndpoint }) => {
         }
     };
 
+    // Delete item from the list
     const handleDelete = async (id) => {
         if (!window.confirm(`Are you sure you want to delete this ${title.slice(0, -1).toLowerCase()}?`)) return;
         
@@ -63,6 +87,7 @@ const ListManager = ({ title, apiEndpoint }) => {
         }
     };
 
+    // Add item on Enter key press
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') handleAdd();
     };
@@ -114,6 +139,7 @@ const ListManager = ({ title, apiEndpoint }) => {
                         {items.map(item => (
                             <li key={item.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md hover:bg-gray-100 transition-colors">
                                 <div className="flex items-center space-x-2">
+                                    {/* Show color dot and badge for job categories */}
                                     {title === 'Job Categories' && (
                                         <span className={`inline-block w-3 h-3 rounded-full ${getCategoryColorClass(item.name).split(' ')[0]}`}></span>
                                     )}
@@ -143,18 +169,22 @@ const ListManager = ({ title, apiEndpoint }) => {
 };
 
 // Enhanced Footer Manager Component
+// FooterManager handles editing and saving footer links for the site
 const FooterManager = ({ user }) => {
+    // State for footer links by category
     const [footerLinks, setFooterLinks] = useState({
         support: [],
         company: [],
         connect: [],
         legal: []
     });
+    // Loading, saving, error, and success states
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
+    // Fetch footer links from backend
     const fetchFooterLinks = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -176,10 +206,12 @@ const FooterManager = ({ user }) => {
         }
     }, []);
 
+    // Fetch footer links on mount
     useEffect(() => {
         fetchFooterLinks();
     }, [fetchFooterLinks]);
 
+    // Handle input changes for link text/url
     const handleInputChange = (category, index, field, value) => {
         const updatedLinks = { ...footerLinks };
         if (!updatedLinks[category][index]) {
@@ -189,12 +221,14 @@ const FooterManager = ({ user }) => {
         setFooterLinks(updatedLinks);
     };
 
+    // Add a new link to a category
     const addLink = (category) => {
         const updatedLinks = { ...footerLinks };
         updatedLinks[category].push({ text: '', url: '' });
         setFooterLinks(updatedLinks);
     };
 
+    // Remove a link from a category
     const removeLink = (category, index) => {
         if (!window.confirm('Are you sure you want to remove this link?')) return;
         
@@ -203,6 +237,7 @@ const FooterManager = ({ user }) => {
         setFooterLinks(updatedLinks);
     };
 
+    // Save footer links to backend
     const handleSave = async () => {
         setIsSaving(true);
         setError(null);
@@ -232,6 +267,7 @@ const FooterManager = ({ user }) => {
         }
     };
 
+    // Labels for footer link categories
     const categoryLabels = {
         support: 'Support',
         company: 'Company',

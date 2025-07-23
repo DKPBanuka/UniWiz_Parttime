@@ -1,9 +1,10 @@
 // FILE: src/components/ViewApplications.js (FIXED & ENHANCED)
 // =================================================================
+// This component displays all applications for a specific job, allowing the publisher to view student profiles.
 
 import React, { useState, useEffect } from 'react';
 
-// --- Reusable Status Badge Component ---
+// --- StatusBadge: Shows application status as a colored badge ---
 const StatusBadge = ({ status }) => {
     const statusClasses = {
         pending: "bg-yellow-100 text-yellow-800",
@@ -20,19 +21,21 @@ const StatusBadge = ({ status }) => {
     );
 };
 
-
+// --- Main ViewApplications component ---
 function ViewApplications({ jobId, onBackClick, onViewStudentProfile }) { // Add onViewStudentProfile prop
+    // --- State for applications, loading, and error ---
     const [applications, setApplications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // --- Fetch applications for the job on mount ---
     useEffect(() => {
         const fetchApplications = async () => {
             if (!jobId) return;
             setIsLoading(true);
             setError(null);
             try {
-                // We will use the more detailed get_all_publisher_applications endpoint
+                // Use the more detailed get_all_publisher_applications endpoint
                 // to get student IDs and other potential details.
                 const response = await fetch(`http://uniwiz-backend.test/api/get_all_publisher_applications.php?job_id=${jobId}`);
                 if (!response.ok) {
@@ -49,6 +52,7 @@ function ViewApplications({ jobId, onBackClick, onViewStudentProfile }) { // Add
         fetchApplications();
     }, [jobId]);
 
+    // --- Main Render: Applications table ---
     return (
         <main className="container mx-auto px-6 py-8">
             <div className="flex items-center mb-8">

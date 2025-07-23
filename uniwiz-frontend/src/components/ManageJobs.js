@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-// --- Reusable Components ---
-
+// --- Notification: Shows a temporary message at the top right ---
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => onClose(), 3000);
@@ -14,12 +13,14 @@ const Notification = ({ message, type, onClose }) => {
     return <div className={`fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white transition-transform transform translate-x-0 z-50 ${typeClasses[type] || 'bg-gray-500'}`}>{message}</div>;
 };
 
+// --- LoadingSpinner: Shows a loading animation ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
 );
 
+// --- ConfirmationModal: Shows a confirmation dialog for delete/close actions ---
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionType = 'delete' }) => {
     if (!isOpen) return null;
     const confirmButtonClasses = {
@@ -40,6 +41,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, actionT
     );
 };
 
+// --- ActionsDropdown: Dropdown menu for job actions (edit, delete, extend, view) ---
 const ActionsDropdown = ({ job, onAction, onExtend }) => {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef(null);
@@ -83,7 +85,7 @@ const ActionsDropdown = ({ job, onAction, onExtend }) => {
     );
 };
 
-// --- Extend Modal ---
+// --- ExtendModal: Modal for extending job deadline ---
 const ExtendModal = ({ isOpen, onClose, job, onExtend }) => {
     const today = new Date().toISOString().split('T')[0];
     const [newDeadline, setNewDeadline] = useState('');
@@ -132,8 +134,9 @@ const ExtendModal = ({ isOpen, onClose, job, onExtend }) => {
     );
 };
 
-// --- Main ManageJobs Component ---
+// --- ManageJobs: Main component to view, edit, delete, and extend jobs ---
 function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewApplicants }) {
+    // --- State hooks for jobs, loading, error, modals, notifications ---
     const [myJobs, setMyJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -148,6 +151,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
     const [extendDeadline, setExtendDeadline] = useState('');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
 
+    // --- Fetch publisher jobs from backend ---
     const fetchPublisherJobs = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
@@ -169,10 +173,12 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         fetchPublisherJobs();
     }, [fetchPublisherJobs]);
 
+    // --- Show notification message ---
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
     };
 
+    // --- Handle job actions (edit, delete, view, extend) ---
     const handleJobAction = async (job, action) => {
         if (action === 'view') {
             onViewApplicants(job); // Navigate to ViewApplicants page
@@ -246,6 +252,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         setExtendPrice(0);
     };
 
+    // --- JobStatusBadge: Shows a colored badge for job status ---
     const JobStatusBadge = ({ status }) => {
         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full capitalize";
         const statusClasses = {
@@ -257,6 +264,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.draft}`}>{status}</span>;
     };
 
+    // --- Sort jobs by created date ---
     const sortedJobs = useMemo(() => {
         return [...myJobs].sort((a, b) => {
             const dateA = new Date(a.created_at);
@@ -265,6 +273,7 @@ function ManageJobs({ user, onPostJobClick, onViewJobDetails, onEditJob, onViewA
         });
     }, [myJobs, sortOrder]);
 
+    // --- Main Render ---
     return (
         <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
             {notification.message && <Notification key={notification.key} message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '', key: 0 })} />}

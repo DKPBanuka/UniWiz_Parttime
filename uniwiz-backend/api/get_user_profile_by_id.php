@@ -1,14 +1,14 @@
 <?php
-// FILE: uniwiz-backend/api/get_user_profile_by_id.php (NEW FILE)
+// FILE: uniwiz-backend/api/get_user_profile_by_id.php
 // =====================================================================
-// This file fetches a user's full profile by ID, typically for re-initializing
+// This endpoint fetches a user's full profile by ID, typically for re-initializing
 // a session from stored user data (e.g., localStorage) without requiring re-authentication.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 // --- Suppress PHP Errors for clean JSON output ---
 ini_set('display_errors', 0);
@@ -21,10 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503); 
     echo json_encode(array("message" => "Database connection failed."));
@@ -32,6 +33,7 @@ if ($db === null) {
 }
 
 // --- Get User ID from GET parameters ---
+// Validate that user_id is provided and is an integer
 if (!isset($_GET['user_id']) || !filter_var($_GET['user_id'], FILTER_VALIDATE_INT)) {
     http_response_code(400); // Bad Request
     echo json_encode(array("message" => "A valid User ID is required."));
@@ -41,8 +43,7 @@ if (!isset($_GET['user_id']) || !filter_var($_GET['user_id'], FILTER_VALIDATE_IN
 $user_id = (int)$_GET['user_id'];
 
 // --- Function to fetch full user profile (re-used from auth.php) ---
-// This function needs to be defined here or included from a common utility file.
-// For now, we'll include it directly for self-containment.
+// This function fetches all user, student, and publisher profile fields for a given user ID.
 function getFullUserProfileById($db, $id) {
     $query = "
         SELECT 

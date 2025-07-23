@@ -3,12 +3,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 
+// --- LoadingSpinner: Shows a loading animation while fetching data ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
     </div>
 );
 
+// --- ProfileSection: Reusable section container for profile info ---
 const ProfileSection = ({ title, children }) => (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
         <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">{title}</h3>
@@ -16,6 +18,7 @@ const ProfileSection = ({ title, children }) => (
     </div>
 );
 
+// --- InfoItem: Displays a label and value pair ---
 const InfoItem = ({ label, value }) => (
     <div>
         <p className="text-sm text-gray-500">{label}</p>
@@ -23,17 +26,21 @@ const InfoItem = ({ label, value }) => (
     </div>
 );
 
+// --- SkillBadge: Displays a single skill as a badge ---
 const SkillBadge = ({ skill }) => (
     <span className="bg-blue-50 text-blue-600 font-medium px-3 py-1 rounded-full text-sm hover:bg-blue-100 transition-colors duration-200">
         {skill}
     </span>
 );
 
+// --- StudentProfilePage: Shows a student's profile with all details ---
 function StudentProfilePage({ studentId, onBackClick, currentUser }) {
+    // --- State hooks for student data, loading, and error ---
     const [student, setStudent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // --- Fetch student profile from backend ---
     const fetchStudentProfile = useCallback(async () => {
         if (!studentId) {
             setError("No student selected.");
@@ -55,6 +62,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
         }
     }, [studentId]);
 
+    // --- Fetch profile on mount or when studentId changes ---
     useEffect(() => {
         fetchStudentProfile();
     }, [fetchStudentProfile]);
@@ -76,7 +84,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
     return (
         <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
             <div className="max-w-4xl mx-auto">
-                {/* Back Button */}
+                {/* --- Back Button --- */}
                 <button 
                     onClick={onBackClick} 
                     className="flex items-center text-blue-500 hover:text-blue-600 font-medium mb-6 transition-colors duration-200"
@@ -87,7 +95,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
                     Back to Applicants
                 </button>
 
-                {/* Profile Header */}
+                {/* --- Profile Header --- */}
                 <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 mb-8 flex flex-col md:flex-row items-center gap-6">
                     <img
                         src={student.profile_image_url ? `http://uniwiz-backend.test/api/${student.profile_image_url}` : `https://placehold.co/128x128/E8EAF6/211C84?text=${student.first_name.charAt(0)}`}
@@ -97,7 +105,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
                     <div className="text-center md:text-left">
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{student.first_name} {student.last_name}</h1>
                         <p className="text-gray-600 mt-1">{student.field_of_study || 'Student'}</p>
-                        {/* NEW: Verified Badge */}
+                        {/* --- Verified/Unverified Badge --- */}
                         {student.is_verified ? (
                             <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 mt-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -114,7 +122,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column */}
+                    {/* --- Left Column: Education & Skills --- */}
                     <div className="lg:col-span-2 space-y-6">
                         <ProfileSection title="Educational Background">
                             <InfoItem label="University / Institution" value={student.university_name} />
@@ -135,7 +143,7 @@ function StudentProfilePage({ studentId, onBackClick, currentUser }) {
                         </ProfileSection>
                     </div>
 
-                    {/* Right Column */}
+                    {/* --- Right Column: Additional Info & CV --- */}
                     <div className="space-y-6">
                         <ProfileSection title="Additional Information">
                             <InfoItem label="Languages Spoken" value={student.languages_spoken} />

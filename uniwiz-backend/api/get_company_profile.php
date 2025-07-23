@@ -1,28 +1,31 @@
 <?php
-// FILE: uniwiz-backend/api/get_company_profile.php (ENHANCED for Gallery Images & Full Functionality)
+// FILE: uniwiz-backend/api/get_company_profile.php
 // =================================================================================================
+// This endpoint fetches a publisher's (company's) profile, including details, jobs, reviews, and gallery images.
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
-
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
     exit();
 }
 
+// Validate publisher_id parameter
 if (!isset($_GET['publisher_id']) || !filter_var($_GET['publisher_id'], FILTER_VALIDATE_INT)) {
     http_response_code(400);
     echo json_encode(["message" => "A valid Publisher ID is required."]);
@@ -33,7 +36,7 @@ $publisher_id = (int)$_GET['publisher_id'];
 try {
     $company_data = [];
 
-    // 1. Fetch Company Details (including new cover_image_url)
+    // 1. Fetch Company Details (including cover image, average rating, and review count)
     $query_company = "
         SELECT 
             u.id, u.first_name, u.last_name, u.email, u.company_name, u.profile_image_url,
@@ -61,7 +64,7 @@ try {
     }
     $company_data['details'] = $company_details;
 
-    // 2. Fetch Jobs Posted by This Company
+    // 2. Fetch Jobs Posted by This Company (only active jobs)
     $query_jobs = "
         SELECT 
             j.id, 
@@ -80,7 +83,6 @@ try {
     $stmt_jobs->execute();
     $company_data['jobs'] = $stmt_jobs->fetchAll(PDO::FETCH_ASSOC);
 
-
     // 3. Fetch all reviews for the company
     $query_reviews = "
         SELECT 
@@ -96,14 +98,12 @@ try {
     $stmt_reviews->execute();
     $company_data['reviews'] = $stmt_reviews->fetchAll(PDO::FETCH_ASSOC);
 
-
     // 4. Fetch all gallery images for the company
     $query_images = "SELECT id, image_url FROM publisher_images WHERE publisher_id = :publisher_id ORDER BY uploaded_at DESC";
     $stmt_images = $db->prepare($query_images);
     $stmt_images->bindParam(':publisher_id', $publisher_id, PDO::PARAM_INT);
     $stmt_images->execute();
     $company_data['gallery_images'] = $stmt_images->fetchAll(PDO::FETCH_ASSOC);
-
 
     http_response_code(200);
     echo json_encode($company_data);

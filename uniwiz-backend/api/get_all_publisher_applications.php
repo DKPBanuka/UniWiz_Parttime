@@ -1,24 +1,27 @@
 <?php
-// FILE: uniwiz-backend/api/get_all_publisher_applications.php (FIXED & ENHANCED for Vacancy Check)
+// FILE: uniwiz-backend/api/get_all_publisher_applications.php
 // ==============================================================================================
-// This file now also returns the vacancy and accepted counts for each job.
+// This endpoint returns all job applications for a publisher or a specific job,
+// including vacancy and accepted counts for each job.
 
 // --- Headers ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
 // --- Database Connection ---
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
@@ -26,6 +29,7 @@ if ($db === null) {
 }
 
 // --- Get and Validate Parameters ---
+// At least one of publisher_id or job_id must be provided
 if (!isset($_GET['publisher_id']) && !isset($_GET['job_id'])) {
     http_response_code(400);
     echo json_encode(["message" => "A Publisher ID or Job ID is required."]);
@@ -38,7 +42,7 @@ $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
 $status_filter = isset($_GET['status']) ? trim($_GET['status']) : 'All';
 
 try {
-    // **UPDATED**: The query now includes vacancy and accepted counts.
+    // Query includes vacancy and accepted counts for each job
     $query = "
         SELECT
             ja.id as application_id,
@@ -83,6 +87,7 @@ try {
         $params[':job_id'] = $job_id;
     }
     
+    // Filter by application status (e.g., today, accepted, pending, etc.)
     if ($status_filter === 'today') {
         $query .= " AND DATE(ja.applied_at) = CURDATE()";
     } elseif ($status_filter !== 'All') {
@@ -90,6 +95,7 @@ try {
         $params[':status'] = $status_filter;
     }
 
+    // Filter by search term (matches student name, job title, or skills)
     if (!empty($search_term)) {
         $query .= " AND (u.first_name LIKE :search_term OR u.last_name LIKE :search_term OR j.title LIKE :search_term OR sp.skills LIKE :search_term)";
         $params[':search_term'] = "%" . $search_term . "%";
@@ -99,6 +105,7 @@ try {
 
     $stmt = $db->prepare($query);
 
+    // Bind parameters with correct PDO types
     foreach ($params as $key => &$val) {
         $param_type = is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR;
         $stmt->bindParam($key, $val, $param_type);

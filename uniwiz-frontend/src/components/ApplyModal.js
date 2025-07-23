@@ -1,22 +1,28 @@
 // FILE: src/components/ApplyModal.js (Updated - Fixed Button Styling)
 // =================================================================
+// This modal allows a student to submit a proposal when applying for a job.
 
 import React, { useState } from 'react';
 
+// --- ApplyModal: Modal for submitting a job application proposal ---
 function ApplyModal({ isOpen, onClose, jobTitle, onSubmit }) {
+    // --- State for proposal text and loading state ---
     const [proposal, setProposal] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // --- Handle submit button click ---
     const handleSubmit = async () => {
         setIsLoading(true);
-        // onSubmit ශ්‍රිතය (App.js වෙතින්) API ඇමතුම හසුරුවනු ඇත
+        // onSubmit function (from App.js) will handle the API call
         await onSubmit(proposal);
         setIsLoading(false);
-        onClose(); // ඉදිරිපත් කිරීමෙන් පසු modal එක වසන්න
+        onClose(); // Close modal after submitting
     };
 
+    // --- Don't render modal if not open ---
     if (!isOpen) return null;
 
+    // --- Main Render: Modal layout with proposal textarea and submit button ---
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg relative">

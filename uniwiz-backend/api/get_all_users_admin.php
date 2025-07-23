@@ -1,31 +1,33 @@
 <?php
-// FILE: uniwiz-backend/api/get_all_users_admin.php (FIXED for robust filtering)
+// FILE: uniwiz-backend/api/get_all_users_admin.php
 // ==========================================================
 // This endpoint provides all user data specifically for the admin panel,
-// now with improved filtering for role, verification status, and account status.
+// with robust filtering for role, verification status, account status, and search.
 
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Content-Type: application/json; charset=UTF-8"); // Respond with JSON
+header("Access-Control-Allow-Methods: GET, OPTIONS"); // Allow GET and OPTIONS methods
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
 
+// Handle preflight OPTIONS request for CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 
+// Check if database connection is successful
 if ($db === null) {
     http_response_code(503);
     echo json_encode(["message" => "Database connection failed."]);
     exit();
 }
 
-// Get filter parameters from query string
+// Get filter parameters from query string (with defaults)
 $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
 $role_filter = isset($_GET['role']) ? trim($_GET['role']) : 'All'; // 'All', 'student', 'publisher', 'admin'
 $is_verified_param = isset($_GET['is_verified']) ? $_GET['is_verified'] : 'All'; // '0', '1', 'All'
@@ -33,6 +35,7 @@ $status_param = isset($_GET['status']) ? trim($_GET['status']) : 'All'; // 'acti
 $sort_order = isset($_GET['sort_order']) ? trim($_GET['sort_order']) : 'newest'; // 'newest', 'oldest'
 
 try {
+    // Build the main query with optional filters and sorting
     $query = "
         SELECT 
             u.id, 
@@ -75,32 +78,32 @@ try {
 
     $params = [];
 
-    // Add role filter
+    // Add role filter if specified
     if ($role_filter !== 'All' && in_array($role_filter, ['student', 'publisher', 'admin'])) {
         $query .= " AND u.role = :role_filter";
         $params[':role_filter'] = $role_filter;
     }
 
-    // Add verification status filter
+    // Add verification status filter if specified
     // Check explicitly for '0' or '1' as string, then cast to int for PDO
     if ($is_verified_param === '0' || $is_verified_param === '1') {
         $query .= " AND u.is_verified = :is_verified_filter";
         $params[':is_verified_filter'] = (int)$is_verified_param;
     }
 
-    // Add account status filter
+    // Add account status filter if specified
     if ($status_param !== 'All' && in_array($status_param, ['active', 'blocked'])) {
         $query .= " AND u.status = :status_filter";
         $params[':status_filter'] = $status_param;
     }
 
-    // Add search term filter
+    // Add search term filter (matches first name, last name, email, or company name)
     if (!empty($search_term)) {
         $query .= " AND (u.first_name LIKE :search_term OR u.last_name LIKE :search_term OR u.email LIKE :search_term OR u.company_name LIKE :search_term)";
         $params[':search_term'] = "%" . $search_term . "%";
     }
 
-    // Add sorting
+    // Add sorting (newest or oldest)
     if ($sort_order === 'oldest') {
         $query .= " ORDER BY u.created_at ASC";
     } else { // Default to 'newest'
@@ -109,6 +112,7 @@ try {
 
     $stmt = $db->prepare($query);
 
+    // Bind parameters with correct PDO types
     foreach ($params as $key => &$val) {
         // Determine PDO parameter type dynamically
         $param_type = PDO::PARAM_STR; // Default to string

@@ -1,9 +1,10 @@
 // FILE: src/components/ViewApplicants.js
+// ==========================================================
+// This component allows publishers to view, accept, reject, and message applicants for a job.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-// --- Reusable Components ---
-
+// --- Notification: Shows a temporary message at the top right ---
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => onClose(), 3000);
@@ -17,12 +18,14 @@ const Notification = ({ message, type, onClose }) => {
     );
 };
 
+// --- LoadingSpinner: Shows a loading animation while fetching data ---
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-main"></div>
     </div>
 );
 
+// --- StatusBadge: Shows application status as a colored badge ---
 const StatusBadge = ({ status }) => {
     const statusMap = {
         pending: "bg-yellow-100 text-yellow-800",
@@ -34,10 +37,12 @@ const StatusBadge = ({ status }) => {
     return <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusMap[status] || statusMap.default}`}>{status}</span>;
 };
 
+// --- ApplicantDetailModal: Shows detailed info about an applicant ---
 const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitiateConversation }) => {
     const [currentStatus, setCurrentStatus] = useState(applicant ? applicant.status : '');
     const modalRef = useRef();
 
+    // --- Mark as viewed if opened and status is pending ---
     useEffect(() => {
         if (applicant && applicant.status === 'pending') {
             onStatusChange(applicant.application_id, 'viewed', false);
@@ -47,6 +52,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
         }
     }, [applicant, onStatusChange]);
     
+    // --- Close modal on Escape key ---
     useEffect(() => {
         const handleKeyDown = (event) => { if (event.key === 'Escape') onClose(); };
         window.addEventListener('keydown', handleKeyDown);
@@ -55,11 +61,13 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
 
     if (!applicant) return null;
 
+    // --- Handle status change buttons ---
     const handleStatusButtonClick = (newStatus) => {
         onStatusChange(applicant.application_id, newStatus, true);
         setCurrentStatus(newStatus);
     };
 
+    // --- Handle message button click ---
     const onMessageClick = () => {
         const targetInfo = {
             targetUserId: applicant.student_id,
@@ -76,6 +84,7 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
     const canTakeAction = currentStatus === 'pending' || currentStatus === 'viewed';
     const skills = applicant.skills ? applicant.skills.split(',').map(s => s.trim()) : [];
 
+    // --- Main Render: Applicant details modal layout ---
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4" onClick={onClose}>
             <div ref={modalRef} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -153,7 +162,9 @@ const ApplicantDetailModal = ({ applicant, onClose, onStatusChange, handleInitia
     );
 };
 
+// --- Main ViewApplicants component ---
 function ViewApplicants({ job, onBack, handleInitiateConversation }) {
+    // --- State for applicants, loading, error, modal, notification ---
     const [applicants, setApplicants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -161,10 +172,12 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [notification, setNotification] = useState({ message: '', type: '', key: 0 });
 
+    // --- Show notification message ---
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type, key: Date.now() });
     };
 
+    // --- Handle status change for an application ---
     const handleStatusChange = async (applicationId, newStatus, showNotif = true) => {
         try {
             const response = await fetch(`http://uniwiz-backend.test/api/update_application_status.php`, {
@@ -185,6 +198,7 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
         }
     };
     
+    // --- Fetch applicants for the job on mount ---
     useEffect(() => {
         const fetchApplicants = async () => {
             if (!job || !job.id) return;
@@ -205,21 +219,25 @@ function ViewApplicants({ job, onBack, handleInitiateConversation }) {
         fetchApplicants();
     }, [job]);
 
+    // --- Open applicant details modal ---
     const handleViewDetails = (applicant) => {
         setSelectedApplicant(applicant);
         setIsModalOpen(true);
     };
     
+    // --- Close applicant details modal ---
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedApplicant(null);
     };
     
+    // --- Handle status update from table actions ---
     const handleStatusUpdateInTable = (e, applicationId, newStatus) => {
         e.stopPropagation();
         handleStatusChange(applicationId, newStatus, true);
     };
 
+    // --- Main Render: Applicants table and modal ---
     return (
         <div className="p-8 bg-bg-publisher-dashboard min-h-screen">
             {notification.message && <Notification key={notification.key} message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '', key: 0 })} />}

@@ -1,19 +1,19 @@
 <?php
-// FILE: uniwiz-backend/api/update_job.php (ENHANCED with all fields)
+// FILE: uniwiz-backend/api/update_job.php
 // ===================================================
-// This file handles updating an existing job posting with all details.
+// This endpoint handles updating an existing job posting with all details.
 
 // --- Headers & DB Connection ---
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Respond with JSON
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
-include_once '../config/database.php';
+include_once '../config/database.php'; // Include database connection
 $database = new Database();
 $db = $database->getConnection();
 if ($db === null) { 
@@ -32,7 +32,7 @@ if ($data === null || !isset($data->id) || !isset($data->title)) {
 }
 
 try {
-    // **CHANGE**: Added all new fields to the UPDATE query
+    // Update all job fields with new values
     $query = "
         UPDATE jobs SET 
             title = :title,
@@ -75,7 +75,6 @@ try {
     $working_hours = isset($data->working_hours) ? htmlspecialchars(strip_tags($data->working_hours)) : null;
     $experience_level = isset($data->experience_level) ? htmlspecialchars(strip_tags($data->experience_level)) : 'any';
 
-
     // Bind parameters
     $stmt->bindParam(':job_id', $job_id);
     $stmt->bindParam(':title', $title);
@@ -95,7 +94,6 @@ try {
     $stmt->bindParam(':vacancies', $vacancies, PDO::PARAM_INT);
     $stmt->bindParam(':working_hours', $working_hours);
     $stmt->bindParam(':experience_level', $experience_level);
-
 
     if ($stmt->execute()) {
         http_response_code(200);
