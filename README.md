@@ -1,7 +1,7 @@
 # UniWiz Parttime 🎓💼
 
 <p align="center">
-  <img src="public/logo.png" alt="UniWiz Banner" width="200"/>
+  <img src="/uniwiz-frontend/public/logo.png" alt="UniWiz Banner" width="220"/>
 </p>
 
 > **UniWiz Parttime** — A comprehensive platform connecting university students with part-time job opportunities and employers.
@@ -10,7 +10,9 @@
 
 ## 🌀 Live Demo Animation
 
-![App Animation](public/demo.gif)
+<p align="center">
+  <img src="public/demo.webm" alt="App Animation" width="500"/>
+</p>
 
 ---
 
