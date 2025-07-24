@@ -1,20 +1,13 @@
 # UniWiz Parttime 🎓💼
 
 <p align="center">
-  <img src="/uniwiz-frontend/public/logo.png" alt="UniWiz Banner" width="220"/>
+  <img src="/uniwiz-frontend/public/logo.png" alt="UniWiz Banner" width="150"/>
 </p>
 
 > **UniWiz Parttime** — A comprehensive platform connecting university students with part-time job opportunities and employers.
 
 ---
 
-## 🌀 Live Demo Animation
-
-<p align="center">
-  <img src="public/demo.webm" alt="App Animation" width="500"/>
-</p>
-
----
 
 ## 🛠️ Features
 
@@ -50,15 +43,6 @@
 
 ---
 
-## 📸 Screenshots & Animations
-
-| Dashboard | Job Apply Modal | Chat System |
-|-----------|----------------|-------------|
-| ![Dashboard](public/dashboard.gif) | ![Apply](public/apply.gif) | ![Chat](public/chat.gif) |
-
-> **Tip:** Place your UI GIFs or images in the `public/` folder and update the paths above as needed.
-
----
 
 ## 🤝 Contributors
 
