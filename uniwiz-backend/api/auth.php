@@ -154,29 +154,39 @@ if ($data->action === 'register') {
                 // Send verification email
                 $mail = new PHPMailer(true);
                 try {
-                    if (empty($_ENV['SMTP_PASS'])) {
-                        throw new Exception('SMTP password not configured in .env file.');
-                    }
-                    $mail->isSMTP();
-                    $mail->Host       = $_ENV['SMTP_HOST'];
-                    $mail->SMTPAuth   = true;
-                    $mail->Username   = $_ENV['SMTP_USER'];
-                    $mail->Password   = $_ENV['SMTP_PASS'];
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port       = $_ENV['SMTP_PORT'];
+                    // SMTP Configuration with fallback values
+                    $smtp_host = $_ENV['SMTP_HOST'] ?? 'smtp.gmail.com';
+                    $smtp_port = $_ENV['SMTP_PORT'] ?? 587;
+                    $smtp_user = $_ENV['SMTP_USER'] ?? 'uniwiz22@gmail.com';
+                    $smtp_pass = $_ENV['SMTP_PASS'] ?? 'your_app_password_here';
+                    
+                    if (empty($smtp_pass) || $smtp_pass === 'your_app_password_here') {
+                        error_log("SMTP password not configured. Please set SMTP_PASS in .env file.");
+                        // Continue with registration even if email fails
+                    } else {
+                        $mail->isSMTP();
+                        $mail->Host       = $smtp_host;
+                        $mail->SMTPAuth   = true;
+                        $mail->Username   = $smtp_user;
+                        $mail->Password   = $smtp_pass;
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port       = $smtp_port;
 
-                    $mail->setFrom('uniwizparttime@gmail.com', 'UniWiz');
-                    $mail->addAddress($email);
-                    $mail->isHTML(true);
-                    $mail->Subject = 'Verify Your Email Address for UniWiz';
-                    
-                    // Verification link
-                    $verification_link = 'http://uniwiz-backend.test/api/verify_email.php?token=' . $verification_token;
-                    
-                    $mail->Body    = "<h2>Welcome to UniWiz!</h2><p>Thank you for registering. Please click the link below to verify your email address:</p><p><a href='{$verification_link}' style='padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;'>Verify My Email</a></p><p>If you did not create an account, no further action is required.</p>";
-                    $mail->send();
+                        $mail->setFrom('uniwiz22@gmail.com', 'UniWiz');
+                        $mail->addAddress($email);
+                        $mail->isHTML(true);
+                        $mail->Subject = 'Verify Your Email Address for UniWiz';
+                        
+                        // Verification link
+                        $verification_link = 'http://uniwiz-backend.test/api/verify_email.php?token=' . $verification_token;
+                        
+                        $mail->Body    = "<h2>Welcome to UniWiz!</h2><p>Thank you for registering. Please click the link below to verify your email address:</p><p><a href='{$verification_link}' style='padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;'>Verify My Email</a></p><p>If you did not create an account, no further action is required.</p>";
+                        $mail->send();
+                        error_log("Verification email sent successfully to: " . $email);
+                    }
                 } catch (Exception $e) {
                     error_log("Mailer Error: {$mail->ErrorInfo}");
+                    error_log("Failed to send verification email to: " . $email);
                 }
 
                 $new_user = getFullUserProfile($db, $new_user_id);
@@ -189,6 +199,69 @@ if ($data->action === 'register') {
                 throw new Exception("Failed to execute statement.");
             }
         }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(["message" => "An unexpected server error occurred: " . $e->getMessage()]);
+    }
+
+} elseif ($data->action === 'magic_login') {
+    // --- Magic Link Login (HMAC stateless token) ---
+    if (!isset($data->token)) {
+        http_response_code(400);
+        echo json_encode(["message" => "Token is required for magic login."]);
+        exit();
+    }
+
+    try {
+        $secret = $_ENV['MAGIC_SECRET'] ?? 'change_me_in_env';
+        $raw = base64_decode(strtr($data->token, '-_', '+/'));
+        if (!$raw) {
+            http_response_code(400);
+            echo json_encode(["message" => "Invalid token format."]);
+            exit();
+        }
+        $parts = explode('|', $raw);
+        if (count($parts) !== 3) {
+            http_response_code(400);
+            echo json_encode(["message" => "Malformed token."]);
+            exit();
+        }
+
+        list($user_id, $issued_at, $sig) = $parts;
+        $expected = hash_hmac('sha256', $user_id . '|' . $issued_at, $secret);
+        if (!hash_equals($expected, $sig)) {
+            http_response_code(401);
+            echo json_encode(["message" => "Invalid token signature."]);
+            exit();
+        }
+
+        // Expire after 15 minutes
+        if (time() - (int)$issued_at > 900) {
+            http_response_code(401);
+            echo json_encode(["message" => "Token expired. Please log in manually."]);
+            exit();
+        }
+
+        // Load user and ensure not blocked and email verified
+        $stmt = $db->prepare("SELECT id, role, status, email_verified_at FROM users WHERE id = :id");
+        $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
+        $stmt->execute();
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(["message" => "User not found."]);
+            exit();
+        }
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row['status'] === 'blocked') {
+            http_response_code(403);
+            echo json_encode(["message" => "Your account has been blocked by the administrator."]);
+            exit();
+        }
+        // Email verification not required for magic login
+
+        $full_user_profile = getFullUserProfile($db, $row['id']);
+        http_response_code(200);
+        echo json_encode(["message" => "Login successful.", "user" => $full_user_profile]);
     } catch (Exception $e) {
         http_response_code(500);
         echo json_encode(["message" => "An unexpected server error occurred: " . $e->getMessage()]);
@@ -217,12 +290,7 @@ if ($data->action === 'register') {
                 exit();
             }
 
-            // Require email verification for non-admins
-            if ($row['role'] !== 'admin' && $row['email_verified_at'] === null) {
-                http_response_code(403);
-                echo json_encode(["message" => "Please verify your email address before logging in."]);
-                exit();
-            }
+            // Email verification not required for normal login
 
             // Verify password
             if (password_verify($data->password, $row['password'])) {

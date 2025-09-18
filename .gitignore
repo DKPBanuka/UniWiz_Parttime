@@ -1,0 +1,9 @@
+uniwiz-backend/uploads/
+uniwiz-backend/api/uploads/
+
+uniwiz-frontend/node_modules/
+uniwiz-frontend/build/
+
+.DS_Store
+Thumbs.db
+*.log

@@ -145,8 +145,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
     const [errorJobs, setErrorJobs] = useState(null);
 
-    const [showVerifyMsg, setShowVerifyMsg] = useState(false);
-    const isVerified = currentUser && (currentUser.is_verified === true || currentUser.is_verified === 1);
+    // Verification no longer blocks applying
 
     const [showPostVerifyMessage, setShowPostVerifyMessage] = useState(currentUser && currentUser.is_verified);
     useEffect(() => {
@@ -203,13 +202,8 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
         setPage('applied-jobs');
     };
 
-    // --- Handler for apply button ---
+    // --- Handler for apply button (no verify gate) ---
     const handleApplyClick = (job) => {
-        if (!isVerified) {
-            setShowVerifyMsg(true);
-            setTimeout(() => setShowVerifyMsg(false), 4000);
-            return;
-        }
         handleApply(job);
     };
 
@@ -228,11 +222,7 @@ function StudentDashboard({ currentUser, handleApply, setPage, setPublisherIdFor
     const showVerificationWarning = currentUser && !currentUser.is_verified && (stats?.profile_completion_percentage ?? 0) < 100;
     return (
         <div className="p-8 bg-gray-50 min-h-screen text-gray-800">
-            {showVerifyMsg && (
-                <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
-                    Please verify your account before applying for jobs.
-                </div>
-            )}
+            {/* Verification notice removed from blocking apply */}
             <div className="max-w-6xl mx-auto">
                 {showVerificationWarning && (
                     <div className="mb-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">

@@ -11,7 +11,7 @@
 ## 🌀 Live Demo Animation
 
 <p align="center">
-  <img src="public/demo.gif" alt="App Animation" width="500"/>
+  <img src="public/demo.webm" alt="App Animation" width="500"/>
 </p>
 
 ---

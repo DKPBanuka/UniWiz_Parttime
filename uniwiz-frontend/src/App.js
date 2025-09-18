@@ -33,6 +33,7 @@ import EditJob from './components/EditJob';
 import ViewApplicants from './components/ViewApplicants';
 import AdminSettingsPage from './components/admin/AdminSettingsPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import VerifyEmailPage from './components/VerifyEmailPage';
 
 import './output.css';
 
@@ -323,7 +324,7 @@ function App() {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [hasPendingReports, setHasPendingReports] = useState(false);
 
-  const isUserVerified = currentUser && (currentUser.is_verified === true || currentUser.is_verified === 1);
+  const isUserVerified = true; // Allow applying without admin verification
 
   const showPopupNotification = useCallback((message, type = 'info') => {
       setPopupNotification({ message, type, key: Date.now() });
@@ -432,6 +433,50 @@ function App() {
 
   useEffect(() => {
     const initializeUser = async () => {
+        // If coming back from backend verification redirect, try magic token or pending creds
+        try {
+            const params = new URLSearchParams(window.location.search);
+
+            // 1) Prefer magic link token if present
+            const magic = params.get('magic');
+            if (magic) {
+                const resp = await fetch(`${API_BASE_URL}/auth.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'magic_login', token: magic })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.user) {
+                    // Clean query param from URL without reload
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('magic');
+                    window.history.replaceState({}, '', url.pathname + url.search);
+                    await handleLoginSuccess(data.user);
+                    return;
+                }
+            }
+
+            // 2) Fallback: if verified flag and pending credentials exist, attempt silent login
+            if (params.get('verified') === '1') {
+                const pending = sessionStorage.getItem('pendingLogin');
+                if (pending) {
+                    const { email, password } = JSON.parse(pending);
+                    const resp = await fetch(`${API_BASE_URL}/auth.php`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'login', email, password })
+                    });
+                    const data = await resp.json();
+                    if (resp.ok && data.user) {
+                        sessionStorage.removeItem('pendingLogin');
+                        await handleLoginSuccess(data.user);
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Auto-login after verification failed:', e);
+        }
         const user = getSafeUserFromStorage();
         if (user) {
             try {
@@ -717,7 +762,7 @@ function App() {
               case 'find-jobs':
                 return <FindJobsPage 
                   currentUser={currentUser} 
-                  handleApply={isUserVerified ? handleOpenApplyModal : () => alert('You must verify your account to apply for jobs.')} 
+                  handleApply={handleOpenApplyModal} 
                   appliedJobs={appliedJobs} 
                   applyingStatus={applyingStatus} 
                   setPage={setPage} 
@@ -730,7 +775,7 @@ function App() {
                   user={currentUser} 
                   handleViewJobDetails={handleViewJobDetails} 
                   initialFilter={appliedJobsPageFilter} 
-                  setInitialFilter={setAppliedJobsPageFilter} 
+                  setInitialFilter={setAppliedJobsPageFilter}
                   isUserVerified={isUserVerified}
                 />;
               case 'company-profile': return <CompanyProfilePage publisherId={publisherIdForProfile} currentUser={currentUser} handleApply={handleOpenApplyModal} appliedJobs={appliedJobs} applyingStatus={applyingStatus} showNotification={showPopupNotification} handleViewJobDetails={handleViewJobDetails} />;
@@ -752,6 +797,8 @@ function App() {
              return <LandingPage setPage={setPage} />;
         case 'reset-password':
             return <ResetPasswordPage setPage={setPage} />;
+        case 'verify':
+            return <VerifyEmailPage setPage={setPage} />;
         case 'public-jobs':
             return (
                 <div className="flex flex-col h-screen bg-gray-50">

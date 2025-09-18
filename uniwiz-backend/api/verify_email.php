@@ -1,19 +1,18 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:3000"); // Allow requests from frontend
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Allow these HTTP methods
+include_once '../config/database.php';
+$database = new Database();
+
+// Frontend base URL (configurable via .env -> FRONTEND_URL). Fallback to localhost:3000
+$frontendUrl = $_ENV['FRONTEND_URL'] ?? 'http://localhost:3000';
+
+// Basic CORS headers (not strictly required for redirects)
+header("Access-Control-Allow-Origin: {$frontendUrl}");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json'); // Respond with JSON
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
-}
-// FILE: uniwiz-backend/api/verify_email.php (NEW FILE)
-// =======================================================
-// This file handles the email verification process when a user clicks the link.
-
-// --- Database Connection ---
-include_once '../config/database.php';
-$database = new Database();
+} 
 $db = $database->getConnection();
 
 if ($db === null) {
@@ -41,7 +40,9 @@ try {
 
         // 2. Check if the email is already verified
         if ($user['email_verified_at'] !== null) {
-            die("<h1>Already Verified</h1><p>This email address has already been verified. You can now log in.</p>");
+            // Already verified: redirect to frontend to trigger auto-login if pending creds exist
+            header('Location: ' . rtrim($frontendUrl, '/') . '/?verified=1&status=already');
+            exit;
         }
 
         // 3. If not verified, update the user record to set email_verified_at and clear the token
@@ -57,12 +58,17 @@ try {
         $update_stmt->bindParam(':user_id', $user['id']);
         
         if ($update_stmt->execute()) {
-            // Success message
-            // You can create a more visually appealing HTML page for this
-            echo "<h1>Verification Successful!</h1>";
-            echo "<p>Your email address has been successfully verified. You can now close this window and log in to your account.</p>";
-            // Optional: Redirect to login page after a few seconds
-            // header("refresh:5;url=http://localhost:3000/login"); 
+            // Create a short-lived magic login token (stateless, HMAC-signed)
+            $secret = $_ENV['MAGIC_SECRET'] ?? 'change_me_in_env';
+            $issued_at = time();
+            $payload = $user['id'] . '|' . $issued_at;
+            $signature = hash_hmac('sha256', $payload, $secret);
+            $token = rtrim(strtr(base64_encode($payload . '|' . $signature), '+/', '-_'), '=');
+
+            // Redirect back to frontend with magic token for auto-login
+            $redirectUrl = rtrim($frontendUrl, '/') . '/?magic=' . urlencode($token);
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             throw new Exception("Failed to update user record.");
         }

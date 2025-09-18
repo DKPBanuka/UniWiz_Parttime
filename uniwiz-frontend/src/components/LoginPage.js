@@ -81,6 +81,16 @@ function LoginPage({ onLoginSuccess, setPage, initialState }) {
                 throw new Error(result.message || 'An unknown error occurred.');
             }
             
+            if (isSignUpMode) {
+                // Save pending credentials to allow auto-login after email verification
+                try {
+                    sessionStorage.setItem('pendingLogin', JSON.stringify({ email, password }));
+                } catch (_) {}
+                // Navigate to Verify page
+                setPage('verify');
+                return;
+            }
+
             onLoginSuccess(result.user);
 
         } catch (err) {
